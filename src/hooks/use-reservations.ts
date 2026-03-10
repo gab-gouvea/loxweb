@@ -1,0 +1,49 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { reservationService } from "@/services/reservation-service"
+import type { ReservationFormData } from "@/types/reservation"
+
+export function useReservations() {
+  return useQuery({
+    queryKey: ["reservations"],
+    queryFn: () => reservationService.getAll(),
+  })
+}
+
+export function useReservationsByDateRange(start: string, end: string) {
+  return useQuery({
+    queryKey: ["reservations", "range", start, end],
+    queryFn: () => reservationService.getByDateRange(start, end),
+    enabled: !!start && !!end,
+  })
+}
+
+export function useCreateReservation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: ReservationFormData) => reservationService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reservations"] })
+    },
+  })
+}
+
+export function useUpdateReservation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<ReservationFormData> }) =>
+      reservationService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reservations"] })
+    },
+  })
+}
+
+export function useDeleteReservation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => reservationService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reservations"] })
+    },
+  })
+}

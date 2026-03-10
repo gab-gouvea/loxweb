@@ -22,10 +22,10 @@ export function ComponentDialog({ open, onOpenChange, propertyId, component }: C
         { id: component.id, propertyId, data },
         {
           onSuccess: () => {
-            toast.success("Componente atualizado")
+            toast.success("Serviço atualizado")
             onOpenChange(false)
           },
-          onError: () => toast.error("Erro ao atualizar componente"),
+          onError: () => toast.error("Erro ao atualizar serviço"),
         }
       )
     } else {
@@ -33,10 +33,10 @@ export function ComponentDialog({ open, onOpenChange, propertyId, component }: C
         { propertyId, data },
         {
           onSuccess: () => {
-            toast.success("Componente adicionado")
+            toast.success("Serviço adicionado")
             onOpenChange(false)
           },
-          onError: () => toast.error("Erro ao adicionar componente"),
+          onError: () => toast.error("Erro ao adicionar serviço"),
         }
       )
     }
@@ -46,7 +46,7 @@ export function ComponentDialog({ open, onOpenChange, propertyId, component }: C
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Editar Componente" : "Novo Componente"}</DialogTitle>
+          <DialogTitle>{isEditing ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
         </DialogHeader>
         <ComponentForm
           component={component}

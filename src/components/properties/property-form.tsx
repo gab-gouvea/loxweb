@@ -114,7 +114,7 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
               <FormItem>
                 <FormLabel>Quartos</FormLabel>
                 <FormControl>
-                  <Input type="number" min={0} {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+                  <Input type="number" min={0} {...field} value={field.value || ""} onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

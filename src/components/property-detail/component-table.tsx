@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { format, parseISO } from "date-fns"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus, Pencil, Trash2, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { usePropertyComponents, useDeleteComponent } from "@/hooks/use-property-details"
+import { usePropertyComponents, useDeleteComponent, useUpdateComponent } from "@/hooks/use-property-details"
 import { getComponentStatus, type PropertyComponent } from "@/types/property-detail"
 import { ComponentDialog } from "./component-dialog"
 import { toast } from "sonner"
@@ -33,6 +33,7 @@ interface ComponentTableProps {
 export function ComponentTable({ propertyId }: ComponentTableProps) {
   const { data: components, isLoading } = usePropertyComponents(propertyId)
   const deleteMutation = useDeleteComponent()
+  const updateMutation = useUpdateComponent()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingComponent, setEditingComponent] = useState<PropertyComponent | undefined>()
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -47,16 +48,30 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
     if (!open) setEditingComponent(undefined)
   }
 
+  function handleConclude(component: PropertyComponent) {
+    updateMutation.mutate(
+      {
+        id: component.id,
+        propertyId,
+        data: { ultimaManutencao: new Date().toISOString() },
+      },
+      {
+        onSuccess: () => toast.success("Serviço concluído"),
+        onError: () => toast.error("Erro ao concluir serviço"),
+      }
+    )
+  }
+
   function handleDelete() {
     if (!deletingId) return
     deleteMutation.mutate(
       { id: deletingId, propertyId },
       {
         onSuccess: () => {
-          toast.success("Componente removido")
+          toast.success("Serviço removido")
           setDeletingId(null)
         },
-        onError: () => toast.error("Erro ao remover componente"),
+        onError: () => toast.error("Erro ao remover serviço"),
       }
     )
   }
@@ -68,10 +83,10 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Componentes</h2>
+        <h2 className="text-lg font-semibold">Serviços</h2>
         <Button size="sm" onClick={() => setDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Novo Componente
+          Novo Serviço
         </Button>
       </div>
 
@@ -108,6 +123,16 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-green-600 hover:text-green-700"
+                          title="Concluir serviço"
+                          onClick={() => handleConclude(comp)}
+                          disabled={updateMutation.isPending}
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(comp)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -123,7 +148,7 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
           </Table>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">Nenhum componente cadastrado.</p>
+        <p className="text-sm text-muted-foreground">Nenhum serviço cadastrado.</p>
       )}
 
       <ComponentDialog
@@ -136,7 +161,7 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
       <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover componente?</AlertDialogTitle>
+            <AlertDialogTitle>Remover serviço?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta ação não pode ser desfeita.
             </AlertDialogDescription>

@@ -48,7 +48,7 @@ export function ComponentForm({ component, onSubmit, onCancel, isSubmitting }: C
             <FormItem>
               <FormLabel>Nome</FormLabel>
               <FormControl>
-                <Input placeholder="Ex: Ar Condicionado" {...field} />
+                <Input placeholder="Ex: Manutenção de Ar Condicionado" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -134,7 +134,8 @@ export function ComponentForm({ component, onSubmit, onCancel, isSubmitting }: C
                   step={0.01}
                   placeholder="0,00"
                   {...field}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
+                  value={field.value || ""}
+                  onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
                 />
               </FormControl>
               <FormMessage />
@@ -149,7 +150,7 @@ export function ComponentForm({ component, onSubmit, onCancel, isSubmitting }: C
             <FormItem>
               <FormLabel>Observações</FormLabel>
               <FormControl>
-                <Textarea placeholder="Detalhes sobre o componente..." rows={3} {...field} />
+                <Textarea placeholder="Detalhes sobre o serviço..." rows={3} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

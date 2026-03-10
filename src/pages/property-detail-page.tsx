@@ -93,7 +93,7 @@ export function PropertyDetailPage() {
 
       <Separator className="print:hidden" />
 
-      {/* Componentes de manutenção */}
+      {/* Serviços e manutenção */}
       <div className="print:hidden">
         <ComponentTable propertyId={property.id} />
       </div>

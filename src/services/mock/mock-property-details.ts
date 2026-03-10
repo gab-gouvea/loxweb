@@ -10,7 +10,7 @@ const initialComponents: PropertyComponent[] = [
   {
     id: "comp-1",
     propriedadeId: "prop-1",
-    nome: "Ar Condicionado",
+    nome: "Manutenção de Ar Condicionado",
     ultimaManutencao: makeDate(2025, 12, 15),
     proximaManutencao: makeDate(2026, 6, 15),
     preco: 350,
@@ -28,7 +28,7 @@ const initialComponents: PropertyComponent[] = [
   {
     id: "comp-3",
     propriedadeId: "prop-2",
-    nome: "Jardim",
+    nome: "Manutenção do Jardim",
     ultimaManutencao: makeDate(2026, 2, 20),
     proximaManutencao: makeDate(2026, 4, 20),
     preco: 180,
@@ -36,16 +36,16 @@ const initialComponents: PropertyComponent[] = [
   {
     id: "comp-4",
     propriedadeId: "prop-2",
-    nome: "Plantas",
+    nome: "Cuidado com Plantas",
     ultimaManutencao: makeDate(2026, 1, 10),
     proximaManutencao: makeDate(2026, 2, 10),
     preco: 80,
-    observacoes: "Rega e poda quinzenal - ATRASADO",
+    observacoes: "Rega e poda quinzenal",
   },
   {
     id: "comp-5",
     propriedadeId: "prop-3",
-    nome: "Ar Condicionado",
+    nome: "Manutenção de Ar Condicionado",
     ultimaManutencao: makeDate(2026, 1, 5),
     proximaManutencao: makeDate(2026, 7, 5),
     preco: 300,

@@ -3,9 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { propertyColorMap } from "@/lib/colors"
 import type { Property } from "@/types/property"
-import { cn } from "@/lib/utils"
 
 const tipoLabels: Record<string, string> = {
   apartamento: "Apartamento",
@@ -23,7 +21,6 @@ interface PropertyCardProps {
 }
 
 export function PropertyCard({ property, onEdit, onDelete }: PropertyCardProps) {
-  const colors = propertyColorMap[property.cor]
   const navigate = useNavigate()
 
   return (
@@ -39,10 +36,7 @@ export function PropertyCard({ property, onEdit, onDelete }: PropertyCardProps) 
       )}
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <div className={cn("h-3 w-3 rounded-full", colors.bg)} />
-            <CardTitle className="text-base">{property.nome}</CardTitle>
-          </div>
+          <CardTitle className="text-base">{property.nome}</CardTitle>
           <div className="flex gap-1">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(property) }}>
               <Pencil className="h-4 w-4" />

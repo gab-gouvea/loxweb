@@ -1,7 +1,6 @@
 import { Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { propertyColorMap } from "@/lib/colors"
-import type { CalendarBarSegment } from "@/lib/calendar-utils"
+import type { TimelineSegment } from "@/lib/calendar-utils"
 import {
   Tooltip,
   TooltipContent,
@@ -11,8 +10,18 @@ import type { Reservation } from "@/types/reservation"
 import type { Property } from "@/types/property"
 import { formatDateShort } from "@/lib/date-utils"
 
+const statusLabels: Record<string, string> = {
+  pendente: "Pendente",
+  confirmada: "Confirmada",
+  "em andamento": "Em Andamento",
+  cancelada: "Cancelada",
+  concluída: "Concluída",
+}
+
 interface CalendarReservationBarProps {
-  segment: CalendarBarSegment
+  segment: TimelineSegment
+  colWidth: number
+  rowHeight: number
   reservation?: Reservation
   property?: Property
   onClick: (reservationId: string) => void
@@ -20,32 +29,48 @@ interface CalendarReservationBarProps {
 
 export function CalendarReservationBar({
   segment,
+  colWidth,
+  rowHeight,
   reservation,
   property,
   onClick,
 }: CalendarReservationBarProps) {
-  const colors = propertyColorMap[segment.color]
+  const barHeight = 32
+  const topOffset = (rowHeight - barHeight) / 2
+  const barWidth = (segment.endOffset - segment.startOffset) * colWidth - 4
+
+  const statusLabel = statusLabels[segment.status] ?? segment.status
+  const valueLabel = segment.precoTotal
+    ? `R$${segment.precoTotal.toLocaleString("pt-BR")}`
+    : ""
 
   const bar = (
     <button
       type="button"
       onClick={() => onClick(segment.reservationId)}
       className={cn(
-        "absolute z-[5] h-5 cursor-pointer truncate px-1.5 text-xs leading-5 text-white transition-opacity hover:opacity-90",
-        colors.bg,
-        segment.isStart ? "rounded-l-md" : "rounded-l-none",
-        segment.isEnd ? "rounded-r-md" : "rounded-r-none",
+        "absolute z-[5] cursor-pointer truncate px-2 text-xs font-medium text-white transition-opacity hover:opacity-90 bg-teal-700",
+        !segment.isClippedStart ? "rounded-l-full" : "rounded-l-none",
+        !segment.isClippedEnd ? "rounded-r-full" : "rounded-r-none",
       )}
       style={{
-        top: `${30 + segment.row * 22}px`,
-        left: `calc(${(segment.startCol / 7) * 100}% + 2px)`,
-        width: `calc(${(segment.spanCols / 7) * 100}% - 4px)`,
+        top: topOffset,
+        left: segment.startOffset * colWidth + 2,
+        width: barWidth,
+        height: barHeight,
+        lineHeight: `${barHeight}px`,
       }}
     >
-      <span className="flex items-center gap-0.5 truncate">
-        {segment.isStart && <span className="truncate">{segment.guestName}</span>}
-        {segment.isEnd && segment.faxinaPorMim && (
-          <Sparkles className="ml-auto h-3 w-3 flex-shrink-0 text-white/80" />
+      <span className="flex items-center gap-1 truncate">
+        <span className="truncate">
+          {segment.guestName}
+          {barWidth > 200 && valueLabel && ` · ${valueLabel}`}
+        </span>
+        {segment.faxinaPorMim && (
+          <Sparkles className="h-3 w-3 flex-shrink-0 text-white/80" />
+        )}
+        {barWidth > 250 && (
+          <span className="ml-auto flex-shrink-0 text-white/80">{statusLabel}</span>
         )}
       </span>
     </button>
@@ -63,7 +88,8 @@ export function CalendarReservationBar({
           <p>
             {formatDateShort(reservation.checkIn)} → {formatDateShort(reservation.checkOut)}
           </p>
-          {reservation.precoTotal && (
+          <p>{statusLabel}</p>
+          {reservation.precoTotal != null && reservation.precoTotal > 0 && (
             <p>R$ {reservation.precoTotal.toLocaleString("pt-BR")}</p>
           )}
           {reservation.faxinaPorMim && (

@@ -1,8 +1,8 @@
-import { useForm } from "react-hook-form"
+import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { format, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, Plus, Trash2 } from "lucide-react"
 import {
   reservationFormSchema,
   reservationStatuses,
@@ -33,11 +33,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { useProperties } from "@/hooks/use-properties"
 import { cn } from "@/lib/utils"
-import { propertyColorMap } from "@/lib/colors"
 
 const statusLabels: Record<string, string> = {
-  confirmada: "Confirmada",
   pendente: "Pendente",
+  confirmada: "Confirmada",
+  "em andamento": "Em Andamento",
   cancelada: "Cancelada",
   concluída: "Concluída",
 }
@@ -80,7 +80,13 @@ export function ReservationForm({
       numHospedes: reservation?.numHospedes ?? 1,
       faxinaPorMim: reservation?.faxinaPorMim ?? false,
       valorFaxina: reservation?.valorFaxina ?? undefined,
+      despesas: reservation?.despesas ?? [],
     },
+  })
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "despesas",
   })
 
   return (
@@ -91,7 +97,7 @@ export function ReservationForm({
           name="nomeHospede"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nome do Hóspede</FormLabel>
+              <FormLabel>Nome do Hospede</FormLabel>
               <FormControl>
                 <Input placeholder="Ex: Maria Silva" {...field} />
               </FormControl>
@@ -115,10 +121,7 @@ export function ReservationForm({
                 <SelectContent>
                   {properties?.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
-                      <span className="flex items-center gap-2">
-                        <span className={cn("inline-block h-2.5 w-2.5 rounded-full", propertyColorMap[p.cor].bg)} />
-                        {p.nome}
-                      </span>
+                      {p.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -252,7 +255,7 @@ export function ReservationForm({
             name="numHospedes"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Hóspedes</FormLabel>
+                <FormLabel>Hospedes</FormLabel>
                 <FormControl>
                   <Input type="number" min={1} {...field} value={field.value || ""} onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))} />
                 </FormControl>
@@ -326,6 +329,89 @@ export function ReservationForm({
           )}
         </div>
 
+        {/* Despesas */}
+        <div className="space-y-3 rounded-lg border p-3">
+          <div className="flex items-center justify-between">
+            <FormLabel className="text-sm font-medium">Despesas</FormLabel>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => append({ descricao: "", valor: 0, reembolsavel: false })}
+            >
+              <Plus className="mr-1 h-3 w-3" />
+              Adicionar
+            </Button>
+          </div>
+
+          {fields.length === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhuma despesa adicionada.</p>
+          )}
+
+          {fields.map((field, index) => (
+            <div key={field.id} className="space-y-2 rounded border p-2">
+              <div className="flex items-start gap-2">
+                <FormField
+                  control={form.control}
+                  name={`despesas.${index}.descricao`}
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormControl>
+                        <Input placeholder="Nome do item ou descrição da despesa" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`despesas.${index}.valor`}
+                  render={({ field }) => (
+                    <FormItem className="w-28">
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          placeholder="R$"
+                          {...field}
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-destructive"
+                  onClick={() => remove(index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <FormField
+                control={form.control}
+                name={`despesas.${index}.reembolsavel`}
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormLabel className="text-xs font-normal">Reembolsavel</FormLabel>
+                  </FormItem>
+                )}
+              />
+            </div>
+          ))}
+        </div>
+
         <FormField
           control={form.control}
           name="notas"
@@ -333,7 +419,7 @@ export function ReservationForm({
             <FormItem>
               <FormLabel>Notas</FormLabel>
               <FormControl>
-                <Textarea placeholder="Observações sobre a reserva..." rows={3} {...field} />
+                <Textarea placeholder="Observacoes sobre a reserva..." rows={3} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

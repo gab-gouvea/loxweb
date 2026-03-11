@@ -1,30 +1,33 @@
 import { create } from "zustand"
-import { addMonths, subMonths, startOfMonth } from "date-fns"
+import { addDays, subDays, startOfDay } from "date-fns"
 
 interface CalendarState {
-  currentMonth: Date
+  startDate: Date
+  visibleDays: number
   selectedPropertyIds: string[] | null
   selectedReservationId: string | null
 
-  setCurrentMonth: (month: Date) => void
-  goToPreviousMonth: () => void
-  goToNextMonth: () => void
+  goForward: () => void
+  goBack: () => void
   goToToday: () => void
+  setStartDate: (date: Date) => void
   setPropertyFilter: (ids: string[] | null) => void
   setSelectedReservation: (id: string | null) => void
 }
 
 export const useCalendarStore = create<CalendarState>((set) => ({
-  currentMonth: startOfMonth(new Date()),
+  startDate: startOfDay(subDays(new Date(), 2)),
+  visibleDays: 14,
   selectedPropertyIds: null,
   selectedReservationId: null,
 
-  setCurrentMonth: (month) => set({ currentMonth: startOfMonth(month) }),
-  goToPreviousMonth: () =>
-    set((state) => ({ currentMonth: subMonths(state.currentMonth, 1) })),
-  goToNextMonth: () =>
-    set((state) => ({ currentMonth: addMonths(state.currentMonth, 1) })),
-  goToToday: () => set({ currentMonth: startOfMonth(new Date()) }),
+  goForward: () =>
+    set((state) => ({ startDate: addDays(state.startDate, 7) })),
+  goBack: () =>
+    set((state) => ({ startDate: subDays(state.startDate, 7) })),
+  goToToday: () =>
+    set({ startDate: startOfDay(subDays(new Date(), 2)) }),
+  setStartDate: (date) => set({ startDate: startOfDay(date) }),
   setPropertyFilter: (ids) => set({ selectedPropertyIds: ids }),
   setSelectedReservation: (id) => set({ selectedReservationId: id }),
 }))

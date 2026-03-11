@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns"
+import { addDays } from "date-fns"
 import { useCalendarStore } from "@/hooks/use-calendar-store"
 import { useReservationsByDateRange } from "@/hooks/use-reservations"
 import { useProperties } from "@/hooks/use-properties"
@@ -9,21 +9,24 @@ import { ReservationDialog } from "@/components/reservations/reservation-dialog"
 import type { Reservation } from "@/types/reservation"
 
 export function CalendarPage() {
-  const { currentMonth, selectedPropertyIds } = useCalendarStore()
+  const { startDate, visibleDays, selectedPropertyIds } = useCalendarStore()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingReservation, setEditingReservation] = useState<Reservation | undefined>()
   const [defaultCheckIn, setDefaultCheckIn] = useState<Date | undefined>()
 
   const dateRange = useMemo(() => {
-    const monthStart = startOfMonth(currentMonth)
-    const monthEnd = endOfMonth(currentMonth)
-    const start = startOfWeek(monthStart, { weekStartsOn: 0 })
-    const end = endOfWeek(monthEnd, { weekStartsOn: 0 })
-    return { start: start.toISOString(), end: end.toISOString() }
-  }, [currentMonth])
+    const start = startDate.toISOString()
+    const end = addDays(startDate, visibleDays).toISOString()
+    return { start, end }
+  }, [startDate, visibleDays])
 
   const { data: reservations = [] } = useReservationsByDateRange(dateRange.start, dateRange.end)
   const { data: properties = [] } = useProperties()
+
+  const filteredProperties = useMemo(() => {
+    if (!selectedPropertyIds) return properties
+    return properties.filter((p) => selectedPropertyIds.includes(p.id))
+  }, [properties, selectedPropertyIds])
 
   function handleDayClick(date: Date) {
     setEditingReservation(undefined)
@@ -58,10 +61,10 @@ export function CalendarPage() {
     <div className="space-y-4">
       <CalendarHeader onNewReservation={handleNewReservation} />
       <CalendarGrid
-        currentMonth={currentMonth}
+        startDate={startDate}
+        visibleDays={visibleDays}
         reservations={reservations}
-        properties={properties}
-        selectedPropertyIds={selectedPropertyIds}
+        properties={filteredProperties}
         onDayClick={handleDayClick}
         onReservationClick={handleReservationClick}
       />

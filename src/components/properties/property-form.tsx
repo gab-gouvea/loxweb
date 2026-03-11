@@ -18,7 +18,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { PropertyColorPicker } from "./property-color-picker"
 
 const tipoLabels: Record<string, string> = {
   apartamento: "Apartamento",
@@ -45,7 +44,6 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
       tipo: property?.tipo ?? "apartamento",
       quartos: property?.quartos ?? 1,
       fotoCapa: property?.fotoCapa ?? "",
-      cor: property?.cor ?? "blue",
       percentualComissao: property?.percentualComissao ?? 0,
       ativo: property?.ativo ?? true,
     },
@@ -73,7 +71,7 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
           name="endereco"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Endereço</FormLabel>
+              <FormLabel>Endereco</FormLabel>
               <FormControl>
                 <Input placeholder="Ex: Rua Barata Ribeiro, 200" {...field} />
               </FormControl>
@@ -128,7 +126,7 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
           name="percentualComissao"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Comissão (%)</FormLabel>
+              <FormLabel>Comissao (%)</FormLabel>
               <FormControl>
                 <Input
                   type="number"
@@ -154,20 +152,6 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
               <FormLabel>Foto de Capa (URL)</FormLabel>
               <FormControl>
                 <Input placeholder="https://exemplo.com/foto.jpg" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="cor"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Cor no Calendário</FormLabel>
-              <FormControl>
-                <PropertyColorPicker value={field.value} onChange={field.onChange} />
               </FormControl>
               <FormMessage />
             </FormItem>

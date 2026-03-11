@@ -4,8 +4,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useProperty } from "@/hooks/use-properties"
-import { propertyColorMap } from "@/lib/colors"
-import { cn } from "@/lib/utils"
 import { ComponentTable } from "@/components/property-detail/component-table"
 import { InventoryTable } from "@/components/property-detail/inventory-table"
 
@@ -45,8 +43,6 @@ export function PropertyDetailPage() {
     )
   }
 
-  const colors = propertyColorMap[property.cor]
-
   return (
     <div className="space-y-6 print:space-y-4">
       <div className="flex items-center gap-2 print:hidden">
@@ -68,10 +64,7 @@ export function PropertyDetailPage() {
           </div>
         )}
         <div className="p-4 space-y-2">
-          <div className="flex items-center gap-3">
-            <div className={cn("h-4 w-4 rounded-full", colors.bg)} />
-            <h1 className="text-2xl font-bold">{property.nome}</h1>
-          </div>
+          <h1 className="text-2xl font-bold">{property.nome}</h1>
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <Building2 className="h-4 w-4" />

@@ -23,8 +23,6 @@ import {
 import { useReservations } from "@/hooks/use-reservations"
 import { useProperties } from "@/hooks/use-properties"
 import { formatDate } from "@/lib/date-utils"
-import { propertyColorMap } from "@/lib/colors"
-import { cn } from "@/lib/utils"
 import type { Reservation } from "@/types/reservation"
 import type { Property } from "@/types/property"
 
@@ -129,15 +127,7 @@ export function ReportsPage() {
             <SelectItem value="todos">Todas propriedades</SelectItem>
             {properties.map((p) => (
               <SelectItem key={p.id} value={p.id}>
-                <span className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "inline-block h-2.5 w-2.5 rounded-full",
-                      propertyColorMap[p.cor].bg,
-                    )}
-                  />
-                  {p.nome}
-                </span>
+                {p.nome}
               </SelectItem>
             ))}
           </SelectContent>
@@ -181,12 +171,6 @@ export function ReportsPage() {
         return (
           <div key={propertyId} className="space-y-2">
             <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "inline-block h-3 w-3 rounded-full",
-                  propertyColorMap[property.cor].bg,
-                )}
-              />
               <h3 className="text-lg font-semibold">{property.nome}</h3>
               <span className="text-sm text-muted-foreground">
                 ({property.percentualComissao}% comissão)

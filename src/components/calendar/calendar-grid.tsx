@@ -1,48 +1,51 @@
 import { useMemo } from "react"
-import { startOfWeek, endOfWeek, addDays } from "date-fns"
+import { addDays, format, isToday, getDay } from "date-fns"
 import { cn } from "@/lib/utils"
-import { getCalendarDays, getWeeks, isSameMonth, isToday, DAYS_OF_WEEK } from "@/lib/date-utils"
-import { computeBarSegments } from "@/lib/calendar-utils"
+import { computeTimelineSegments } from "@/lib/calendar-utils"
+import { DAYS_OF_WEEK } from "@/lib/date-utils"
 import { CalendarReservationBar } from "./calendar-reservation-bar"
 import type { Reservation } from "@/types/reservation"
 import type { Property } from "@/types/property"
-import type { PropertyColor } from "@/types/property"
+
+const COL_WIDTH = 80
+const ROW_HEIGHT = 48
+const HEADER_HEIGHT = 52
 
 interface CalendarGridProps {
-  currentMonth: Date
+  startDate: Date
+  visibleDays: number
   reservations: Reservation[]
   properties: Property[]
-  selectedPropertyIds: string[] | null
   onDayClick: (date: Date) => void
   onReservationClick: (reservationId: string) => void
 }
 
 export function CalendarGrid({
-  currentMonth,
+  startDate,
+  visibleDays,
   reservations,
   properties,
-  selectedPropertyIds,
   onDayClick,
   onReservationClick,
 }: CalendarGridProps) {
-  const days = useMemo(() => getCalendarDays(currentMonth), [currentMonth])
-  const weeks = useMemo(() => getWeeks(days), [days])
+  const days = useMemo(() => {
+    return Array.from({ length: visibleDays }, (_, i) => addDays(startDate, i))
+  }, [startDate, visibleDays])
 
-  const propertyColorMap = useMemo(() => {
-    const map = new Map<string, PropertyColor>()
-    for (const p of properties) {
-      map.set(p.id, p.cor)
+  const segments = useMemo(
+    () => computeTimelineSegments(reservations, startDate, visibleDays),
+    [reservations, startDate, visibleDays],
+  )
+
+  const segmentsByProperty = useMemo(() => {
+    const map = new Map<string, typeof segments>()
+    for (const seg of segments) {
+      const list = map.get(seg.propertyId) ?? []
+      list.push(seg)
+      map.set(seg.propertyId, list)
     }
     return map
-  }, [properties])
-
-  const propertyMap = useMemo(() => {
-    const map = new Map<string, Property>()
-    for (const p of properties) {
-      map.set(p.id, p)
-    }
-    return map
-  }, [properties])
+  }, [segments])
 
   const reservationMap = useMemo(() => {
     const map = new Map<string, Reservation>()
@@ -52,88 +55,111 @@ export function CalendarGrid({
     return map
   }, [reservations])
 
-  const filteredReservations = useMemo(() => {
-    if (!selectedPropertyIds) return reservations
-    return reservations.filter((r) => selectedPropertyIds.includes(r.propriedadeId))
-  }, [reservations, selectedPropertyIds])
+  const propertyMap = useMemo(() => {
+    const map = new Map<string, Property>()
+    for (const p of properties) {
+      map.set(p.id, p)
+    }
+    return map
+  }, [properties])
 
   return (
-    <div className="rounded-lg border">
-      {/* Header row */}
-      <div className="grid grid-cols-7 border-b">
-        {DAYS_OF_WEEK.map((day) => (
+    <div className="rounded-lg border overflow-hidden flex">
+      {/* Property sidebar */}
+      <div className="shrink-0 w-[200px] border-r bg-muted/30">
+        <div
+          className="border-b flex items-center px-3 text-sm font-medium text-muted-foreground"
+          style={{ height: HEADER_HEIGHT }}
+        >
+          Imóveis
+        </div>
+        {properties.map((prop) => (
           <div
-            key={day}
-            className="border-r py-2 text-center text-sm font-medium text-muted-foreground last:border-r-0"
+            key={prop.id}
+            className="border-b last:border-b-0 flex items-center gap-2 px-3"
+            style={{ height: ROW_HEIGHT }}
           >
-            {day}
+            <span className="truncate text-sm font-medium">{prop.nome}</span>
           </div>
         ))}
       </div>
 
-      {/* Week rows */}
-      {weeks.map((week, weekIndex) => {
-        const weekStart = startOfWeek(week[0], { weekStartsOn: 0 })
-        const weekEnd = endOfWeek(week[0], { weekStartsOn: 0 })
-
-        const segments = computeBarSegments(
-          filteredReservations,
-          weekStart,
-          addDays(weekEnd, 0),
-          propertyColorMap,
-        )
-
-        const maxRow = segments.length > 0
-          ? Math.max(...segments.map((s) => s.row))
-          : -1
-        const minHeight = Math.max(90, 34 + (maxRow + 1) * 22 + 8)
-
-        return (
-          <div
-            key={weekIndex}
-            className="relative grid grid-cols-7 border-b last:border-b-0"
-            style={{ minHeight: `${minHeight}px` }}
-          >
-            {/* Day cells */}
-            {week.map((day, dayIndex) => {
-              const inMonth = isSameMonth(day, currentMonth)
+      {/* Timeline area */}
+      <div className="flex-1 overflow-x-auto">
+        <div style={{ width: visibleDays * COL_WIDTH }}>
+          {/* Day headers */}
+          <div className="flex border-b" style={{ height: HEADER_HEIGHT }}>
+            {days.map((day, i) => {
               const today = isToday(day)
-
               return (
-                <button
-                  key={dayIndex}
-                  type="button"
-                  onClick={() => onDayClick(day)}
+                <div
+                  key={i}
                   className={cn(
-                    "border-r p-1 text-left last:border-r-0 hover:bg-accent/50 transition-colors",
-                    !inMonth && "bg-muted/30 text-muted-foreground",
+                    "shrink-0 border-r last:border-r-0 flex flex-col items-center justify-center",
+                    today && "bg-primary/10",
                   )}
+                  style={{ width: COL_WIDTH }}
                 >
+                  <span className="text-xs text-muted-foreground">
+                    {DAYS_OF_WEEK[getDay(day)]}
+                  </span>
                   <span
                     className={cn(
-                      "relative z-10 inline-flex h-6 w-6 items-center justify-center rounded-full text-sm",
-                      today && "bg-primary text-primary-foreground font-bold",
+                      "text-sm font-medium",
+                      today &&
+                        "bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center",
                     )}
                   >
-                    {day.getDate()}
+                    {format(day, "d")}
                   </span>
-                </button>
+                </div>
               )
             })}
-
-            {/* Reservation bars */}
-            {segments.map((segment) => (
-              <CalendarReservationBar
-                key={`${segment.reservationId}-${segment.startCol}`}
-                segment={segment}
-                reservation={reservationMap.get(segment.reservationId)}
-                property={propertyMap.get(segment.propertyId)}
-                onClick={onReservationClick}
-              />
-            ))}
           </div>
-        )
-      })}
+
+          {/* Property rows */}
+          {properties.map((prop) => {
+            const propSegments = segmentsByProperty.get(prop.id) ?? []
+            return (
+              <div
+                key={prop.id}
+                className="relative flex border-b last:border-b-0"
+                style={{ height: ROW_HEIGHT }}
+              >
+                {/* Day cells (clickable) */}
+                {days.map((day, i) => {
+                  const today = isToday(day)
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => onDayClick(day)}
+                      className={cn(
+                        "shrink-0 border-r last:border-r-0 h-full hover:bg-accent/50 transition-colors",
+                        today && "bg-primary/5",
+                      )}
+                      style={{ width: COL_WIDTH }}
+                    />
+                  )
+                })}
+
+                {/* Reservation bars for this property */}
+                {propSegments.map((seg) => (
+                  <CalendarReservationBar
+                    key={seg.reservationId}
+                    segment={seg}
+                    colWidth={COL_WIDTH}
+                    rowHeight={ROW_HEIGHT}
+                    reservation={reservationMap.get(seg.reservationId)}
+                    property={propertyMap.get(seg.propertyId)}
+                    onClick={onReservationClick}
+                  />
+                ))}
+              </div>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }

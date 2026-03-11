@@ -1,11 +1,5 @@
 import { z } from "zod/v4"
 
-export const propertyColors = [
-  "blue", "green", "orange", "purple", "pink", "teal", "red", "yellow", "indigo", "cyan",
-] as const
-
-export type PropertyColor = (typeof propertyColors)[number]
-
 export const propertyTypes = [
   "apartamento", "casa", "studio", "chalé", "flat", "outro",
 ] as const
@@ -20,7 +14,6 @@ export const propertySchema = z.object({
   tipo: z.enum(propertyTypes),
   quartos: z.number().int().min(0),
   fotoCapa: z.string().url("URL inválida").optional(),
-  cor: z.enum(propertyColors),
   percentualComissao: z.number().min(0).max(100),
   ativo: z.boolean(),
   criadoEm: z.string(),
@@ -36,7 +29,6 @@ export const propertyFormSchema = z.object({
   tipo: z.enum(propertyTypes),
   quartos: z.number().int().min(0),
   fotoCapa: z.string().url("URL inválida").or(z.literal("")).optional(),
-  cor: z.enum(propertyColors),
   percentualComissao: z.number().min(0, "Mínimo 0%").max(100, "Máximo 100%"),
   ativo: z.boolean(),
 })

@@ -1,7 +1,7 @@
 import { z } from "zod/v4"
 
 export const reservationStatuses = [
-  "confirmada", "pendente", "cancelada", "concluída",
+  "pendente", "confirmada", "em andamento", "cancelada", "concluída",
 ] as const
 
 export type ReservationStatus = (typeof reservationStatuses)[number]
@@ -11,6 +11,14 @@ export const reservationSources = [
 ] as const
 
 export type ReservationSource = (typeof reservationSources)[number]
+
+export const despesaSchema = z.object({
+  descricao: z.string().min(1, "Descrição é obrigatória"),
+  valor: z.number().min(0),
+  reembolsavel: z.boolean(),
+})
+
+export type Despesa = z.infer<typeof despesaSchema>
 
 export const reservationSchema = z.object({
   id: z.string(),
@@ -25,6 +33,7 @@ export const reservationSchema = z.object({
   numHospedes: z.number().int().min(1),
   faxinaPorMim: z.boolean(),
   valorFaxina: z.number().min(0).optional(),
+  despesas: z.array(despesaSchema).optional(),
   criadoEm: z.string(),
   atualizadoEm: z.string(),
 })
@@ -43,6 +52,7 @@ export const reservationFormSchema = z.object({
   numHospedes: z.number().int().min(1),
   faxinaPorMim: z.boolean(),
   valorFaxina: z.number().min(0).optional(),
+  despesas: z.array(despesaSchema).optional(),
 })
 
 export type ReservationFormData = z.infer<typeof reservationFormSchema>

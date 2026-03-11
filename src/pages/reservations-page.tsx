@@ -22,8 +22,6 @@ import { ReservationDialog } from "@/components/reservations/reservation-dialog"
 import { ReservationDeleteDialog } from "@/components/reservations/reservation-delete-dialog"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
 import { formatDate } from "@/lib/date-utils"
-import { propertyColorMap } from "@/lib/colors"
-import { cn } from "@/lib/utils"
 import type { Reservation, ReservationStatus } from "@/types/reservation"
 
 const sourceLabels: Record<string, string> = {
@@ -86,8 +84,9 @@ export function ReservationsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos os status</SelectItem>
-            <SelectItem value="confirmada">Confirmada</SelectItem>
             <SelectItem value="pendente">Pendente</SelectItem>
+            <SelectItem value="confirmada">Confirmada</SelectItem>
+            <SelectItem value="em andamento">Em Andamento</SelectItem>
             <SelectItem value="cancelada">Cancelada</SelectItem>
             <SelectItem value="concluída">Concluída</SelectItem>
           </SelectContent>
@@ -101,10 +100,7 @@ export function ReservationsPage() {
             <SelectItem value="todos">Todas propriedades</SelectItem>
             {properties.map((p) => (
               <SelectItem key={p.id} value={p.id}>
-                <span className="flex items-center gap-2">
-                  <span className={cn("inline-block h-2.5 w-2.5 rounded-full", propertyColorMap[p.cor].bg)} />
-                  {p.nome}
-                </span>
+                {p.nome}
               </SelectItem>
             ))}
           </SelectContent>
@@ -145,14 +141,7 @@ export function ReservationsPage() {
                   return (
                     <TableRow key={reservation.id}>
                       <TableCell className="font-medium">{reservation.nomeHospede}</TableCell>
-                      <TableCell>
-                        {property && (
-                          <span className="flex items-center gap-2">
-                            <span className={cn("inline-block h-2.5 w-2.5 rounded-full", propertyColorMap[property.cor].bg)} />
-                            {property.nome}
-                          </span>
-                        )}
-                      </TableCell>
+                      <TableCell>{property?.nome}</TableCell>
                       <TableCell>{formatDate(reservation.checkIn)}</TableCell>
                       <TableCell>{formatDate(reservation.checkOut)}</TableCell>
                       <TableCell>

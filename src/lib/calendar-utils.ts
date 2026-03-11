@@ -13,6 +13,7 @@ export interface CalendarBarSegment {
   isStart: boolean
   isEnd: boolean
   row: number
+  faxinaPorMim: boolean
 }
 
 export function computeBarSegments(
@@ -64,6 +65,7 @@ export function computeBarSegments(
       isStart: checkIn >= weekStart,
       isEnd: checkOut <= endOfDay(weekEnd),
       row: 0,
+      faxinaPorMim: reservation.faxinaPorMim ?? false,
     })
   }
 

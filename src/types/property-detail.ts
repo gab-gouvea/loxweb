@@ -31,6 +31,7 @@ export const inventoryItemSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   quantidade: z.number().int().min(0, "Quantidade deve ser positiva"),
   imagemUrl: z.string().url("URL inválida").optional(),
+  atualizadoEm: z.string(),
 })
 
 export type InventoryItem = z.infer<typeof inventoryItemSchema>

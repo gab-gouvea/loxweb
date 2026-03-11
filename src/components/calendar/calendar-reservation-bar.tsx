@@ -1,3 +1,4 @@
+import { Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { propertyColorMap } from "@/lib/colors"
 import type { CalendarBarSegment } from "@/lib/calendar-utils"
@@ -41,7 +42,12 @@ export function CalendarReservationBar({
         width: `calc(${(segment.spanCols / 7) * 100}% - 4px)`,
       }}
     >
-      {segment.isStart && segment.guestName}
+      <span className="flex items-center gap-0.5 truncate">
+        {segment.isStart && <span className="truncate">{segment.guestName}</span>}
+        {segment.isEnd && segment.faxinaPorMim && (
+          <Sparkles className="ml-auto h-3 w-3 flex-shrink-0 text-white/80" />
+        )}
+      </span>
     </button>
   )
 
@@ -59,6 +65,12 @@ export function CalendarReservationBar({
           </p>
           {reservation.precoTotal && (
             <p>R$ {reservation.precoTotal.toLocaleString("pt-BR")}</p>
+          )}
+          {reservation.faxinaPorMim && (
+            <p className="flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              Faxina: R$ {(reservation.valorFaxina ?? 0).toLocaleString("pt-BR")}
+            </p>
           )}
         </div>
       </TooltipContent>

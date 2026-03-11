@@ -59,6 +59,7 @@ const initialInventory: InventoryItem[] = [
     nome: "Toalha de Banho",
     quantidade: 8,
     imagemUrl: "https://images.unsplash.com/photo-1616627561950-9f746e330187?w=100&h=100&fit=crop",
+    atualizadoEm: makeDate(2026, 3, 5),
   },
   {
     id: "inv-2",
@@ -66,24 +67,28 @@ const initialInventory: InventoryItem[] = [
     nome: "Jogo de Cama Casal",
     quantidade: 4,
     imagemUrl: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=100&h=100&fit=crop",
+    atualizadoEm: makeDate(2026, 2, 20),
   },
   {
     id: "inv-3",
     propriedadeId: "prop-1",
     nome: "Travesseiro",
     quantidade: 6,
+    atualizadoEm: makeDate(2026, 1, 15),
   },
   {
     id: "inv-4",
     propriedadeId: "prop-2",
     nome: "Toalha de Banho",
     quantidade: 12,
+    atualizadoEm: makeDate(2026, 3, 1),
   },
   {
     id: "inv-5",
     propriedadeId: "prop-2",
     nome: "Panela Inox",
     quantidade: 3,
+    atualizadoEm: makeDate(2026, 2, 10),
   },
 ]
 
@@ -134,6 +139,7 @@ export class MockPropertyDetailService implements PropertyDetailService {
       id: crypto.randomUUID(),
       propriedadeId: propertyId,
       imagemUrl: data.imagemUrl || undefined,
+      atualizadoEm: new Date().toISOString(),
     }
     this.inventory.push(item)
     return item
@@ -147,6 +153,7 @@ export class MockPropertyDetailService implements PropertyDetailService {
       ...this.inventory[index],
       ...data,
       imagemUrl: data.imagemUrl === "" ? undefined : (data.imagemUrl ?? this.inventory[index].imagemUrl),
+      atualizadoEm: new Date().toISOString(),
     }
     return this.inventory[index]
   }

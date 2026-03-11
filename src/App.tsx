@@ -4,6 +4,7 @@ import { CalendarPage } from "@/pages/calendar-page"
 import { ReservationsPage } from "@/pages/reservations-page"
 import { PropertiesPage } from "@/pages/properties-page"
 import { PropertyDetailPage } from "@/pages/property-detail-page"
+import { ReportsPage } from "@/pages/reports-page"
 
 const router = createBrowserRouter([
   {
@@ -15,6 +16,7 @@ const router = createBrowserRouter([
       { path: "reservas", element: <ReservationsPage /> },
       { path: "propriedades", element: <PropertiesPage /> },
       { path: "propriedades/:id", element: <PropertyDetailPage /> },
+      { path: "relatorios", element: <ReportsPage /> },
     ],
   },
 ])

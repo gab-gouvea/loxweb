@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -74,10 +75,11 @@ export function ReservationForm({
       checkOut: reservation?.checkOut ?? "",
       status: reservation?.status ?? "pendente",
       precoTotal: reservation?.precoTotal ?? undefined,
-      precoPorNoite: reservation?.precoPorNoite ?? undefined,
       notas: reservation?.notas ?? "",
       fonte: reservation?.fonte ?? "direto",
       numHospedes: reservation?.numHospedes ?? 1,
+      faxinaPorMim: reservation?.faxinaPorMim ?? false,
+      valorFaxina: reservation?.valorFaxina ?? undefined,
     },
   })
 
@@ -244,7 +246,7 @@ export function ReservationForm({
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="numHospedes"
@@ -261,31 +263,67 @@ export function ReservationForm({
 
           <FormField
             control={form.control}
-            name="precoPorNoite"
+            name="precoTotal"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>R$/Noite</FormLabel>
+                <FormLabel>Valor Total (R$)</FormLabel>
                 <FormControl>
-                  <Input type="number" min={0} step={0.01} placeholder="0,00" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)} />
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    placeholder="0,00"
+                    {...field}
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                  />
                 </FormControl>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="space-y-3 rounded-lg border p-3">
+          <FormField
+            control={form.control}
+            name="faxinaPorMim"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <FormLabel className="font-normal">Faxina por mim</FormLabel>
               </FormItem>
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="precoTotal"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Total (R$)</FormLabel>
-                <FormControl>
-                  <Input type="number" min={0} step={0.01} placeholder="0,00" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {form.watch("faxinaPorMim") && (
+            <FormField
+              control={form.control}
+              name="valorFaxina"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Valor da Faxina (R$)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      placeholder="0,00"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
         </div>
 
         <FormField

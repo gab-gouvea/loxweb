@@ -1,4 +1,4 @@
-import { CalendarDays, Home, Building2, List } from "lucide-react"
+import { CalendarDays, Home, Building2, List, FileText } from "lucide-react"
 import { NavLink } from "react-router-dom"
 import {
   Sidebar,
@@ -16,6 +16,7 @@ const navItems = [
   { title: "Calendário", url: "/calendario", icon: CalendarDays },
   { title: "Reservas", url: "/reservas", icon: List },
   { title: "Propriedades", url: "/propriedades", icon: Building2 },
+  { title: "Relatórios", url: "/relatorios", icon: FileText },
 ]
 
 export function AppSidebar() {

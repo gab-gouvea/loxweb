@@ -20,10 +20,11 @@ export const reservationSchema = z.object({
   checkOut: z.string(),
   status: z.enum(reservationStatuses),
   precoTotal: z.number().min(0).optional(),
-  precoPorNoite: z.number().min(0).optional(),
   notas: z.string().optional(),
   fonte: z.enum(reservationSources),
   numHospedes: z.number().int().min(1),
+  faxinaPorMim: z.boolean(),
+  valorFaxina: z.number().min(0).optional(),
   criadoEm: z.string(),
   atualizadoEm: z.string(),
 })
@@ -37,10 +38,11 @@ export const reservationFormSchema = z.object({
   checkOut: z.string().min(1, "Check-out é obrigatório"),
   status: z.enum(reservationStatuses),
   precoTotal: z.number().min(0).optional(),
-  precoPorNoite: z.number().min(0).optional(),
   notas: z.string().optional(),
   fonte: z.enum(reservationSources),
   numHospedes: z.number().int().min(1),
+  faxinaPorMim: z.boolean(),
+  valorFaxina: z.number().min(0).optional(),
 })
 
 export type ReservationFormData = z.infer<typeof reservationFormSchema>

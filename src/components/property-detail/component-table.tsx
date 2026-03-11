@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { format, parseISO } from "date-fns"
+import { format, parseISO, addDays } from "date-fns"
 import { Plus, Pencil, Trash2, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -49,11 +49,16 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
   }
 
   function handleConclude(component: PropertyComponent) {
+    const hoje = new Date()
+    const proxima = addDays(hoje, component.intervaloDias)
     updateMutation.mutate(
       {
         id: component.id,
         propertyId,
-        data: { ultimaManutencao: new Date().toISOString() },
+        data: {
+          ultimaManutencao: hoje.toISOString(),
+          proximaManutencao: proxima.toISOString(),
+        },
       },
       {
         onSuccess: () => toast.success("Serviço concluído"),

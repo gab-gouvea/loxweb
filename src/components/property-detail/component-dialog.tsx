@@ -1,3 +1,4 @@
+import { addDays, parseISO } from "date-fns"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ComponentForm } from "./component-form"
 import { useCreateComponent, useUpdateComponent } from "@/hooks/use-property-details"
@@ -17,9 +18,12 @@ export function ComponentDialog({ open, onOpenChange, propertyId, component }: C
   const isEditing = !!component
 
   function handleSubmit(data: ComponentFormData) {
+    const proximaManutencao = addDays(parseISO(data.ultimaManutencao), data.intervaloDias).toISOString()
+    const fullData = { ...data, proximaManutencao }
+
     if (isEditing) {
       updateMutation.mutate(
-        { id: component.id, propertyId, data },
+        { id: component.id, propertyId, data: fullData },
         {
           onSuccess: () => {
             toast.success("Serviço atualizado")
@@ -30,7 +34,7 @@ export function ComponentDialog({ open, onOpenChange, propertyId, component }: C
       )
     } else {
       createMutation.mutate(
-        { propertyId, data },
+        { propertyId, data: fullData },
         {
           onSuccess: () => {
             toast.success("Serviço adicionado")

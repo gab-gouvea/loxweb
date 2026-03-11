@@ -32,7 +32,7 @@ export function ComponentForm({ component, onSubmit, onCancel, isSubmitting }: C
     defaultValues: {
       nome: component?.nome ?? "",
       ultimaManutencao: component?.ultimaManutencao ?? "",
-      proximaManutencao: component?.proximaManutencao ?? "",
+      intervaloDias: component?.intervaloDias ?? 30,
       preco: component?.preco ?? 0,
       observacoes: component?.observacoes ?? "",
     },
@@ -90,31 +90,20 @@ export function ComponentForm({ component, onSubmit, onCancel, isSubmitting }: C
 
           <FormField
             control={form.control}
-            name="proximaManutencao"
+            name="intervaloDias"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Próxima Manutenção</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn("justify-start text-left font-normal", !field.value && "text-muted-foreground")}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? format(parseISO(field.value), "dd/MM/yyyy") : "Selecione"}
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value ? parseISO(field.value) : undefined}
-                      onSelect={(date) => field.onChange(date?.toISOString() ?? "")}
-                      locale={ptBR}
-                    />
-                  </PopoverContent>
-                </Popover>
+              <FormItem>
+                <FormLabel>Intervalo (dias)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder="30"
+                    {...field}
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

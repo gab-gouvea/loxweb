@@ -9,6 +9,7 @@ export const propertyComponentSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   ultimaManutencao: z.string().min(1, "Data é obrigatória"),
   proximaManutencao: z.string().min(1, "Data é obrigatória"),
+  intervaloDias: z.number().int().min(1, "Intervalo deve ser ao menos 1 dia"),
   preco: z.number().min(0, "Preço deve ser positivo"),
   observacoes: z.string().optional(),
 })
@@ -18,7 +19,8 @@ export type PropertyComponent = z.infer<typeof propertyComponentSchema>
 export const componentFormSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   ultimaManutencao: z.string().min(1, "Data é obrigatória"),
-  proximaManutencao: z.string().min(1, "Data é obrigatória"),
+  proximaManutencao: z.string().optional(),
+  intervaloDias: z.number().int().min(1, "Intervalo deve ser ao menos 1 dia"),
   preco: z.number().min(0, "Preço deve ser positivo"),
   observacoes: z.string().optional(),
 })

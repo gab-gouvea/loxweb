@@ -2,7 +2,7 @@ import { useState, useMemo } from "react"
 import { ChevronLeft, ChevronRight, Pencil } from "lucide-react"
 import { startOfMonth, endOfMonth, addMonths, subMonths, parseISO, format } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -44,6 +44,17 @@ function calcFaxinaLiquida(reservation: Reservation): number {
   return reservation.faxinaPorMim ? valorFaxina : -valorFaxina
 }
 
+function calcDespesas(reservation: Reservation): { reembolsavel: number; naoReembolsavel: number } {
+  if (!reservation.despesas?.length) return { reembolsavel: 0, naoReembolsavel: 0 }
+  let reembolsavel = 0
+  let naoReembolsavel = 0
+  for (const d of reservation.despesas) {
+    if (d.reembolsavel) reembolsavel += d.valor
+    else naoReembolsavel += d.valor
+  }
+  return { reembolsavel, naoReembolsavel }
+}
+
 function calcTotalRecebido(reservation: Reservation, property: Property | undefined): number {
   if (reservation.status === "cancelada") {
     return reservation.valorRecebidoCancelamento ?? 0
@@ -51,7 +62,8 @@ function calcTotalRecebido(reservation: Reservation, property: Property | undefi
   const precoTotal = reservation.precoTotal ?? 0
   const comissaoPercent = property?.percentualComissao ?? 0
   const valorComissao = (precoTotal * comissaoPercent) / 100
-  return valorComissao + calcFaxinaLiquida(reservation)
+  const { naoReembolsavel } = calcDespesas(reservation)
+  return valorComissao + calcFaxinaLiquida(reservation) - naoReembolsavel
 }
 
 function formatCurrency(value: number): string {
@@ -68,6 +80,7 @@ export function ReportsPage() {
 
   const { data: reservations = [], isLoading: loadingReservations } = useReservations()
   const { data: properties = [] } = useProperties()
+  const navigate = useNavigate()
   const updateReservation = useUpdateReservation()
 
   const propertyMap = useMemo(() => {
@@ -151,6 +164,12 @@ export function ReportsPage() {
           className="pb-2 text-sm font-medium text-muted-foreground hover:text-foreground"
         >
           Manutenções
+        </Link>
+        <Link
+          to="/relatorios/despesas"
+          className="pb-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          Despesas
         </Link>
       </div>
 
@@ -246,6 +265,7 @@ export function ReportsPage() {
                     <TableHead className="text-right">Comissão (%)</TableHead>
                     <TableHead className="text-right">Valor Comissão</TableHead>
                     <TableHead className="text-right">Faxina</TableHead>
+                    <TableHead className="text-right">Despesas</TableHead>
                     <TableHead className="text-right">Total Recebido</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -258,10 +278,11 @@ export function ReportsPage() {
                       : ((reservation.precoTotal ?? 0) * comissaoPercent) / 100
                     const valorFaxina = reservation.valorFaxina ?? 0
                     const faxStatus = reservation.faxinaStatus ?? "nao_agendada"
+                    const despesas = calcDespesas(reservation)
                     const totalRecebido = calcTotalRecebido(reservation, property)
 
                     return (
-                      <TableRow key={reservation.id} className={isCancelada ? "opacity-60" : ""}>
+                      <TableRow key={reservation.id} className={`cursor-pointer hover:bg-muted/50 ${isCancelada ? "opacity-60" : ""}`} onClick={() => navigate(`/reservas/${reservation.id}`)}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             {reservation.nomeHospede}
@@ -288,6 +309,13 @@ export function ReportsPage() {
                             <span className={reservation.faxinaPorMim ? "text-green-700" : "text-red-600"}>
                               {reservation.faxinaPorMim ? "+" : "−"}{formatCurrency(valorFaxina)}
                             </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isCancelada || despesas.naoReembolsavel === 0 ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            <span className="text-red-600">−{formatCurrency(despesas.naoReembolsavel)}</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-semibold">

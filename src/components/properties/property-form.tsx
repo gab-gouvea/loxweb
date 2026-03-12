@@ -10,6 +10,8 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -49,6 +51,9 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
       quartos: property?.quartos ?? 1,
       fotoCapa: property?.fotoCapa ?? "",
       percentualComissao: property?.percentualComissao ?? 0,
+      temHobbyBox: property?.temHobbyBox ?? false,
+      acessoPredio: property?.acessoPredio ?? "",
+      acessoApartamento: property?.acessoApartamento ?? "",
       ativo: property?.ativo ?? true,
     },
   })
@@ -181,6 +186,47 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
               <FormLabel>Foto de Capa (URL)</FormLabel>
               <FormControl>
                 <Input placeholder="https://exemplo.com/foto.jpg" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="temHobbyBox"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center gap-2 space-y-0">
+              <FormControl>
+                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+              </FormControl>
+              <FormLabel className="font-normal">Tem hobby box?</FormLabel>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="acessoPredio"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Como entrar no prédio</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Ex: Portaria 24h, informar nome na recepção" rows={2} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="acessoApartamento"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Como entrar no apartamento</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Ex: Senha da fechadura digital: 1234#" rows={2} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

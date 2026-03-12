@@ -7,6 +7,7 @@ import { PropertyDetailPage } from "@/pages/property-detail-page"
 import { ReservationDetailPage } from "@/pages/reservation-detail-page"
 import { ReportsPage } from "@/pages/reports-page"
 import { MaintenanceReportPage } from "@/pages/maintenance-report-page"
+import { ExpensesReportPage } from "@/pages/expenses-report-page"
 import { ProprietariosPage } from "@/pages/proprietarios-page"
 import { ProprietarioDetailPage } from "@/pages/proprietario-detail-page"
 
@@ -25,6 +26,7 @@ const router = createBrowserRouter([
       { path: "proprietarios/:id", element: <ProprietarioDetailPage /> },
       { path: "relatorios", element: <ReportsPage /> },
       { path: "relatorios/manutencoes", element: <MaintenanceReportPage /> },
+      { path: "relatorios/despesas", element: <ExpensesReportPage /> },
     ],
   },
 ])

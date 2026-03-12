@@ -87,6 +87,12 @@ export function MaintenanceReportPage() {
         <span className="pb-2 text-sm font-medium border-b-2 border-primary">
           Manutenções
         </span>
+        <Link
+          to="/relatorios/despesas"
+          className="pb-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          Despesas
+        </Link>
       </div>
 
       {/* Month navigation + property filter */}

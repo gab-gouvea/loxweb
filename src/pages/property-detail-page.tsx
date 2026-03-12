@@ -1,5 +1,6 @@
+import { useState } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
-import { ArrowLeft, Building2, BedDouble, MapPin, User } from "lucide-react"
+import { ArrowLeft, Building2, BedDouble, MapPin, User, Package, DoorOpen, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -7,6 +8,7 @@ import { useProperty } from "@/hooks/use-properties"
 import { useProprietario } from "@/hooks/use-proprietarios"
 import { ComponentTable } from "@/components/property-detail/component-table"
 import { InventoryTable } from "@/components/property-detail/inventory-table"
+import { PropertyDialog } from "@/components/properties/property-dialog"
 
 const tipoLabels: Record<string, string> = {
   apartamento: "Apartamento",
@@ -22,6 +24,7 @@ export function PropertyDetailPage() {
   const navigate = useNavigate()
   const { data: property, isLoading } = useProperty(id!)
   const { data: proprietario } = useProprietario(property?.proprietarioId ?? "")
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   if (isLoading) {
     return (
@@ -66,7 +69,13 @@ export function PropertyDetailPage() {
           </div>
         )}
         <div className="p-4 space-y-2">
-          <h1 className="text-2xl font-bold">{property.nome}</h1>
+          <div className="flex items-start justify-between">
+            <h1 className="text-2xl font-bold">{property.nome}</h1>
+            <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)} className="print:hidden">
+              <Pencil className="mr-2 h-4 w-4" />
+              Editar
+            </Button>
+          </div>
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <Building2 className="h-4 w-4" />
@@ -91,7 +100,33 @@ export function PropertyDetailPage() {
                 <span>{proprietario.nomeCompleto}</span>
               </Link>
             )}
+            <div className="flex items-center gap-1">
+              <Package className="h-4 w-4" />
+              <span>Hobby Box: {property.temHobbyBox ? "Sim" : "Não"}</span>
+            </div>
           </div>
+          {(property.acessoPredio || property.acessoApartamento) && (
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              {property.acessoPredio && (
+                <div className="rounded-md bg-muted/50 p-3">
+                  <div className="flex items-center gap-1 font-medium mb-1">
+                    <DoorOpen className="h-4 w-4" />
+                    Como entrar no prédio
+                  </div>
+                  <p className="text-muted-foreground">{property.acessoPredio}</p>
+                </div>
+              )}
+              {property.acessoApartamento && (
+                <div className="rounded-md bg-muted/50 p-3">
+                  <div className="flex items-center gap-1 font-medium mb-1">
+                    <DoorOpen className="h-4 w-4" />
+                    Como entrar no apartamento
+                  </div>
+                  <p className="text-muted-foreground">{property.acessoApartamento}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -106,6 +141,12 @@ export function PropertyDetailPage() {
 
       {/* Inventário */}
       <InventoryTable propertyId={property.id} propertyName={property.nome} />
+
+      <PropertyDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        property={property}
+      />
     </div>
   )
 }

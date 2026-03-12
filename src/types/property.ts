@@ -15,6 +15,9 @@ export const propertySchema = z.object({
   quartos: z.number().int().min(0),
   fotoCapa: z.string().url("URL inválida").optional(),
   percentualComissao: z.number().min(0).max(100),
+  temHobbyBox: z.boolean(),
+  acessoPredio: z.string().optional(),
+  acessoApartamento: z.string().optional(),
   ativo: z.boolean(),
   criadoEm: z.string(),
   atualizadoEm: z.string(),
@@ -30,6 +33,9 @@ export const propertyFormSchema = z.object({
   quartos: z.number().int().min(0),
   fotoCapa: z.string().url("URL inválida").or(z.literal("")).optional(),
   percentualComissao: z.number().min(0, "Mínimo 0%").max(100, "Máximo 100%"),
+  temHobbyBox: z.boolean(),
+  acessoPredio: z.string().optional(),
+  acessoApartamento: z.string().optional(),
   ativo: z.boolean(),
 })
 

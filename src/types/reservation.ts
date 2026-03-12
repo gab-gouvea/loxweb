@@ -1,7 +1,7 @@
 import { z } from "zod/v4"
 
 export const reservationStatuses = [
-  "pendente", "confirmada", "em andamento", "concluída",
+  "pendente", "confirmada", "em andamento", "concluída", "cancelada",
 ] as const
 
 export type ReservationStatus = (typeof reservationStatuses)[number]
@@ -42,6 +42,7 @@ export const reservationSchema = z.object({
   valorFaxina: z.number().min(0).optional(),
   faxinaData: z.string().optional(),
   despesas: z.array(despesaSchema).optional(),
+  valorRecebidoCancelamento: z.number().min(0).optional(),
   criadoEm: z.string(),
   atualizadoEm: z.string(),
 })

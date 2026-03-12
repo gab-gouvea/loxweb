@@ -79,6 +79,7 @@ export function ReservationsPage() {
             <SelectItem value="confirmada">Confirmada</SelectItem>
             <SelectItem value="em andamento">Em Andamento</SelectItem>
             <SelectItem value="concluída">Concluída</SelectItem>
+            <SelectItem value="cancelada">Cancelada</SelectItem>
           </SelectContent>
         </Select>
 

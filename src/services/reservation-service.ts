@@ -7,7 +7,7 @@ export interface ReservationService {
   getByPropertyId(propertyId: string): Promise<Reservation[]>
   getByDateRange(start: string, end: string): Promise<Reservation[]>
   create(data: ReservationFormData): Promise<Reservation>
-  update(id: string, data: Partial<ReservationFormData>): Promise<Reservation>
+  update(id: string, data: Partial<ReservationFormData> & Partial<Reservation>): Promise<Reservation>
   delete(id: string): Promise<void>
 }
 

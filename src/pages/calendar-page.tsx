@@ -20,8 +20,12 @@ export function CalendarPage() {
     return { start, end }
   }, [startDate, visibleDays])
 
-  const { data: reservations = [] } = useReservationsByDateRange(dateRange.start, dateRange.end)
+  const { data: allReservations = [] } = useReservationsByDateRange(dateRange.start, dateRange.end)
   const { data: properties = [] } = useProperties()
+
+  const reservations = useMemo(() => {
+    return allReservations.filter((r) => r.status !== "cancelada")
+  }, [allReservations])
 
   const filteredProperties = useMemo(() => {
     if (!selectedPropertyIds) return properties

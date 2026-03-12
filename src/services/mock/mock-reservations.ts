@@ -73,7 +73,7 @@ export class MockReservationService implements ReservationService {
     return reservation
   }
 
-  async update(id: string, data: Partial<ReservationFormData>): Promise<Reservation> {
+  async update(id: string, data: Partial<ReservationFormData> & Partial<Reservation>): Promise<Reservation> {
     await mockDelay()
     const index = this.reservations.findIndex((r) => r.id === id)
     if (index === -1) throw new Error("Reserva não encontrada")

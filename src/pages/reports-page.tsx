@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Pencil } from "lucide-react"
 import { startOfMonth, endOfMonth, addMonths, subMonths, parseISO, format } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
 import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -20,13 +21,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useReservations } from "@/hooks/use-reservations"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
 import { useProperties } from "@/hooks/use-properties"
 import { formatDate } from "@/lib/date-utils"
+import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
 import type { Reservation } from "@/types/reservation"
 import type { Property } from "@/types/property"
 
 function calcFaxinaLiquida(reservation: Reservation): number {
+  if (reservation.status === "cancelada") return 0
   const status = reservation.faxinaStatus ?? "nao_agendada"
   if (status === "nao_agendada") return 0
   const valorFaxina = reservation.valorFaxina ?? 0
@@ -34,6 +45,9 @@ function calcFaxinaLiquida(reservation: Reservation): number {
 }
 
 function calcTotalRecebido(reservation: Reservation, property: Property | undefined): number {
+  if (reservation.status === "cancelada") {
+    return reservation.valorRecebidoCancelamento ?? 0
+  }
   const precoTotal = reservation.precoTotal ?? 0
   const comissaoPercent = property?.percentualComissao ?? 0
   const valorComissao = (precoTotal * comissaoPercent) / 100
@@ -48,8 +62,13 @@ export function ReportsPage() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
 
+  // Dialog state for cancelled reservation value
+  const [editingCancelada, setEditingCancelada] = useState<Reservation | null>(null)
+  const [canceladaValor, setCanceladaValor] = useState(0)
+
   const { data: reservations = [], isLoading: loadingReservations } = useReservations()
   const { data: properties = [] } = useProperties()
+  const updateReservation = useUpdateReservation()
 
   const propertyMap = useMemo(() => {
     const map = new Map<string, Property>()
@@ -101,6 +120,24 @@ export function ReportsPage() {
   }, [filteredReservations, propertyMap])
 
   const monthLabel = format(currentMonth, "MMMM yyyy", { locale: ptBR })
+
+  function handleOpenCanceladaDialog(reservation: Reservation) {
+    setEditingCancelada(reservation)
+    setCanceladaValor(reservation.valorRecebidoCancelamento ?? 0)
+  }
+
+  function handleSaveCancelada() {
+    if (!editingCancelada) return
+    updateReservation.mutate(
+      {
+        id: editingCancelada.id,
+        data: { valorRecebidoCancelamento: canceladaValor },
+      },
+      {
+        onSuccess: () => setEditingCancelada(null),
+      },
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -214,18 +251,22 @@ export function ReportsPage() {
                 </TableHeader>
                 <TableBody>
                   {propReservations.map((reservation) => {
+                    const isCancelada = reservation.status === "cancelada"
                     const comissaoPercent = property.percentualComissao ?? 0
-                    const valorComissao =
-                      ((reservation.precoTotal ?? 0) * comissaoPercent) / 100
+                    const valorComissao = isCancelada
+                      ? 0
+                      : ((reservation.precoTotal ?? 0) * comissaoPercent) / 100
                     const valorFaxina = reservation.valorFaxina ?? 0
                     const faxStatus = reservation.faxinaStatus ?? "nao_agendada"
-                    const faxLiquida = calcFaxinaLiquida(reservation)
-                    const totalRecebido = valorComissao + faxLiquida
+                    const totalRecebido = calcTotalRecebido(reservation, property)
 
                     return (
-                      <TableRow key={reservation.id}>
+                      <TableRow key={reservation.id} className={isCancelada ? "opacity-60" : ""}>
                         <TableCell className="font-medium">
-                          {reservation.nomeHospede}
+                          <div className="flex items-center gap-2">
+                            {reservation.nomeHospede}
+                            {isCancelada && <ReservationStatusBadge status="cancelada" />}
+                          </div>
                         </TableCell>
                         <TableCell>{formatDate(reservation.checkIn)}</TableCell>
                         <TableCell>{formatDate(reservation.checkOut)}</TableCell>
@@ -234,12 +275,14 @@ export function ReportsPage() {
                             ? formatCurrency(reservation.precoTotal)
                             : "—"}
                         </TableCell>
-                        <TableCell className="text-right">{comissaoPercent}%</TableCell>
                         <TableCell className="text-right">
-                          {formatCurrency(valorComissao)}
+                          {isCancelada ? "—" : `${comissaoPercent}%`}
                         </TableCell>
                         <TableCell className="text-right">
-                          {faxStatus === "nao_agendada" || valorFaxina === 0 ? (
+                          {isCancelada ? "—" : formatCurrency(valorComissao)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isCancelada || faxStatus === "nao_agendada" || valorFaxina === 0 ? (
                             <span className="text-muted-foreground">—</span>
                           ) : (
                             <span className={reservation.faxinaPorMim ? "text-green-700" : "text-red-600"}>
@@ -248,7 +291,20 @@ export function ReportsPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-right font-semibold">
-                          {formatCurrency(totalRecebido)}
+                          {isCancelada ? (
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
+                              onClick={() => handleOpenCanceladaDialog(reservation)}
+                            >
+                              {totalRecebido > 0
+                                ? formatCurrency(totalRecebido)
+                                : formatCurrency(0)}
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          ) : (
+                            formatCurrency(totalRecebido)
+                          )}
                         </TableCell>
                       </TableRow>
                     )
@@ -271,6 +327,38 @@ export function ReportsPage() {
           Nenhuma reserva encontrada para este período.
         </div>
       )}
+
+      {/* Dialog for cancelled reservation value */}
+      <Dialog open={!!editingCancelada} onOpenChange={(open) => !open && setEditingCancelada(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Valor recebido (cancelamento)</DialogTitle>
+            <DialogDescription>
+              {editingCancelada?.nomeHospede}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Valor recebido (R$)</label>
+              <Input
+                type="number"
+                min={0}
+                step={0.01}
+                value={canceladaValor || ""}
+                onChange={(e) => setCanceladaValor(e.target.value === "" ? 0 : Number(e.target.value))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingCancelada(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveCancelada} disabled={updateReservation.isPending}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

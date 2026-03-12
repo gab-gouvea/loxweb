@@ -42,6 +42,7 @@ const statusLabels: Record<string, string> = {
   confirmada: "Confirmada",
   "em andamento": "Em Andamento",
   concluída: "Concluída",
+  cancelada: "Cancelada",
 }
 
 const sourceLabels: Record<string, string> = {

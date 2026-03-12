@@ -24,26 +24,11 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useReservation, useUpdateReservation } from "@/hooks/use-reservations"
 import { useProperties } from "@/hooks/use-properties"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
 import { formatDate } from "@/lib/date-utils"
-import { reservationStatuses, type ReservationStatus, type Despesa, type FaxinaStatus } from "@/types/reservation"
-
-const statusLabels: Record<string, string> = {
-  pendente: "Pendente",
-  confirmada: "Confirmada",
-  "em andamento": "Em Andamento",
-  concluída: "Concluída",
-  cancelada: "Cancelada",
-}
+import { type ReservationStatus, type Despesa, type FaxinaStatus } from "@/types/reservation"
 
 const sourceLabels: Record<string, string> = {
   airbnb: "Airbnb",
@@ -139,10 +124,17 @@ export function ReservationDetailPage() {
     setEditNumHospedes(null)
   }
 
-  function handleStatusChange(newStatus: string) {
+  function handleConfirmarReserva() {
     updateMutation.mutate(
-      { id: reservation.id, data: { status: newStatus as ReservationStatus } },
-      { onSuccess: () => toast.success("Status atualizado") },
+      { id: reservation.id, data: { status: "confirmada" as ReservationStatus } },
+      { onSuccess: () => toast.success("Reserva confirmada") },
+    )
+  }
+
+  function handleCancelarReserva() {
+    updateMutation.mutate(
+      { id: reservation.id, data: { status: "cancelada" as ReservationStatus } },
+      { onSuccess: () => toast.success("Reserva cancelada") },
     )
   }
 
@@ -236,14 +228,42 @@ export function ReservationDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/reservas")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar
-        </Button>
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">{reservation.nomeHospede}</h1>
-          <ReservationStatusBadge status={reservation.status} />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/reservas")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar
+          </Button>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold">{reservation.nomeHospede}</h1>
+            <span className="translate-y-[1px]">
+              <ReservationStatusBadge status={reservation.status} />
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {(reservation.status === "pendente" || reservation.status === "cancelada") && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+              onClick={handleConfirmarReserva}
+              disabled={updateMutation.isPending}
+            >
+              Confirmar Reserva
+            </Button>
+          )}
+          {(reservation.status === "pendente" || reservation.status === "confirmada") && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={handleCancelarReserva}
+              disabled={updateMutation.isPending}
+            >
+              Cancelar Reserva
+            </Button>
+          )}
         </div>
       </div>
 
@@ -367,25 +387,6 @@ export function ReservationDetailPage() {
 
       <div className="text-sm text-muted-foreground">
         Fonte: <span className="font-medium text-foreground">{sourceLabels[reservation.fonte]}</span>
-      </div>
-
-      <Separator />
-
-      {/* Status */}
-      <div className="space-y-2">
-        <h2 className="text-lg font-semibold">Status</h2>
-        <Select value={reservation.status} onValueChange={handleStatusChange}>
-          <SelectTrigger className="w-56">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {reservationStatuses.map((s) => (
-              <SelectItem key={s} value={s}>
-                {statusLabels[s]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       <Separator />

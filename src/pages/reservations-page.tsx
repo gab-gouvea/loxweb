@@ -78,7 +78,6 @@ export function ReservationsPage() {
             <SelectItem value="pendente">Pendente</SelectItem>
             <SelectItem value="confirmada">Confirmada</SelectItem>
             <SelectItem value="em andamento">Em Andamento</SelectItem>
-            <SelectItem value="cancelada">Cancelada</SelectItem>
             <SelectItem value="concluída">Concluída</SelectItem>
           </SelectContent>
         </Select>

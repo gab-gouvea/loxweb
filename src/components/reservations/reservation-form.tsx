@@ -288,32 +288,34 @@ export function ReservationForm({
           />
         </div>
 
-        <div className="space-y-3 rounded-lg border p-3">
-          <FormField
-            control={form.control}
-            name="valorFaxina"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Valor da Faxina (R$)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    placeholder="0,00"
-                    {...field}
-                    value={field.value || ""}
-                    onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <p className="text-xs text-muted-foreground">
-            O agendamento da faxina é feito na página da reserva após criá-la.
-          </p>
-        </div>
+        {reservation && (
+          <div className="space-y-3 rounded-lg border p-3">
+            <FormField
+              control={form.control}
+              name="valorFaxina"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Valor da Faxina (R$)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      placeholder="0,00"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <p className="text-xs text-muted-foreground">
+              O agendamento da faxina é feito na página da reserva após criá-la.
+            </p>
+          </div>
+        )}
 
         {/* Despesas */}
         <div className="space-y-3 rounded-lg border p-3">

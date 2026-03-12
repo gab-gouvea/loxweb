@@ -1,4 +1,4 @@
-import type { PropertyComponent, ComponentFormData, InventoryItem, InventoryFormData } from "@/types/property-detail"
+import type { PropertyComponent, ComponentFormData, InventoryItem, InventoryFormData, MaintenanceRecord } from "@/types/property-detail"
 import type { PropertyDetailService } from "../property-detail-service"
 import { mockDelay } from "./delay"
 
@@ -14,7 +14,7 @@ const initialComponents: PropertyComponent[] = [
     ultimaManutencao: makeDate(2025, 12, 15),
     proximaManutencao: makeDate(2026, 6, 15),
     intervaloDias: 180,
-    preco: 350,
+    prestador: "Clima Frio Refrigeração",
     observacoes: "Split 12000 BTUs - sala",
   },
   {
@@ -24,7 +24,7 @@ const initialComponents: PropertyComponent[] = [
     ultimaManutencao: makeDate(2026, 2, 1),
     proximaManutencao: makeDate(2026, 3, 1),
     intervaloDias: 30,
-    preco: 200,
+    prestador: "Clean House",
     observacoes: "Limpeza profunda mensal",
   },
   {
@@ -34,7 +34,7 @@ const initialComponents: PropertyComponent[] = [
     ultimaManutencao: makeDate(2026, 2, 20),
     proximaManutencao: makeDate(2026, 4, 20),
     intervaloDias: 60,
-    preco: 180,
+    prestador: "Verde Vivo Jardinagem",
   },
   {
     id: "comp-4",
@@ -43,7 +43,7 @@ const initialComponents: PropertyComponent[] = [
     ultimaManutencao: makeDate(2026, 1, 10),
     proximaManutencao: makeDate(2026, 2, 10),
     intervaloDias: 15,
-    preco: 80,
+    prestador: "Verde Vivo Jardinagem",
     observacoes: "Rega e poda quinzenal",
   },
   {
@@ -53,7 +53,7 @@ const initialComponents: PropertyComponent[] = [
     ultimaManutencao: makeDate(2026, 1, 5),
     proximaManutencao: makeDate(2026, 7, 5),
     intervaloDias: 180,
-    preco: 300,
+    prestador: "Clima Frio Refrigeração",
   },
 ]
 
@@ -97,9 +97,33 @@ const initialInventory: InventoryItem[] = [
   },
 ]
 
+const initialMaintenanceRecords: MaintenanceRecord[] = [
+  {
+    id: "maint-1",
+    propriedadeId: "prop-1",
+    componenteId: "comp-2",
+    nomeServico: "Higienização Geral",
+    prestador: "Clean House",
+    data: makeDate(2026, 3, 1),
+    valor: 220,
+    pago: true,
+  },
+  {
+    id: "maint-2",
+    propriedadeId: "prop-2",
+    componenteId: "comp-4",
+    nomeServico: "Cuidado com Plantas",
+    prestador: "Verde Vivo Jardinagem",
+    data: makeDate(2026, 3, 5),
+    valor: 80,
+    pago: false,
+  },
+]
+
 export class MockPropertyDetailService implements PropertyDetailService {
   private components: PropertyComponent[] = [...initialComponents]
   private inventory: InventoryItem[] = [...initialInventory]
+  private maintenanceRecords: MaintenanceRecord[] = [...initialMaintenanceRecords]
 
   // Componentes
   async getComponents(propertyId: string): Promise<PropertyComponent[]> {
@@ -129,6 +153,37 @@ export class MockPropertyDetailService implements PropertyDetailService {
   async deleteComponent(id: string): Promise<void> {
     await mockDelay()
     this.components = this.components.filter((c) => c.id !== id)
+  }
+
+  // Registros de manutencao
+  async getMaintenanceRecords(startDate?: string, endDate?: string, propertyId?: string): Promise<MaintenanceRecord[]> {
+    await mockDelay()
+    let records = [...this.maintenanceRecords]
+    if (startDate) {
+      records = records.filter((r) => r.data >= startDate)
+    }
+    if (endDate) {
+      records = records.filter((r) => r.data <= endDate)
+    }
+    if (propertyId) {
+      records = records.filter((r) => r.propriedadeId === propertyId)
+    }
+    return records
+  }
+
+  async createMaintenanceRecord(data: Omit<MaintenanceRecord, "id">): Promise<MaintenanceRecord> {
+    await mockDelay()
+    const record: MaintenanceRecord = { ...data, id: crypto.randomUUID() }
+    this.maintenanceRecords.push(record)
+    return record
+  }
+
+  async updateMaintenanceRecord(id: string, data: Partial<MaintenanceRecord>): Promise<MaintenanceRecord> {
+    await mockDelay()
+    const index = this.maintenanceRecords.findIndex((r) => r.id === id)
+    if (index === -1) throw new Error("Registro não encontrado")
+    this.maintenanceRecords[index] = { ...this.maintenanceRecords[index], ...data }
+    return this.maintenanceRecords[index]
   }
 
   // Inventário

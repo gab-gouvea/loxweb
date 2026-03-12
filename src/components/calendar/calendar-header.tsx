@@ -9,7 +9,7 @@ interface CalendarHeaderProps {
 }
 
 export function CalendarHeader({ onNewReservation }: CalendarHeaderProps) {
-  const { startDate, visibleDays, goForward, goBack, goToToday } = useCalendarStore()
+  const { startDate, visibleDays, goForward, goBack, goToToday, showCheckoutsFaxinas, toggleCheckoutsFaxinas } = useCalendarStore()
 
   const endDate = addDays(startDate, visibleDays - 1)
 
@@ -41,6 +41,12 @@ export function CalendarHeader({ onNewReservation }: CalendarHeaderProps) {
       <Button onClick={onNewReservation}>
         <Plus className="mr-2 h-4 w-4" />
         Nova Reserva
+      </Button>
+      <Button
+        variant={showCheckoutsFaxinas ? "default" : "outline"}
+        onClick={toggleCheckoutsFaxinas}
+      >
+        Calendário Manutenção
       </Button>
     </div>
   )

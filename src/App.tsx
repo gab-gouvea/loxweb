@@ -6,6 +6,7 @@ import { PropertiesPage } from "@/pages/properties-page"
 import { PropertyDetailPage } from "@/pages/property-detail-page"
 import { ReservationDetailPage } from "@/pages/reservation-detail-page"
 import { ReportsPage } from "@/pages/reports-page"
+import { MaintenanceReportPage } from "@/pages/maintenance-report-page"
 
 const router = createBrowserRouter([
   {
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
       { path: "propriedades", element: <PropertiesPage /> },
       { path: "propriedades/:id", element: <PropertyDetailPage /> },
       { path: "relatorios", element: <ReportsPage /> },
+      { path: "relatorios/manutencoes", element: <MaintenanceReportPage /> },
     ],
   },
 ])

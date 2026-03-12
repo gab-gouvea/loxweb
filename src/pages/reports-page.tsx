@@ -2,6 +2,7 @@ import { useState, useMemo } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { startOfMonth, endOfMonth, addMonths, subMonths, parseISO, format } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
+import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -15,7 +16,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -30,7 +30,6 @@ function calcFaxinaLiquida(reservation: Reservation): number {
   const status = reservation.faxinaStatus ?? "nao_agendada"
   if (status === "nao_agendada") return 0
   const valorFaxina = reservation.valorFaxina ?? 0
-  // Faxina por mim = receita; faxina pela empresa = despesa (paga à empresa)
   return reservation.faxinaPorMim ? valorFaxina : -valorFaxina
 }
 
@@ -85,22 +84,37 @@ export function ReportsPage() {
     return groups
   }, [filteredReservations])
 
+  const reservationPropertyIds = useMemo(() => {
+    return Array.from(groupedByProperty.keys())
+  }, [groupedByProperty])
+
   const summaryTotals = useMemo(() => {
     let totalRecebido = 0
     for (const r of filteredReservations) {
       const property = propertyMap.get(r.propriedadeId)
       totalRecebido += calcTotalRecebido(r, property)
     }
-    return { totalRecebido, numReservas: filteredReservations.length }
+    return {
+      totalRecebido,
+      numReservas: filteredReservations.length,
+    }
   }, [filteredReservations, propertyMap])
 
   const monthLabel = format(currentMonth, "MMMM yyyy", { locale: ptBR })
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Relatório de Recebimentos</h1>
+      {/* Header with tab navigation */}
+      <div className="flex items-center gap-6 border-b">
+        <span className="pb-2 text-sm font-medium border-b-2 border-primary">
+          Recebimentos
+        </span>
+        <Link
+          to="/relatorios/manutencoes"
+          className="pb-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          Manutenções
+        </Link>
       </div>
 
       {/* Month navigation + property filter */}
@@ -164,18 +178,19 @@ export function ReportsPage() {
         </Card>
       </div>
 
-      {/* Data table grouped by property */}
-      {Array.from(groupedByProperty.entries()).map(([propertyId, propReservations]) => {
+      {/* Reservations grouped by property */}
+      {reservationPropertyIds.map((propertyId) => {
         const property = propertyMap.get(propertyId)
         if (!property) return null
 
-        const subtotalRecebido = propReservations.reduce(
+        const propReservations = groupedByProperty.get(propertyId) || []
+        const subtotalReservas = propReservations.reduce(
           (sum, r) => sum + calcTotalRecebido(r, property),
           0,
         )
 
         return (
-          <div key={propertyId} className="space-y-2">
+          <div key={propertyId} className="space-y-3">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold">{property.nome}</h3>
               <span className="text-sm text-muted-foreground">
@@ -239,23 +254,19 @@ export function ReportsPage() {
                     )
                   })}
                 </TableBody>
-                <TableFooter>
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-right font-semibold">
-                      Subtotal
-                    </TableCell>
-                    <TableCell className="text-right font-bold">
-                      {formatCurrency(subtotalRecebido)}
-                    </TableCell>
-                  </TableRow>
-                </TableFooter>
               </Table>
+            </div>
+
+            <div className="flex justify-end pr-4">
+              <p className="text-sm font-bold">
+                Subtotal: {formatCurrency(subtotalReservas)}
+              </p>
             </div>
           </div>
         )
       })}
 
-      {filteredReservations.length === 0 && !loadingReservations && (
+      {reservationPropertyIds.length === 0 && !loadingReservations && (
         <div className="py-12 text-center text-muted-foreground">
           Nenhuma reserva encontrada para este período.
         </div>

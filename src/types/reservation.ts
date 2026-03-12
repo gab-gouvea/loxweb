@@ -40,6 +40,7 @@ export const reservationSchema = z.object({
   faxinaStatus: z.enum(faxinaStatuses).optional(),
   faxinaPorMim: z.boolean(),
   valorFaxina: z.number().min(0).optional(),
+  faxinaData: z.string().optional(),
   despesas: z.array(despesaSchema).optional(),
   criadoEm: z.string(),
   atualizadoEm: z.string(),
@@ -60,6 +61,7 @@ export const reservationFormSchema = z.object({
   faxinaStatus: z.enum(faxinaStatuses).optional(),
   faxinaPorMim: z.boolean(),
   valorFaxina: z.number().min(0).optional(),
+  faxinaData: z.string().optional(),
   despesas: z.array(despesaSchema).optional(),
 })
 

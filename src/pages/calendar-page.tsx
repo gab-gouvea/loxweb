@@ -10,7 +10,7 @@ import { ReservationDialog } from "@/components/reservations/reservation-dialog"
 
 export function CalendarPage() {
   const navigate = useNavigate()
-  const { startDate, visibleDays, selectedPropertyIds } = useCalendarStore()
+  const { startDate, visibleDays, selectedPropertyIds, showCheckoutsFaxinas } = useCalendarStore()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [defaultCheckIn, setDefaultCheckIn] = useState<Date | undefined>()
 
@@ -59,6 +59,7 @@ export function CalendarPage() {
         properties={filteredProperties}
         onDayClick={handleDayClick}
         onReservationClick={handleReservationClick}
+        showCheckoutsFaxinas={showCheckoutsFaxinas}
       />
 
       <ReservationDialog

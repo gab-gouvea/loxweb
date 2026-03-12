@@ -10,7 +10,7 @@ export const propertyComponentSchema = z.object({
   ultimaManutencao: z.string().min(1, "Data é obrigatória"),
   proximaManutencao: z.string().min(1, "Data é obrigatória"),
   intervaloDias: z.number().int().min(1, "Intervalo deve ser ao menos 1 dia"),
-  preco: z.number().min(0, "Preço deve ser positivo"),
+  prestador: z.string().optional(),
   observacoes: z.string().optional(),
 })
 
@@ -21,7 +21,7 @@ export const componentFormSchema = z.object({
   ultimaManutencao: z.string().min(1, "Data é obrigatória"),
   proximaManutencao: z.string().optional(),
   intervaloDias: z.number().int().min(1, "Intervalo deve ser ao menos 1 dia"),
-  preco: z.number().min(0, "Preço deve ser positivo"),
+  prestador: z.string().optional(),
   observacoes: z.string().optional(),
 })
 
@@ -49,3 +49,17 @@ export type InventoryFormData = z.infer<typeof inventoryFormSchema>
 export function getComponentStatus(proximaManutencao: string): ComponentStatus {
   return new Date() > new Date(proximaManutencao) ? "atrasado" : "em_dia"
 }
+
+// Registro de manutencao realizada
+export const maintenanceRecordSchema = z.object({
+  id: z.string(),
+  propriedadeId: z.string(),
+  componenteId: z.string(),
+  nomeServico: z.string(),
+  prestador: z.string().optional(),
+  data: z.string(),
+  valor: z.number().min(0),
+  pago: z.boolean(),
+})
+
+export type MaintenanceRecord = z.infer<typeof maintenanceRecordSchema>

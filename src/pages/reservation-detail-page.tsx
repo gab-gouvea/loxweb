@@ -14,10 +14,11 @@ import {
   CheckCircle2,
   User,
   Building,
+  Pencil,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -40,7 +41,6 @@ const statusLabels: Record<string, string> = {
   pendente: "Pendente",
   confirmada: "Confirmada",
   "em andamento": "Em Andamento",
-  cancelada: "Cancelada",
   concluída: "Concluída",
 }
 
@@ -61,7 +61,15 @@ export function ReservationDetailPage() {
   // Local state for editable fields
   const [notas, setNotas] = useState<string | null>(null)
   const [valorFaxina, setValorFaxina] = useState<number | null>(null)
+  const [faxinaData, setFaxinaData] = useState<string | null>(null)
   const [novaDespesa, setNovaDespesa] = useState<{ descricao: string; valor: string; reembolsavel: boolean } | null>(null)
+
+  // Editable info fields
+  const [editingInfo, setEditingInfo] = useState(false)
+  const [editCheckIn, setEditCheckIn] = useState<string | null>(null)
+  const [editCheckOut, setEditCheckOut] = useState<string | null>(null)
+  const [editPrecoTotal, setEditPrecoTotal] = useState<number | null>(null)
+  const [editNumHospedes, setEditNumHospedes] = useState<number | null>(null)
 
   if (isLoading) {
     return (
@@ -92,6 +100,44 @@ export function ReservationDetailPage() {
   const currentValorFaxina = valorFaxina !== null ? valorFaxina : (reservation.valorFaxina ?? 0)
   const faxinaStatus: FaxinaStatus = reservation.faxinaStatus ?? "nao_agendada"
 
+  const infoChanged = editCheckIn !== null || editCheckOut !== null || editPrecoTotal !== null || editNumHospedes !== null
+
+  function handleSaveInfo() {
+    const data: Record<string, unknown> = {}
+    if (editCheckIn !== null) {
+      const [y, m, d] = editCheckIn.split("-").map(Number)
+      data.checkIn = new Date(y, m - 1, d).toISOString()
+    }
+    if (editCheckOut !== null) {
+      const [y, m, d] = editCheckOut.split("-").map(Number)
+      data.checkOut = new Date(y, m - 1, d).toISOString()
+    }
+    if (editPrecoTotal !== null) data.precoTotal = editPrecoTotal
+    if (editNumHospedes !== null) data.numHospedes = editNumHospedes
+
+    updateMutation.mutate(
+      { id: reservation.id, data },
+      {
+        onSuccess: () => {
+          toast.success("Reserva atualizada")
+          setEditingInfo(false)
+          setEditCheckIn(null)
+          setEditCheckOut(null)
+          setEditPrecoTotal(null)
+          setEditNumHospedes(null)
+        },
+      },
+    )
+  }
+
+  function handleCancelInfoEdit() {
+    setEditingInfo(false)
+    setEditCheckIn(null)
+    setEditCheckOut(null)
+    setEditPrecoTotal(null)
+    setEditNumHospedes(null)
+  }
+
   function handleStatusChange(newStatus: string) {
     updateMutation.mutate(
       { id: reservation.id, data: { status: newStatus as ReservationStatus } },
@@ -112,6 +158,10 @@ export function ReservationDetailPage() {
   }
 
   function handleAgendarFaxina(porMim: boolean) {
+    // Convert YYYY-MM-DD to full ISO string (local midnight) to avoid timezone issues
+    const dateStr = faxinaData ?? reservation.faxinaData?.split("T")[0] ?? reservation.checkOut.split("T")[0]
+    const [y, m, d] = dateStr.split("-").map(Number)
+    const dataFaxina = new Date(y, m - 1, d).toISOString()
     updateMutation.mutate(
       {
         id: reservation.id,
@@ -119,6 +169,7 @@ export function ReservationDetailPage() {
           faxinaStatus: "agendada" as FaxinaStatus,
           faxinaPorMim: porMim,
           valorFaxina: currentValorFaxina,
+          faxinaData: dataFaxina,
         },
       },
       {
@@ -209,56 +260,121 @@ export function ReservationDetailPage() {
       </div>
 
       {/* Info cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <Card>
-          <CardContent className="flex items-center gap-2 pt-4 pb-4">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Propriedade</p>
-              <p className="text-sm font-medium">{property?.nome ?? "—"}</p>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          {!editingInfo && (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingInfo(true)}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+
+        {!editingInfo ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            <Card>
+              <CardContent className="flex items-center gap-2 pt-4 pb-4">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Propriedade</p>
+                  <p className="text-sm font-medium">{property?.nome ?? "—"}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center gap-2 pt-4 pb-4">
+                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Check-in</p>
+                  <p className="text-sm font-medium">{formatDate(reservation.checkIn)}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center gap-2 pt-4 pb-4">
+                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Check-out</p>
+                  <p className="text-sm font-medium">{formatDate(reservation.checkOut)}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center gap-2 pt-4 pb-4">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Hóspedes</p>
+                  <p className="text-sm font-medium">{reservation.numHospedes}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center gap-2 pt-4 pb-4">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Valor Total</p>
+                  <p className="text-sm font-medium">
+                    {reservation.precoTotal
+                      ? `R$ ${reservation.precoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                      : "—"}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <div className="space-y-4 rounded-lg border p-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Check-in</label>
+                <Input
+                  type="date"
+                  className="h-8"
+                  value={editCheckIn ?? reservation.checkIn.split("T")[0]}
+                  onChange={(e) => setEditCheckIn(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Check-out</label>
+                <Input
+                  type="date"
+                  className="h-8"
+                  value={editCheckOut ?? reservation.checkOut.split("T")[0]}
+                  onChange={(e) => setEditCheckOut(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Hóspedes</label>
+                <Input
+                  type="number"
+                  min={1}
+                  className="h-8 w-20"
+                  value={editNumHospedes ?? reservation.numHospedes}
+                  onChange={(e) => setEditNumHospedes(e.target.value === "" ? 1 : Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Valor Total (R$)</label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  className="h-8 w-32"
+                  value={editPrecoTotal ?? reservation.precoTotal ?? ""}
+                  onChange={(e) => setEditPrecoTotal(e.target.value === "" ? 0 : Number(e.target.value))}
+                />
+              </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-2 pt-4 pb-4">
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Check-in</p>
-              <p className="text-sm font-medium">{formatDate(reservation.checkIn)}</p>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSaveInfo} disabled={updateMutation.isPending}>
+                <Save className="mr-1 h-3 w-3" />
+                Salvar
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleCancelInfoEdit}>
+                Cancelar
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-2 pt-4 pb-4">
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Check-out</p>
-              <p className="text-sm font-medium">{formatDate(reservation.checkOut)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-2 pt-4 pb-4">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Hospedes</p>
-              <p className="text-sm font-medium">{reservation.numHospedes}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-2 pt-4 pb-4">
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Valor Total</p>
-              <p className="text-sm font-medium">
-                {reservation.precoTotal
-                  ? `R$ ${reservation.precoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                  : "—"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        )}
       </div>
 
       <div className="text-sm text-muted-foreground">
@@ -332,9 +448,18 @@ export function ReservationDetailPage() {
           )}
         </div>
 
-        {/* Estado: Não agendada → botões para agendar */}
+        {/* Estado: Não agendada → data + botões para agendar */}
         {faxinaStatus === "nao_agendada" && (
-          <div className="space-y-2">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">Data da faxina:</span>
+              <Input
+                type="date"
+                className="w-44"
+                value={faxinaData ?? reservation.checkOut.split("T")[0]}
+                onChange={(e) => setFaxinaData(e.target.value)}
+              />
+            </div>
             <p className="text-sm text-muted-foreground">Quem vai fazer a faxina?</p>
             <div className="flex gap-2">
               <Button
@@ -359,9 +484,15 @@ export function ReservationDetailPage() {
           </div>
         )}
 
-        {/* Estado: Agendada → mostra quem faz, botões concluir/cancelar */}
+        {/* Estado: Agendada → mostra data, quem faz, botões concluir/cancelar */}
         {faxinaStatus === "agendada" && (
           <div className="space-y-3">
+            {reservation.faxinaData && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Data agendada:</span>
+                <span className="text-sm font-medium">{formatDate(reservation.faxinaData)}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Responsável:</span>
               <Badge variant="secondary" className="text-sm">
@@ -398,9 +529,15 @@ export function ReservationDetailPage() {
           </div>
         )}
 
-        {/* Estado: Concluída → mostra quem fez */}
+        {/* Estado: Concluída → mostra data e quem fez */}
         {faxinaStatus === "concluida" && (
           <div className="space-y-2">
+            {reservation.faxinaData && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Data realizada:</span>
+                <span className="text-sm font-medium">{formatDate(reservation.faxinaData)}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Feita por:</span>
               <Badge variant="secondary" className="text-sm">

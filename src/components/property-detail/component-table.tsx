@@ -21,7 +21,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { usePropertyComponents, useDeleteComponent, useUpdateComponent } from "@/hooks/use-property-details"
+import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { usePropertyComponents, useDeleteComponent, useUpdateComponent, useCreateMaintenanceRecord } from "@/hooks/use-property-details"
 import { getComponentStatus, type PropertyComponent } from "@/types/property-detail"
 import { ComponentDialog } from "./component-dialog"
 import { toast } from "sonner"
@@ -34,9 +43,14 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
   const { data: components, isLoading } = usePropertyComponents(propertyId)
   const deleteMutation = useDeleteComponent()
   const updateMutation = useUpdateComponent()
+  const createMaintenanceRecord = useCreateMaintenanceRecord()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingComponent, setEditingComponent] = useState<PropertyComponent | undefined>()
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  // Conclude popup state
+  const [concludingComponent, setConcludingComponent] = useState<PropertyComponent | null>(null)
+  const [concludeValor, setConcludeValor] = useState(0)
 
   function handleEdit(component: PropertyComponent) {
     setEditingComponent(component)
@@ -48,22 +62,50 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
     if (!open) setEditingComponent(undefined)
   }
 
-  function handleConclude(component: PropertyComponent) {
+  function handleOpenConclude(component: PropertyComponent) {
+    setConcludingComponent(component)
+    setConcludeValor(0)
+  }
+
+  function handleConfirmConclude() {
+    if (!concludingComponent) return
     const hoje = new Date()
-    const proxima = addDays(hoje, component.intervaloDias)
-    updateMutation.mutate(
+    const proxima = addDays(hoje, concludingComponent.intervaloDias)
+
+    // 1. Registrar a manutencao realizada
+    createMaintenanceRecord.mutate(
       {
-        id: component.id,
-        propertyId,
-        data: {
-          ultimaManutencao: hoje.toISOString(),
-          proximaManutencao: proxima.toISOString(),
-        },
+        propriedadeId: propertyId,
+        componenteId: concludingComponent.id,
+        nomeServico: concludingComponent.nome,
+        prestador: concludingComponent.prestador,
+        data: hoje.toISOString(),
+        valor: concludeValor,
+        pago: false,
       },
       {
-        onSuccess: () => toast.success("Serviço concluído"),
-        onError: () => toast.error("Erro ao concluir serviço"),
-      }
+        onSuccess: () => {
+          // 2. Atualizar datas do componente
+          updateMutation.mutate(
+            {
+              id: concludingComponent.id,
+              propertyId,
+              data: {
+                ultimaManutencao: hoje.toISOString(),
+                proximaManutencao: proxima.toISOString(),
+              },
+            },
+            {
+              onSuccess: () => {
+                toast.success("Serviço concluído e registrado")
+                setConcludingComponent(null)
+              },
+              onError: () => toast.error("Erro ao atualizar serviço"),
+            },
+          )
+        },
+        onError: () => toast.error("Erro ao registrar manutenção"),
+      },
     )
   }
 
@@ -101,9 +143,9 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
+                <TableHead>Prestador</TableHead>
                 <TableHead>Última Manutenção</TableHead>
                 <TableHead>Próxima Manutenção</TableHead>
-                <TableHead>Preço</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Observações</TableHead>
                 <TableHead className="w-[80px]" />
@@ -115,9 +157,9 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
                 return (
                   <TableRow key={comp.id}>
                     <TableCell className="font-medium">{comp.nome}</TableCell>
+                    <TableCell>{comp.prestador || "—"}</TableCell>
                     <TableCell>{format(parseISO(comp.ultimaManutencao), "dd/MM/yyyy")}</TableCell>
                     <TableCell>{format(parseISO(comp.proximaManutencao), "dd/MM/yyyy")}</TableCell>
-                    <TableCell>R$ {comp.preco.toFixed(2)}</TableCell>
                     <TableCell>
                       <Badge variant={status === "atrasado" ? "destructive" : "default"}>
                         {status === "atrasado" ? "Atrasado" : "Em dia"}
@@ -133,8 +175,8 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
                           size="icon"
                           className="h-8 w-8 text-green-600 hover:text-green-700"
                           title="Concluir serviço"
-                          onClick={() => handleConclude(comp)}
-                          disabled={updateMutation.isPending}
+                          onClick={() => handleOpenConclude(comp)}
+                          disabled={updateMutation.isPending || createMaintenanceRecord.isPending}
                         >
                           <CheckCircle2 className="h-4 w-4" />
                         </Button>
@@ -163,6 +205,40 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
         component={editingComponent}
       />
 
+      {/* Conclude dialog */}
+      <Dialog open={!!concludingComponent} onOpenChange={(open) => !open && setConcludingComponent(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Concluir serviço</DialogTitle>
+            <DialogDescription>{concludingComponent?.nome}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Valor realizado (R$)</label>
+              <Input
+                type="number"
+                min={0}
+                step={0.01}
+                value={concludeValor || ""}
+                onChange={(e) => setConcludeValor(e.target.value === "" ? 0 : Number(e.target.value))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConcludingComponent(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmConclude}
+              disabled={updateMutation.isPending || createMaintenanceRecord.isPending}
+            >
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete dialog */}
       <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

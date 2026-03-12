@@ -6,6 +6,7 @@ interface CalendarState {
   visibleDays: number
   selectedPropertyIds: string[] | null
   selectedReservationId: string | null
+  showCheckoutsFaxinas: boolean
 
   goForward: () => void
   goBack: () => void
@@ -13,6 +14,7 @@ interface CalendarState {
   setStartDate: (date: Date) => void
   setPropertyFilter: (ids: string[] | null) => void
   setSelectedReservation: (id: string | null) => void
+  toggleCheckoutsFaxinas: () => void
 }
 
 export const useCalendarStore = create<CalendarState>((set) => ({
@@ -20,6 +22,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
   visibleDays: 14,
   selectedPropertyIds: null,
   selectedReservationId: null,
+  showCheckoutsFaxinas: false,
 
   goForward: () =>
     set((state) => ({ startDate: addDays(state.startDate, 7) })),
@@ -30,4 +33,6 @@ export const useCalendarStore = create<CalendarState>((set) => ({
   setStartDate: (date) => set({ startDate: startOfDay(date) }),
   setPropertyFilter: (ids) => set({ selectedPropertyIds: ids }),
   setSelectedReservation: (id) => set({ selectedReservationId: id }),
+  toggleCheckoutsFaxinas: () =>
+    set((state) => ({ showCheckoutsFaxinas: !state.showCheckoutsFaxinas })),
 }))

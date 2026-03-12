@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { propertyDetailService } from "@/services/property-detail-service"
-import type { ComponentFormData, InventoryFormData } from "@/types/property-detail"
+import type { ComponentFormData, InventoryFormData, MaintenanceRecord } from "@/types/property-detail"
 
 // --- Componentes ---
 
@@ -41,6 +41,37 @@ export function useDeleteComponent() {
       propertyDetailService.deleteComponent(vars.id),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["property-components", vars.propertyId] })
+    },
+  })
+}
+
+// --- Registros de Manutencao ---
+
+export function useMaintenanceRecords(startDate?: string, endDate?: string, propertyId?: string) {
+  return useQuery({
+    queryKey: ["maintenance-records", startDate, endDate, propertyId],
+    queryFn: () => propertyDetailService.getMaintenanceRecords(startDate, endDate, propertyId),
+  })
+}
+
+export function useCreateMaintenanceRecord() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Omit<MaintenanceRecord, "id">) =>
+      propertyDetailService.createMaintenanceRecord(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["maintenance-records"] })
+    },
+  })
+}
+
+export function useUpdateMaintenanceRecord() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { id: string; data: Partial<MaintenanceRecord> }) =>
+      propertyDetailService.updateMaintenanceRecord(vars.id, vars.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["maintenance-records"] })
     },
   })
 }

@@ -118,7 +118,7 @@ export function DashboardPage() {
           className="cursor-pointer hover:bg-muted/50 transition-colors"
           onClick={() => navigate("/propriedades")}
         >
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-start justify-between pb-2 min-h-[3rem]">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Imóveis
             </CardTitle>
@@ -133,7 +133,7 @@ export function DashboardPage() {
           className="cursor-pointer hover:bg-muted/50 transition-colors"
           onClick={() => navigate("/reservas")}
         >
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-start justify-between pb-2 min-h-[3rem]">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total de Reservas
             </CardTitle>
@@ -145,7 +145,7 @@ export function DashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-start justify-between pb-2 min-h-[3rem]">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Agend. Faxina Pendentes
             </CardTitle>
@@ -162,7 +162,7 @@ export function DashboardPage() {
           className="cursor-pointer hover:bg-muted/50 transition-colors"
           onClick={() => navigate("/faxina-terceirizada/pagamentos")}
         >
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-start justify-between pb-2 min-h-[3rem]">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Faxinas Não Pagas
             </CardTitle>
@@ -176,7 +176,7 @@ export function DashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-start justify-between pb-2 min-h-[3rem]">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Manut. Atrasadas
             </CardTitle>

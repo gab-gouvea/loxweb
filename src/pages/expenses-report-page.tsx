@@ -49,13 +49,12 @@ export function ExpensesReportPage() {
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
 
-  // Filter reservations that have expenses and overlap with the month
+  // Filter reservations that have expenses and checkIn falls in the month
   const filteredReservations = useMemo(() => {
     let result = reservations.filter((r) => {
       if (!r.despesas?.length) return false
       const checkIn = parseISO(r.checkIn)
-      const checkOut = parseISO(r.checkOut)
-      return checkOut >= monthStart && checkIn <= monthEnd
+      return checkIn >= monthStart && checkIn <= monthEnd
     })
 
     if (propertyFilter !== "todos") {

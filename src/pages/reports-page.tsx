@@ -97,8 +97,7 @@ export function ReportsPage() {
   const filteredReservations = useMemo(() => {
     let result = reservations.filter((r) => {
       const checkIn = parseISO(r.checkIn)
-      const checkOut = parseISO(r.checkOut)
-      return checkOut >= monthStart && checkIn <= monthEnd
+      return checkIn >= monthStart && checkIn <= monthEnd
     })
 
     if (propertyFilter !== "todos") {
@@ -128,9 +127,11 @@ export function ReportsPage() {
       const property = propertyMap.get(r.propriedadeId)
       totalRecebido += calcTotalRecebido(r, property)
     }
+    const canceladas = filteredReservations.filter((r) => r.status === "cancelada").length
     return {
       totalRecebido,
-      numReservas: filteredReservations.length,
+      numReservas: filteredReservations.length - canceladas,
+      canceladas,
     }
   }, [filteredReservations, propertyMap])
 
@@ -213,7 +214,7 @@ export function ReportsPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -232,6 +233,18 @@ export function ReportsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{summaryTotals.numReservas}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Reservas Canceladas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className={`text-2xl font-bold ${summaryTotals.canceladas > 0 ? "text-red-600" : "text-muted-foreground"}`}>
+              {summaryTotals.canceladas}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -325,7 +338,7 @@ export function ReportsPage() {
                             <button
                               type="button"
                               className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
-                              onClick={() => handleOpenCanceladaDialog(reservation)}
+                              onClick={(e) => { e.stopPropagation(); handleOpenCanceladaDialog(reservation) }}
                             >
                               {totalRecebido > 0
                                 ? formatCurrency(totalRecebido)

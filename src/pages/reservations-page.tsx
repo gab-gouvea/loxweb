@@ -65,9 +65,9 @@ export function ReservationsPage() {
 
     switch (sortBy) {
       case "recente":
-        return [...result].sort((a, b) => b.checkIn.localeCompare(a.checkIn))
+        return [...result].sort((a, b) => b.criadoEm.localeCompare(a.criadoEm))
       case "antigo":
-        return [...result].sort((a, b) => a.checkIn.localeCompare(b.checkIn))
+        return [...result].sort((a, b) => a.criadoEm.localeCompare(b.criadoEm))
       case "nome_az":
         return [...result].sort((a, b) => a.nomeHospede.localeCompare(b.nomeHospede, "pt-BR"))
       case "nome_za":

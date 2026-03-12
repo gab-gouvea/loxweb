@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useReservationsByDateRange, useUpdateReservation } from "@/hooks/use-reservations"
+import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
 import { useProperties } from "@/hooks/use-properties"
 import type { Property } from "@/types/property"
 
@@ -40,10 +40,14 @@ export function FaxinaPagamentosPage() {
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
 
-  const { data: allReservations = [] } = useReservationsByDateRange(
-    monthStart.toISOString(),
-    monthEnd.toISOString(),
-  )
+  const { data: allReservationsRaw = [] } = useReservations()
+
+  const allReservations = useMemo(() => {
+    return allReservationsRaw.filter((r) => {
+      const checkIn = parseISO(r.checkIn)
+      return checkIn >= monthStart && checkIn <= monthEnd
+    })
+  }, [allReservationsRaw, monthStart, monthEnd])
 
   const propertyMap = useMemo(() => {
     const map = new Map<string, Property>()

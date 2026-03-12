@@ -8,7 +8,7 @@ import type { Reservation } from "@/types/reservation"
 import type { Property } from "@/types/property"
 
 const COL_WIDTH = 80
-const ROW_HEIGHT = 48
+const ROW_HEIGHT = 56
 const HEADER_HEIGHT = 52
 
 interface CalendarGridProps {
@@ -16,6 +16,7 @@ interface CalendarGridProps {
   visibleDays: number
   reservations: Reservation[]
   properties: Property[]
+  ownerNames?: Map<string, string>
   onDayClick: (date: Date) => void
   onReservationClick: (reservationId: string) => void
   showCheckoutsFaxinas: boolean
@@ -32,6 +33,7 @@ export function CalendarGrid({
   visibleDays,
   reservations,
   properties,
+  ownerNames,
   onDayClick,
   onReservationClick,
   showCheckoutsFaxinas,
@@ -123,15 +125,34 @@ export function CalendarGrid({
         >
           Imóveis
         </div>
-        {properties.map((prop) => (
-          <div
-            key={prop.id}
-            className="border-b last:border-b-0 flex items-center gap-2 px-3"
-            style={{ height: ROW_HEIGHT }}
-          >
-            <span className="truncate text-sm font-medium">{prop.nome}</span>
-          </div>
-        ))}
+        {properties.map((prop) => {
+          const owner = ownerNames?.get(prop.proprietarioId ?? "")
+          return (
+            <div
+              key={prop.id}
+              className="border-b last:border-b-0 flex items-center gap-2 px-3"
+              style={{ height: ROW_HEIGHT }}
+            >
+              {prop.fotoCapa ? (
+                <img
+                  src={prop.fotoCapa}
+                  alt={prop.nome}
+                  className="h-9 w-9 shrink-0 rounded-md object-cover"
+                />
+              ) : (
+                <div className="h-9 w-9 shrink-0 rounded-md bg-muted" />
+              )}
+              <div className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium leading-tight">{prop.nome}</span>
+                {owner && (
+                  <span className="block truncate text-[10px] text-muted-foreground/70 uppercase leading-tight">
+                    {owner}
+                  </span>
+                )}
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {/* Timeline area */}

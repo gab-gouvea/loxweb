@@ -1,4 +1,4 @@
-import { Building2, BedDouble, MapPin, Pencil, Trash2 } from "lucide-react"
+import { Building2, BedDouble, MapPin, Pencil, Trash2, User } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -16,11 +16,12 @@ const tipoLabels: Record<string, string> = {
 
 interface PropertyCardProps {
   property: Property
+  ownerName?: string
   onEdit: (property: Property) => void
   onDelete: (property: Property) => void
 }
 
-export function PropertyCard({ property, onEdit, onDelete }: PropertyCardProps) {
+export function PropertyCard({ property, ownerName, onEdit, onDelete }: PropertyCardProps) {
   const navigate = useNavigate()
 
   return (
@@ -62,6 +63,12 @@ export function PropertyCard({ property, onEdit, onDelete }: PropertyCardProps) 
           <BedDouble className="h-4 w-4" />
           <span>{property.quartos} quartos</span>
         </div>
+        {ownerName && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground/70">
+            <User className="h-3 w-3" />
+            <span>{ownerName}</span>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

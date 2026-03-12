@@ -7,6 +7,8 @@ import { PropertyDetailPage } from "@/pages/property-detail-page"
 import { ReservationDetailPage } from "@/pages/reservation-detail-page"
 import { ReportsPage } from "@/pages/reports-page"
 import { MaintenanceReportPage } from "@/pages/maintenance-report-page"
+import { ProprietariosPage } from "@/pages/proprietarios-page"
+import { ProprietarioDetailPage } from "@/pages/proprietario-detail-page"
 
 const router = createBrowserRouter([
   {
@@ -19,6 +21,8 @@ const router = createBrowserRouter([
       { path: "reservas/:id", element: <ReservationDetailPage /> },
       { path: "propriedades", element: <PropertiesPage /> },
       { path: "propriedades/:id", element: <PropertyDetailPage /> },
+      { path: "proprietarios", element: <ProprietariosPage /> },
+      { path: "proprietarios/:id", element: <ProprietarioDetailPage /> },
       { path: "relatorios", element: <ReportsPage /> },
       { path: "relatorios/manutencoes", element: <MaintenanceReportPage /> },
     ],

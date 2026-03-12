@@ -1,9 +1,10 @@
-import { useParams, useNavigate } from "react-router-dom"
-import { ArrowLeft, Building2, BedDouble, MapPin } from "lucide-react"
+import { useParams, useNavigate, Link } from "react-router-dom"
+import { ArrowLeft, Building2, BedDouble, MapPin, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useProperty } from "@/hooks/use-properties"
+import { useProprietario } from "@/hooks/use-proprietarios"
 import { ComponentTable } from "@/components/property-detail/component-table"
 import { InventoryTable } from "@/components/property-detail/inventory-table"
 
@@ -20,6 +21,7 @@ export function PropertyDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: property, isLoading } = useProperty(id!)
+  const { data: proprietario } = useProprietario(property?.proprietarioId ?? "")
 
   if (isLoading) {
     return (
@@ -80,6 +82,15 @@ export function PropertyDetailPage() {
               <BedDouble className="h-4 w-4" />
               <span>{property.quartos} quartos</span>
             </div>
+            {proprietario && (
+              <Link
+                to={`/proprietarios/${proprietario.id}`}
+                className="flex items-center gap-1 hover:underline"
+              >
+                <User className="h-4 w-4" />
+                <span>{proprietario.nomeCompleto}</span>
+              </Link>
+            )}
           </div>
         </div>
       </div>

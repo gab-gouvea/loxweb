@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
+import { useProprietarios } from "@/hooks/use-proprietarios"
 
 const tipoLabels: Record<string, string> = {
   apartamento: "Apartamento",
@@ -36,11 +37,14 @@ interface PropertyFormProps {
 }
 
 export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: PropertyFormProps) {
+  const { data: proprietarios = [] } = useProprietarios()
+
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
       nome: property?.nome ?? "",
       endereco: property?.endereco ?? "",
+      proprietarioId: property?.proprietarioId ?? "",
       tipo: property?.tipo ?? "apartamento",
       quartos: property?.quartos ?? 1,
       fotoCapa: property?.fotoCapa ?? "",
@@ -75,6 +79,31 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
               <FormControl>
                 <Input placeholder="Ex: Rua Barata Ribeiro, 200" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="proprietarioId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Proprietário</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value ?? ""}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um proprietário" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {proprietarios.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nomeCompleto}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

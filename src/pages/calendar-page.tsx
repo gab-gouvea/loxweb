@@ -4,6 +4,7 @@ import { addDays } from "date-fns"
 import { useCalendarStore } from "@/hooks/use-calendar-store"
 import { useReservationsByDateRange } from "@/hooks/use-reservations"
 import { useProperties } from "@/hooks/use-properties"
+import { useProprietarios } from "@/hooks/use-proprietarios"
 import { CalendarHeader } from "@/components/calendar/calendar-header"
 import { CalendarGrid } from "@/components/calendar/calendar-grid"
 import { ReservationDialog } from "@/components/reservations/reservation-dialog"
@@ -22,6 +23,15 @@ export function CalendarPage() {
 
   const { data: allReservations = [] } = useReservationsByDateRange(dateRange.start, dateRange.end)
   const { data: properties = [] } = useProperties()
+  const { data: proprietarios = [] } = useProprietarios()
+
+  const ownerNames = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const p of proprietarios) {
+      map.set(p.id, p.nomeCompleto)
+    }
+    return map
+  }, [proprietarios])
 
   const reservations = useMemo(() => {
     return allReservations.filter((r) => r.status !== "cancelada")
@@ -61,6 +71,7 @@ export function CalendarPage() {
         visibleDays={visibleDays}
         reservations={reservations}
         properties={filteredProperties}
+        ownerNames={ownerNames}
         onDayClick={handleDayClick}
         onReservationClick={handleReservationClick}
         showCheckoutsFaxinas={showCheckoutsFaxinas}

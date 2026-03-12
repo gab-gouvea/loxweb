@@ -1,13 +1,55 @@
 import type { Property } from "@/types/property"
 import type { Reservation } from "@/types/reservation"
+import type { Proprietario } from "@/types/proprietario"
 
 const now = new Date().toISOString()
+
+export const initialProprietarios: Proprietario[] = [
+  {
+    id: "owner-1",
+    nomeCompleto: "Roberto Carlos Mendes",
+    cpf: "123.456.789-00",
+    rg: "12.345.678-9",
+    dataNascimento: new Date(1975, 4, 15).toISOString(),
+    profissao: "Empresário",
+    estadoCivil: "casado",
+    endereco: "Rua Augusta, 500, Apto 102 - Consolação, São Paulo/SP - CEP 01304-001",
+    email: "roberto.mendes@email.com",
+    criadoEm: now,
+    atualizadoEm: now,
+  },
+  {
+    id: "owner-2",
+    nomeCompleto: "Ana Paula Ferreira",
+    cpf: "987.654.321-00",
+    rg: "98.765.432-1",
+    dataNascimento: new Date(1982, 8, 22).toISOString(),
+    profissao: "Médica",
+    estadoCivil: "solteiro",
+    endereco: "Av. Atlântica, 1200 - Copacabana, Rio de Janeiro/RJ - CEP 22021-000",
+    email: "ana.ferreira@email.com",
+    criadoEm: now,
+    atualizadoEm: now,
+  },
+  {
+    id: "owner-3",
+    nomeCompleto: "Marcos Augusto Lima",
+    cpf: "456.789.123-00",
+    profissao: "Advogado",
+    estadoCivil: "divorciado",
+    endereco: "Rua XV de Novembro, 300 - Centro, Florianópolis/SC - CEP 88010-400",
+    email: "marcos.lima@email.com",
+    criadoEm: now,
+    atualizadoEm: now,
+  },
+]
 
 export const initialProperties: Property[] = [
   {
     id: "prop-1",
     nome: "Apartamento Copacabana",
     endereco: "Rua Barata Ribeiro, 200 - Copacabana, RJ",
+    proprietarioId: "owner-2",
     tipo: "apartamento",
     quartos: 2,
     fotoCapa: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop",
@@ -20,6 +62,7 @@ export const initialProperties: Property[] = [
     id: "prop-2",
     nome: "Casa Florianópolis",
     endereco: "Rua das Rendeiras, 100 - Lagoa da Conceição, SC",
+    proprietarioId: "owner-3",
     tipo: "casa",
     quartos: 3,
     fotoCapa: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&h=400&fit=crop",
@@ -32,6 +75,7 @@ export const initialProperties: Property[] = [
     id: "prop-3",
     nome: "Studio Paulista",
     endereco: "Av. Paulista, 1000 - Bela Vista, SP",
+    proprietarioId: "owner-1",
     tipo: "studio",
     quartos: 1,
     fotoCapa: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&h=400&fit=crop",
@@ -44,6 +88,7 @@ export const initialProperties: Property[] = [
     id: "prop-4",
     nome: "Chalé Campos do Jordão",
     endereco: "Rua das Hortênsias, 50 - Campos do Jordão, SP",
+    proprietarioId: "owner-1",
     tipo: "chalé",
     quartos: 2,
     fotoCapa: "https://images.unsplash.com/photo-1587061949409-02df41d5e562?w=600&h=400&fit=crop",
@@ -56,6 +101,7 @@ export const initialProperties: Property[] = [
     id: "prop-5",
     nome: "Flat Barra da Tijuca",
     endereco: "Av. Lúcio Costa, 3000 - Barra da Tijuca, RJ",
+    proprietarioId: "owner-2",
     tipo: "flat",
     quartos: 1,
     fotoCapa: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&h=400&fit=crop",

@@ -66,11 +66,11 @@ export function CalendarReservationBar({
           {segment.guestName}
           {barWidth > 200 && valueLabel && ` · ${valueLabel}`}
         </span>
-        {segment.faxinaPorMim && (
-          <Sparkles className="h-3 w-3 flex-shrink-0 text-white/80" />
-        )}
         {barWidth > 250 && (
           <span className="ml-auto flex-shrink-0 text-white/80">{statusLabel}</span>
+        )}
+        {segment.faxinaStatus === "agendada" && (
+          <span className="ml-auto h-2.5 w-2.5 flex-shrink-0 rounded-full bg-yellow-400" />
         )}
       </span>
     </button>
@@ -92,10 +92,15 @@ export function CalendarReservationBar({
           {reservation.precoTotal != null && reservation.precoTotal > 0 && (
             <p>R$ {reservation.precoTotal.toLocaleString("pt-BR")}</p>
           )}
-          {reservation.faxinaPorMim && (
+          {reservation.valorFaxina != null && reservation.valorFaxina > 0 && (
             <p className="flex items-center gap-1">
               <Sparkles className="h-3 w-3" />
-              Faxina: R$ {(reservation.valorFaxina ?? 0).toLocaleString("pt-BR")}
+              Faxina: R$ {reservation.valorFaxina.toLocaleString("pt-BR")}
+              {reservation.faxinaStatus === "nao_agendada"
+                ? " — não agendada"
+                : reservation.faxinaStatus === "agendada"
+                  ? ` — agendada (${reservation.faxinaPorMim ? "eu" : "empresa"})`
+                  : ` — concluída (${reservation.faxinaPorMim ? "eu" : "empresa"})`}
             </p>
           )}
         </div>

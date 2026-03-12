@@ -4,6 +4,7 @@ import { CalendarPage } from "@/pages/calendar-page"
 import { ReservationsPage } from "@/pages/reservations-page"
 import { PropertiesPage } from "@/pages/properties-page"
 import { PropertyDetailPage } from "@/pages/property-detail-page"
+import { ReservationDetailPage } from "@/pages/reservation-detail-page"
 import { ReportsPage } from "@/pages/reports-page"
 
 const router = createBrowserRouter([
@@ -14,6 +15,7 @@ const router = createBrowserRouter([
       { index: true, element: <Navigate to="/calendario" replace /> },
       { path: "calendario", element: <CalendarPage /> },
       { path: "reservas", element: <ReservationsPage /> },
+      { path: "reservas/:id", element: <ReservationDetailPage /> },
       { path: "propriedades", element: <PropertiesPage /> },
       { path: "propriedades/:id", element: <PropertyDetailPage /> },
       { path: "relatorios", element: <ReportsPage /> },

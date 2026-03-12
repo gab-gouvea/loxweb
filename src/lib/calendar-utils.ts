@@ -1,5 +1,5 @@
 import { parseISO, startOfDay, differenceInCalendarDays } from "date-fns"
-import type { Reservation, ReservationStatus } from "@/types/reservation"
+import type { Reservation, ReservationStatus, FaxinaStatus } from "@/types/reservation"
 
 export interface TimelineSegment {
   reservationId: string
@@ -12,6 +12,7 @@ export interface TimelineSegment {
   isClippedStart: boolean
   isClippedEnd: boolean
   faxinaPorMim: boolean
+  faxinaStatus: FaxinaStatus
 }
 
 export function computeTimelineSegments(
@@ -47,6 +48,7 @@ export function computeTimelineSegments(
       isClippedStart: rawStart < 0,
       isClippedEnd: rawEnd > visibleDays,
       faxinaPorMim: reservation.faxinaPorMim ?? false,
+      faxinaStatus: reservation.faxinaStatus ?? "nao_agendada",
     })
   }
 

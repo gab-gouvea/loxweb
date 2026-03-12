@@ -9,6 +9,14 @@ export function useReservations() {
   })
 }
 
+export function useReservation(id: string) {
+  return useQuery({
+    queryKey: ["reservations", id],
+    queryFn: () => reservationService.getById(id),
+    enabled: !!id,
+  })
+}
+
 export function useReservationsByDateRange(start: string, end: string) {
   return useQuery({
     queryKey: ["reservations", "range", start, end],

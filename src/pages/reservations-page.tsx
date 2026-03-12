@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -32,10 +33,10 @@ const sourceLabels: Record<string, string> = {
 }
 
 export function ReservationsPage() {
+  const navigate = useNavigate()
   const { data: reservations = [], isLoading } = useReservations()
   const { data: properties = [] } = useProperties()
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingReservation, setEditingReservation] = useState<Reservation | undefined>()
   const [deletingReservation, setDeletingReservation] = useState<Reservation | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>("todos")
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
@@ -56,16 +57,6 @@ export function ReservationsPage() {
     }
     return result.sort((a, b) => a.checkIn.localeCompare(b.checkIn))
   }, [reservations, statusFilter, propertyFilter])
-
-  function handleEdit(reservation: Reservation) {
-    setEditingReservation(reservation)
-    setDialogOpen(true)
-  }
-
-  function handleDialogClose(open: boolean) {
-    setDialogOpen(open)
-    if (!open) setEditingReservation(undefined)
-  }
 
   return (
     <div className="space-y-4">
@@ -118,14 +109,14 @@ export function ReservationsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Hóspede</TableHead>
+                <TableHead>Hospede</TableHead>
                 <TableHead>Propriedade</TableHead>
                 <TableHead>Check-in</TableHead>
                 <TableHead>Check-out</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Fonte</TableHead>
                 <TableHead className="text-right">Total</TableHead>
-                <TableHead className="w-[80px]"></TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -139,7 +130,11 @@ export function ReservationsPage() {
                 filtered.map((reservation) => {
                   const property = propertyMap.get(reservation.propriedadeId)
                   return (
-                    <TableRow key={reservation.id}>
+                    <TableRow
+                      key={reservation.id}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/reservas/${reservation.id}`)}
+                    >
                       <TableCell className="font-medium">{reservation.nomeHospede}</TableCell>
                       <TableCell>{property?.nome}</TableCell>
                       <TableCell>{formatDate(reservation.checkIn)}</TableCell>
@@ -154,14 +149,17 @@ export function ReservationsPage() {
                           : "—"}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(reservation)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeletingReservation(reservation)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeletingReservation(reservation)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   )
@@ -174,8 +172,7 @@ export function ReservationsPage() {
 
       <ReservationDialog
         open={dialogOpen}
-        onOpenChange={handleDialogClose}
-        reservation={editingReservation}
+        onOpenChange={setDialogOpen}
       />
 
       <ReservationDeleteDialog

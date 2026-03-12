@@ -23,7 +23,7 @@ export function CalendarHeader({ onNewReservation }: CalendarHeaderProps) {
       : `${format(startDate, "MMM", { locale: ptBR })} – ${format(endDate, "MMM", { locale: ptBR })} ${year}`
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center gap-4">
       <div className="flex items-center gap-2">
         <Button variant="outline" size="icon" onClick={goBack}>
           <ChevronLeft className="h-4 w-4" />

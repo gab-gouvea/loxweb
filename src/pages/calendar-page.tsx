@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react"
+import { useNavigate } from "react-router-dom"
 import { addDays } from "date-fns"
 import { useCalendarStore } from "@/hooks/use-calendar-store"
 import { useReservationsByDateRange } from "@/hooks/use-reservations"
@@ -6,12 +7,11 @@ import { useProperties } from "@/hooks/use-properties"
 import { CalendarHeader } from "@/components/calendar/calendar-header"
 import { CalendarGrid } from "@/components/calendar/calendar-grid"
 import { ReservationDialog } from "@/components/reservations/reservation-dialog"
-import type { Reservation } from "@/types/reservation"
 
 export function CalendarPage() {
+  const navigate = useNavigate()
   const { startDate, visibleDays, selectedPropertyIds } = useCalendarStore()
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingReservation, setEditingReservation] = useState<Reservation | undefined>()
   const [defaultCheckIn, setDefaultCheckIn] = useState<Date | undefined>()
 
   const dateRange = useMemo(() => {
@@ -29,22 +29,15 @@ export function CalendarPage() {
   }, [properties, selectedPropertyIds])
 
   function handleDayClick(date: Date) {
-    setEditingReservation(undefined)
     setDefaultCheckIn(date)
     setDialogOpen(true)
   }
 
   function handleReservationClick(reservationId: string) {
-    const reservation = reservations.find((r) => r.id === reservationId)
-    if (reservation) {
-      setEditingReservation(reservation)
-      setDefaultCheckIn(undefined)
-      setDialogOpen(true)
-    }
+    navigate(`/reservas/${reservationId}`)
   }
 
   function handleNewReservation() {
-    setEditingReservation(undefined)
     setDefaultCheckIn(undefined)
     setDialogOpen(true)
   }
@@ -52,7 +45,6 @@ export function CalendarPage() {
   function handleDialogClose(open: boolean) {
     setDialogOpen(open)
     if (!open) {
-      setEditingReservation(undefined)
       setDefaultCheckIn(undefined)
     }
   }
@@ -72,7 +64,6 @@ export function CalendarPage() {
       <ReservationDialog
         open={dialogOpen}
         onOpenChange={handleDialogClose}
-        reservation={editingReservation}
         defaultCheckIn={defaultCheckIn}
       />
     </div>

@@ -82,6 +82,7 @@ export const initialReservations: Reservation[] = [
     precoTotal: 1200,
     fonte: "airbnb",
     numHospedes: 2,
+    faxinaStatus: "concluida",
     faxinaPorMim: true,
     valorFaxina: 150,
     despesas: [
@@ -102,7 +103,9 @@ export const initialReservations: Reservation[] = [
 
     fonte: "booking",
     numHospedes: 4,
+    faxinaStatus: "agendada",
     faxinaPorMim: false,
+    valorFaxina: 200,
     criadoEm: now,
     atualizadoEm: now,
   },
@@ -117,6 +120,7 @@ export const initialReservations: Reservation[] = [
 
     fonte: "direto",
     numHospedes: 1,
+    faxinaStatus: "agendada",
     faxinaPorMim: true,
     valorFaxina: 100,
     criadoEm: now,
@@ -132,6 +136,7 @@ export const initialReservations: Reservation[] = [
     precoTotal: 1500,
     fonte: "airbnb",
     numHospedes: 3,
+    faxinaStatus: "agendada",
     faxinaPorMim: true,
     valorFaxina: 150,
     despesas: [
@@ -151,7 +156,9 @@ export const initialReservations: Reservation[] = [
 
     fonte: "direto",
     numHospedes: 2,
+    faxinaStatus: "concluida",
     faxinaPorMim: false,
+    valorFaxina: 120,
     criadoEm: now,
     atualizadoEm: now,
   },
@@ -166,6 +173,7 @@ export const initialReservations: Reservation[] = [
 
     fonte: "airbnb",
     numHospedes: 2,
+    faxinaStatus: "agendada",
     faxinaPorMim: true,
     valorFaxina: 120,
     criadoEm: now,
@@ -183,6 +191,7 @@ export const initialReservations: Reservation[] = [
     fonte: "booking",
     numHospedes: 5,
     faxinaPorMim: false,
+    valorFaxina: 200,
     criadoEm: now,
     atualizadoEm: now,
   },
@@ -197,6 +206,7 @@ export const initialReservations: Reservation[] = [
 
     fonte: "direto",
     numHospedes: 2,
+    faxinaStatus: "concluida",
     faxinaPorMim: true,
     valorFaxina: 100,
     criadoEm: now,
@@ -213,6 +223,7 @@ export const initialReservations: Reservation[] = [
     fonte: "airbnb",
     numHospedes: 4,
     faxinaPorMim: false,
+    valorFaxina: 150,
     despesas: [
       { descricao: "Gas extra", valor: 80, reembolsavel: false },
       { descricao: "Roupa de cama", valor: 60, reembolsavel: true },
@@ -231,6 +242,7 @@ export const initialReservations: Reservation[] = [
 
     fonte: "booking",
     numHospedes: 2,
+    faxinaStatus: "agendada",
     faxinaPorMim: true,
     valorFaxina: 150,
     criadoEm: now,
@@ -262,6 +274,7 @@ export const initialReservations: Reservation[] = [
 
     fonte: "airbnb",
     numHospedes: 3,
+    faxinaStatus: "agendada",
     faxinaPorMim: true,
     valorFaxina: 130,
     criadoEm: now,
@@ -293,6 +306,7 @@ export const initialReservations: Reservation[] = [
 
     fonte: "direto",
     numHospedes: 2,
+    faxinaStatus: "concluida",
     faxinaPorMim: true,
     valorFaxina: 100,
     criadoEm: now,

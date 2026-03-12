@@ -1,7 +1,7 @@
 import { z } from "zod/v4"
 
 export const reservationStatuses = [
-  "pendente", "confirmada", "em andamento", "cancelada", "concluída",
+  "pendente", "confirmada", "em andamento", "concluída",
 ] as const
 
 export type ReservationStatus = (typeof reservationStatuses)[number]
@@ -11,6 +11,12 @@ export const reservationSources = [
 ] as const
 
 export type ReservationSource = (typeof reservationSources)[number]
+
+export const faxinaStatuses = [
+  "nao_agendada", "agendada", "concluida",
+] as const
+
+export type FaxinaStatus = (typeof faxinaStatuses)[number]
 
 export const despesaSchema = z.object({
   descricao: z.string().min(1, "Descrição é obrigatória"),
@@ -31,6 +37,7 @@ export const reservationSchema = z.object({
   notas: z.string().optional(),
   fonte: z.enum(reservationSources),
   numHospedes: z.number().int().min(1),
+  faxinaStatus: z.enum(faxinaStatuses).optional(),
   faxinaPorMim: z.boolean(),
   valorFaxina: z.number().min(0).optional(),
   despesas: z.array(despesaSchema).optional(),
@@ -50,6 +57,7 @@ export const reservationFormSchema = z.object({
   notas: z.string().optional(),
   fonte: z.enum(reservationSources),
   numHospedes: z.number().int().min(1),
+  faxinaStatus: z.enum(faxinaStatuses).optional(),
   faxinaPorMim: z.boolean(),
   valorFaxina: z.number().min(0).optional(),
   despesas: z.array(despesaSchema).optional(),

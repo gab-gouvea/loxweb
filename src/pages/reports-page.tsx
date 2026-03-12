@@ -26,13 +26,19 @@ import { formatDate } from "@/lib/date-utils"
 import type { Reservation } from "@/types/reservation"
 import type { Property } from "@/types/property"
 
+function calcFaxinaLiquida(reservation: Reservation): number {
+  const status = reservation.faxinaStatus ?? "nao_agendada"
+  if (status === "nao_agendada") return 0
+  const valorFaxina = reservation.valorFaxina ?? 0
+  // Faxina por mim = receita; faxina pela empresa = despesa (paga à empresa)
+  return reservation.faxinaPorMim ? valorFaxina : -valorFaxina
+}
+
 function calcTotalRecebido(reservation: Reservation, property: Property | undefined): number {
   const precoTotal = reservation.precoTotal ?? 0
   const comissaoPercent = property?.percentualComissao ?? 0
   const valorComissao = (precoTotal * comissaoPercent) / 100
-  const valorFaxina =
-    reservation.faxinaPorMim && reservation.valorFaxina ? reservation.valorFaxina : 0
-  return valorComissao + valorFaxina
+  return valorComissao + calcFaxinaLiquida(reservation)
 }
 
 function formatCurrency(value: number): string {
@@ -196,11 +202,10 @@ export function ReportsPage() {
                     const comissaoPercent = property.percentualComissao ?? 0
                     const valorComissao =
                       ((reservation.precoTotal ?? 0) * comissaoPercent) / 100
-                    const valorFaxina =
-                      reservation.faxinaPorMim && reservation.valorFaxina
-                        ? reservation.valorFaxina
-                        : 0
-                    const totalRecebido = valorComissao + valorFaxina
+                    const valorFaxina = reservation.valorFaxina ?? 0
+                    const faxStatus = reservation.faxinaStatus ?? "nao_agendada"
+                    const faxLiquida = calcFaxinaLiquida(reservation)
+                    const totalRecebido = valorComissao + faxLiquida
 
                     return (
                       <TableRow key={reservation.id}>
@@ -219,9 +224,13 @@ export function ReportsPage() {
                           {formatCurrency(valorComissao)}
                         </TableCell>
                         <TableCell className="text-right">
-                          {reservation.faxinaPorMim
-                            ? formatCurrency(valorFaxina)
-                            : "—"}
+                          {faxStatus === "nao_agendada" || valorFaxina === 0 ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            <span className={reservation.faxinaPorMim ? "text-green-700" : "text-red-600"}>
+                              {reservation.faxinaPorMim ? "+" : "−"}{formatCurrency(valorFaxina)}
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right font-semibold">
                           {formatCurrency(totalRecebido)}

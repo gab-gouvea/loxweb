@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import {
   ArrowLeft,
@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
-import { useReservation, useUpdateReservation } from "@/hooks/use-reservations"
+import { useReservation, useReservations, useUpdateReservation } from "@/hooks/use-reservations"
 import { useProperties } from "@/hooks/use-properties"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
 import { formatDate } from "@/lib/date-utils"
@@ -42,11 +42,29 @@ export function ReservationDetailPage() {
   const navigate = useNavigate()
   const { data: reservation, isLoading } = useReservation(id!)
   const { data: properties = [] } = useProperties()
+  const { data: allReservations = [] } = useReservations()
   const updateMutation = useUpdateReservation()
+
+  // Último custo pago à empresa parceira na mesma propriedade
+  const ultimoCustoEmpresa = useMemo(() => {
+    if (!reservation) return null
+    const anteriores = allReservations
+      .filter(
+        (r) =>
+          r.id !== reservation.id &&
+          r.propriedadeId === reservation.propriedadeId &&
+          !r.faxinaPorMim &&
+          r.custoEmpresaFaxina != null &&
+          r.custoEmpresaFaxina > 0
+      )
+      .sort((a, b) => b.checkOut.localeCompare(a.checkOut))
+    return anteriores.length > 0 ? anteriores[0].custoEmpresaFaxina! : null
+  }, [reservation, allReservations])
 
   // Local state for editable fields
   const [notas, setNotas] = useState<string | null>(null)
   const [custoEmpresa, setCustoEmpresa] = useState<number | null>(null)
+  const [custoEmpresaTouched, setCustoEmpresaTouched] = useState(false)
   const [faxinaData, setFaxinaData] = useState<string | null>(null)
   const [novaDespesa, setNovaDespesa] = useState<{ descricao: string; valor: string; reembolsavel: boolean } | null>(null)
 
@@ -147,8 +165,9 @@ export function ReservationDetailPage() {
       faxinaPorMim: porMim,
       faxinaData: dataFaxina,
     }
-    if (!porMim && custoEmpresa !== null) {
-      data.custoEmpresaFaxina = custoEmpresa
+    const custoFinal = custoEmpresa ?? ultimoCustoEmpresa
+    if (!porMim && custoFinal !== null) {
+      data.custoEmpresaFaxina = custoFinal
       data.faxinaPaga = false
     }
     updateMutation.mutate(
@@ -157,6 +176,7 @@ export function ReservationDetailPage() {
         onSuccess: () => {
           toast.success(porMim ? "Faxina agendada (você)" : "Faxina agendada (empresa)")
           setCustoEmpresa(null)
+          setCustoEmpresaTouched(false)
         },
       },
     )
@@ -451,15 +471,18 @@ export function ReservationDetailPage() {
                   min={0}
                   step={0.01}
                   className="w-28"
-                  value={custoEmpresa ?? ""}
-                  onChange={(e) => setCustoEmpresa(e.target.value === "" ? null : Number(e.target.value))}
+                  value={custoEmpresaTouched ? (custoEmpresa ?? "") : (custoEmpresa ?? ultimoCustoEmpresa ?? "")}
+                  onChange={(e) => {
+                    setCustoEmpresaTouched(true)
+                    setCustoEmpresa(e.target.value === "" ? null : Number(e.target.value))
+                  }}
                 />
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleAgendarFaxina(false)}
-                disabled={updateMutation.isPending || custoEmpresa === null}
+                disabled={updateMutation.isPending || (custoEmpresaTouched ? custoEmpresa === null : custoEmpresa === null && ultimoCustoEmpresa === null)}
               >
                 <Building className="mr-1 h-3 w-3" />
                 Empresa parceira

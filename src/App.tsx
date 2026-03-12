@@ -12,13 +12,14 @@ import { ProprietariosPage } from "@/pages/proprietarios-page"
 import { ProprietarioDetailPage } from "@/pages/proprietario-detail-page"
 import { FaxinaTerceirizadaPage } from "@/pages/faxina-terceirizada-page"
 import { FaxinaPagamentosPage } from "@/pages/faxina-pagamentos-page"
+import { DashboardPage } from "@/pages/dashboard-page"
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <AppLayout />,
     children: [
-      { index: true, element: <Navigate to="/calendario" replace /> },
+      { index: true, element: <DashboardPage /> },
       { path: "calendario", element: <CalendarPage /> },
       { path: "reservas", element: <ReservationsPage /> },
       { path: "reservas/:id", element: <ReservationDetailPage /> },

@@ -52,6 +52,7 @@ const sourceLabels: Record<string, string> = {
 interface ReservationFormProps {
   reservation?: Reservation
   defaultCheckIn?: Date
+  defaultPropertyId?: string
   onSubmit: (data: ReservationFormData) => void
   onCancel: () => void
   isSubmitting?: boolean
@@ -60,6 +61,7 @@ interface ReservationFormProps {
 export function ReservationForm({
   reservation,
   defaultCheckIn,
+  defaultPropertyId,
   onSubmit,
   onCancel,
   isSubmitting,
@@ -69,7 +71,7 @@ export function ReservationForm({
   const form = useForm<ReservationFormData>({
     resolver: zodResolver(reservationFormSchema),
     defaultValues: {
-      propriedadeId: reservation?.propriedadeId ?? "",
+      propriedadeId: reservation?.propriedadeId ?? defaultPropertyId ?? "",
       nomeHospede: reservation?.nomeHospede ?? "",
       checkIn: reservation?.checkIn ?? (defaultCheckIn ? defaultCheckIn.toISOString() : ""),
       checkOut: reservation?.checkOut ?? "",

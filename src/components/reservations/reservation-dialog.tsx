@@ -14,6 +14,7 @@ interface ReservationDialogProps {
   onOpenChange: (open: boolean) => void
   reservation?: Reservation
   defaultCheckIn?: Date
+  defaultPropertyId?: string
 }
 
 export function ReservationDialog({
@@ -21,6 +22,7 @@ export function ReservationDialog({
   onOpenChange,
   reservation,
   defaultCheckIn,
+  defaultPropertyId,
 }: ReservationDialogProps) {
   const createMutation = useCreateReservation()
   const updateMutation = useUpdateReservation()
@@ -60,6 +62,7 @@ export function ReservationDialog({
         <ReservationForm
           reservation={reservation}
           defaultCheckIn={defaultCheckIn}
+          defaultPropertyId={defaultPropertyId}
           onSubmit={handleSubmit}
           onCancel={() => onOpenChange(false)}
           isSubmitting={createMutation.isPending || updateMutation.isPending}

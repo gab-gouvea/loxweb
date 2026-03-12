@@ -70,7 +70,7 @@ export function CalendarReservationBar({
           <span className="ml-auto flex-shrink-0 text-white/80">{statusLabel}</span>
         )}
         {segment.faxinaStatus === "agendada" && (
-          <span className="ml-auto h-2.5 w-2.5 flex-shrink-0 rounded-full bg-yellow-400" />
+          <span className="ml-auto h-2.5 w-2.5 flex-shrink-0 rounded-full bg-yellow-400 animate-bounce" />
         )}
       </span>
     </button>

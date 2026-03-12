@@ -1,5 +1,5 @@
-import { CalendarDays, Home, Building2, List, FileText, Users, SprayCan } from "lucide-react"
-import { NavLink } from "react-router-dom"
+import { CalendarDays, Building2, List, FileText, Users, SprayCan, LayoutDashboard } from "lucide-react"
+import { NavLink, Link } from "react-router-dom"
 import {
   Sidebar,
   SidebarContent,
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sidebar"
 
 const navItems = [
+  { title: "Início", url: "/", icon: LayoutDashboard },
   { title: "Calendário", url: "/calendario", icon: CalendarDays },
   { title: "Reservas", url: "/reservas", icon: List },
   { title: "Propriedades", url: "/propriedades", icon: Building2 },
@@ -25,10 +26,10 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-2">
-          <Home className="h-6 w-6" />
+        <Link to="/" className="flex items-center gap-2 px-2 py-2 hover:opacity-80 transition-opacity">
+          <img src="/lox.svg" alt="Lox" className="h-7 w-7 rounded" />
           <span className="text-lg font-bold">Lox</span>
-        </div>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

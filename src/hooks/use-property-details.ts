@@ -12,6 +12,13 @@ export function usePropertyComponents(propertyId: string) {
   })
 }
 
+export function useAllPropertyComponents() {
+  return useQuery({
+    queryKey: ["property-components", "all"],
+    queryFn: () => propertyDetailService.getAllComponents(),
+  })
+}
+
 export function useCreateComponent() {
   const queryClient = useQueryClient()
   return useMutation({

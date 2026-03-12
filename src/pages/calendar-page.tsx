@@ -14,6 +14,7 @@ export function CalendarPage() {
   const { startDate, visibleDays, selectedPropertyIds, showCheckoutsFaxinas } = useCalendarStore()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [defaultCheckIn, setDefaultCheckIn] = useState<Date | undefined>()
+  const [defaultPropertyId, setDefaultPropertyId] = useState<string | undefined>()
 
   const dateRange = useMemo(() => {
     const start = startDate.toISOString()
@@ -49,8 +50,9 @@ export function CalendarPage() {
     })
   }, [properties, selectedPropertyIds, ownerNames])
 
-  function handleDayClick(date: Date) {
+  function handleDayClick(date: Date, propertyId: string) {
     setDefaultCheckIn(date)
+    setDefaultPropertyId(propertyId)
     setDialogOpen(true)
   }
 
@@ -60,6 +62,7 @@ export function CalendarPage() {
 
   function handleNewReservation() {
     setDefaultCheckIn(undefined)
+    setDefaultPropertyId(undefined)
     setDialogOpen(true)
   }
 
@@ -67,6 +70,7 @@ export function CalendarPage() {
     setDialogOpen(open)
     if (!open) {
       setDefaultCheckIn(undefined)
+      setDefaultPropertyId(undefined)
     }
   }
 
@@ -88,6 +92,7 @@ export function CalendarPage() {
         open={dialogOpen}
         onOpenChange={handleDialogClose}
         defaultCheckIn={defaultCheckIn}
+        defaultPropertyId={defaultPropertyId}
       />
     </div>
   )

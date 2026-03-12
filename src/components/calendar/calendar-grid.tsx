@@ -17,7 +17,7 @@ interface CalendarGridProps {
   reservations: Reservation[]
   properties: Property[]
   ownerNames?: Map<string, string>
-  onDayClick: (date: Date) => void
+  onDayClick: (date: Date, propertyId: string) => void
   onReservationClick: (reservationId: string) => void
   showCheckoutsFaxinas: boolean
 }
@@ -205,7 +205,7 @@ export function CalendarGrid({
                     <button
                       key={i}
                       type="button"
-                      onClick={() => onDayClick(day)}
+                      onClick={() => onDayClick(day, prop.id)}
                       className={cn(
                         "shrink-0 border-r last:border-r-0 h-full hover:bg-accent/50 transition-colors",
                         today && "bg-primary/5",

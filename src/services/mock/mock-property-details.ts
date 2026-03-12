@@ -131,6 +131,11 @@ export class MockPropertyDetailService implements PropertyDetailService {
     return this.components.filter((c) => c.propriedadeId === propertyId)
   }
 
+  async getAllComponents(): Promise<PropertyComponent[]> {
+    await mockDelay()
+    return [...this.components]
+  }
+
   async createComponent(propertyId: string, data: ComponentFormData): Promise<PropertyComponent> {
     await mockDelay()
     const component: PropertyComponent = {

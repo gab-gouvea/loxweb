@@ -4,6 +4,7 @@ import { MockPropertyDetailService } from "./mock/mock-property-details"
 export interface PropertyDetailService {
   // Componentes
   getComponents(propertyId: string): Promise<PropertyComponent[]>
+  getAllComponents(): Promise<PropertyComponent[]>
   createComponent(propertyId: string, data: ComponentFormData): Promise<PropertyComponent>
   updateComponent(id: string, data: Partial<ComponentFormData>): Promise<PropertyComponent>
   deleteComponent(id: string): Promise<void>

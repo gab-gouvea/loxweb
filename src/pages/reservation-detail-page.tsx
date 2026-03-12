@@ -61,7 +61,7 @@ export function ReservationDetailPage() {
 
   // Local state for editable fields
   const [notas, setNotas] = useState<string | null>(null)
-  const [valorFaxina, setValorFaxina] = useState<number | null>(null)
+  const [custoEmpresa, setCustoEmpresa] = useState<number | null>(null)
   const [faxinaData, setFaxinaData] = useState<string | null>(null)
   const [novaDespesa, setNovaDespesa] = useState<{ descricao: string; valor: string; reembolsavel: boolean } | null>(null)
 
@@ -98,8 +98,8 @@ export function ReservationDetailPage() {
 
   // Resolved values (local state or from server)
   const currentNotas = notas !== null ? notas : (reservation.notas ?? "")
-  const currentValorFaxina = valorFaxina !== null ? valorFaxina : (reservation.valorFaxina ?? 0)
   const faxinaStatus: FaxinaStatus = reservation.faxinaStatus ?? "nao_agendada"
+  const taxaLimpeza = property?.taxaLimpeza ?? 0
 
   const infoChanged = editCheckIn !== null || editCheckOut !== null || editPrecoTotal !== null || editNumHospedes !== null
 
@@ -146,46 +146,34 @@ export function ReservationDetailPage() {
     )
   }
 
-  function handleSaveValorFaxina() {
-    updateMutation.mutate(
-      { id: reservation.id, data: { valorFaxina: currentValorFaxina } },
-      {
-        onSuccess: () => {
-          toast.success("Valor da faxina atualizado")
-          setValorFaxina(null)
-        },
-      },
-    )
-  }
-
   function handleAgendarFaxina(porMim: boolean) {
-    // Convert YYYY-MM-DD to full ISO string (local midnight) to avoid timezone issues
     const dateStr = faxinaData ?? reservation.faxinaData?.split("T")[0] ?? reservation.checkOut.split("T")[0]
     const [y, m, d] = dateStr.split("-").map(Number)
     const dataFaxina = new Date(y, m - 1, d).toISOString()
+    const data: Record<string, unknown> = {
+      faxinaStatus: "agendada" as FaxinaStatus,
+      faxinaPorMim: porMim,
+      faxinaData: dataFaxina,
+    }
+    if (!porMim && custoEmpresa !== null) {
+      data.custoEmpresaFaxina = custoEmpresa
+      data.faxinaPaga = false
+    }
     updateMutation.mutate(
-      {
-        id: reservation.id,
-        data: {
-          faxinaStatus: "agendada" as FaxinaStatus,
-          faxinaPorMim: porMim,
-          valorFaxina: currentValorFaxina,
-          faxinaData: dataFaxina,
-        },
-      },
+      { id: reservation.id, data },
       {
         onSuccess: () => {
           toast.success(porMim ? "Faxina agendada (você)" : "Faxina agendada (empresa)")
-          setValorFaxina(null)
+          setCustoEmpresa(null)
         },
       },
     )
   }
 
-  function handleConcluirFaxina() {
+  function handleToggleFaxinaPaga() {
     updateMutation.mutate(
-      { id: reservation.id, data: { faxinaStatus: "concluida" as FaxinaStatus } },
-      { onSuccess: () => toast.success("Faxina concluída") },
+      { id: reservation.id, data: { faxinaPaga: !reservation.faxinaPaga } },
+      { onSuccess: () => toast.success(reservation.faxinaPaga ? "Marcada como não paga" : "Marcada como paga") },
     )
   }
 
@@ -243,7 +231,6 @@ export function ReservationDetailPage() {
   const totalDespesas = (reservation.despesas ?? []).reduce((sum, d) => sum + d.valor, 0)
   const totalReembolsavel = (reservation.despesas ?? []).filter((d) => d.reembolsavel).reduce((sum, d) => sum + d.valor, 0)
 
-  const valorFaxinaChanged = valorFaxina !== null
   const notasChanged = notas !== null && notas !== (reservation.notas ?? "")
 
   return (
@@ -413,41 +400,23 @@ export function ReservationDetailPage() {
           <Badge
             variant="outline"
             className={
-              faxinaStatus === "concluida"
-                ? "bg-green-50 text-green-700 border-green-200"
-                : faxinaStatus === "agendada"
-                  ? "bg-blue-50 text-blue-700 border-blue-200"
-                  : "bg-gray-50 text-gray-600 border-gray-200"
+              faxinaStatus === "agendada" || faxinaStatus === "concluida"
+                ? "bg-blue-50 text-blue-700 border-blue-200"
+                : "bg-gray-50 text-gray-600 border-gray-200"
             }
           >
-            {faxinaStatus === "concluida" && <CheckCircle2 className="mr-1 h-3 w-3" />}
-            {faxinaStatus === "agendada" && <Clock className="mr-1 h-3 w-3" />}
-            {faxinaStatus === "concluida"
-              ? "Concluída"
-              : faxinaStatus === "agendada"
-                ? "Agendada"
-                : "Não agendada"}
+            {(faxinaStatus === "agendada" || faxinaStatus === "concluida") && <Clock className="mr-1 h-3 w-3" />}
+            {faxinaStatus === "agendada" || faxinaStatus === "concluida"
+              ? "Agendada"
+              : "Não agendada"}
           </Badge>
         </div>
 
-        {/* Valor da faxina — sempre visível */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">Valor (R$):</span>
-          <Input
-            type="number"
-            min={0}
-            step={0.01}
-            className="w-32"
-            value={currentValorFaxina || ""}
-            onChange={(e) => setValorFaxina(e.target.value === "" ? 0 : Number(e.target.value))}
-          />
-          {valorFaxinaChanged && (
-            <Button size="sm" variant="outline" onClick={handleSaveValorFaxina} disabled={updateMutation.isPending}>
-              <Save className="mr-1 h-3 w-3" />
-              Salvar
-            </Button>
-          )}
-        </div>
+        {taxaLimpeza > 0 && (
+          <p className="text-sm text-muted-foreground">
+            Taxa de limpeza da propriedade: <span className="font-medium text-foreground">R$ {taxaLimpeza.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+          </p>
+        )}
 
         {/* Estado: Não agendada → data + botões para agendar */}
         {faxinaStatus === "nao_agendada" && (
@@ -472,11 +441,24 @@ export function ReservationDetailPage() {
                 <User className="mr-1 h-3 w-3" />
                 Eu faço
               </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm text-muted-foreground">Custo empresa (R$):</span>
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  className="w-28"
+                  value={custoEmpresa ?? ""}
+                  onChange={(e) => setCustoEmpresa(e.target.value === "" ? null : Number(e.target.value))}
+                />
+              </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleAgendarFaxina(false)}
-                disabled={updateMutation.isPending}
+                disabled={updateMutation.isPending || custoEmpresa === null}
               >
                 <Building className="mr-1 h-3 w-3" />
                 Empresa parceira
@@ -486,7 +468,7 @@ export function ReservationDetailPage() {
         )}
 
         {/* Estado: Agendada → mostra data, quem faz, botões concluir/cancelar */}
-        {faxinaStatus === "agendada" && (
+        {(faxinaStatus === "agendada" || faxinaStatus === "concluida") && (
           <div className="space-y-3">
             {reservation.faxinaData && (
               <div className="flex items-center gap-2">
@@ -504,63 +486,42 @@ export function ReservationDetailPage() {
                 )}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {reservation.faxinaPorMim
-                ? "Faxina feita por você — esse valor é sua receita."
-                : "Faxina feita pela empresa parceira — esse valor é pago à empresa."}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={handleConcluirFaxina}
-                disabled={updateMutation.isPending}
-              >
-                <CheckCircle2 className="mr-1 h-3 w-3" />
-                Concluir faxina
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCancelarFaxina}
-                disabled={updateMutation.isPending}
-              >
-                Cancelar agendamento
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Estado: Concluída → mostra data e quem fez */}
-        {faxinaStatus === "concluida" && (
-          <div className="space-y-2">
-            {reservation.faxinaData && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Data realizada:</span>
-                <span className="text-sm font-medium">{formatDate(reservation.faxinaData)}</span>
-              </div>
+            {reservation.faxinaPorMim ? (
+              <p className="text-xs text-muted-foreground">
+                Receita: <span className="font-medium text-green-700">R$ {taxaLimpeza.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+              </p>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Custo empresa: R$ {(reservation.custoEmpresaFaxina ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {" — "}
+                  Receita líquida: <span className="font-medium text-green-700">R$ {(taxaLimpeza - (reservation.custoEmpresaFaxina ?? 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Pagamento:</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={reservation.faxinaPaga ? "text-green-700 border-green-300" : "text-red-600 border-red-300"}
+                    onClick={handleToggleFaxinaPaga}
+                    disabled={updateMutation.isPending}
+                  >
+                    {reservation.faxinaPaga ? (
+                      <><CheckCircle2 className="mr-1 h-3 w-3" /> Pago</>
+                    ) : (
+                      <><Clock className="mr-1 h-3 w-3" /> Não pago</>
+                    )}
+                  </Button>
+                </div>
+              </>
             )}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Feita por:</span>
-              <Badge variant="secondary" className="text-sm">
-                {reservation.faxinaPorMim ? (
-                  <><User className="mr-1 h-3 w-3" /> Eu</>
-                ) : (
-                  <><Building className="mr-1 h-3 w-3" /> Empresa parceira</>
-                )}
-              </Badge>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {reservation.faxinaPorMim
-                ? "Esse valor é sua receita."
-                : "Esse valor foi pago à empresa."}
-            </p>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleCancelarFaxina}
               disabled={updateMutation.isPending}
             >
-              Reagendar
+              Cancelar agendamento
             </Button>
           </div>
         )}

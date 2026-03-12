@@ -92,15 +92,11 @@ export function CalendarReservationBar({
           {reservation.precoTotal != null && reservation.precoTotal > 0 && (
             <p>R$ {reservation.precoTotal.toLocaleString("pt-BR")}</p>
           )}
-          {reservation.valorFaxina != null && reservation.valorFaxina > 0 && (
+          {reservation.faxinaStatus && reservation.faxinaStatus !== "nao_agendada" && (
             <p className="flex items-center gap-1">
               <Sparkles className="h-3 w-3" />
-              Faxina: R$ {reservation.valorFaxina.toLocaleString("pt-BR")}
-              {reservation.faxinaStatus === "nao_agendada"
-                ? " — não agendada"
-                : reservation.faxinaStatus === "agendada"
-                  ? ` — agendada (${reservation.faxinaPorMim ? "eu" : "empresa"})`
-                  : ` — concluída (${reservation.faxinaPorMim ? "eu" : "empresa"})`}
+              Faxina: {reservation.faxinaStatus === "agendada" ? "agendada" : "concluída"}
+              {` (${reservation.faxinaPorMim ? "eu" : "empresa"})`}
             </p>
           )}
         </div>

@@ -186,6 +186,13 @@ export class MockPropertyDetailService implements PropertyDetailService {
     return this.maintenanceRecords[index]
   }
 
+  async deleteMaintenanceRecord(id: string): Promise<void> {
+    await mockDelay()
+    const index = this.maintenanceRecords.findIndex((r) => r.id === id)
+    if (index === -1) throw new Error("Registro não encontrado")
+    this.maintenanceRecords.splice(index, 1)
+  }
+
   // Inventário
   async getInventory(propertyId: string): Promise<InventoryItem[]> {
     await mockDelay()

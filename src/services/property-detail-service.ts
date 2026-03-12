@@ -12,6 +12,7 @@ export interface PropertyDetailService {
   getMaintenanceRecords(startDate?: string, endDate?: string, propertyId?: string): Promise<MaintenanceRecord[]>
   createMaintenanceRecord(data: Omit<MaintenanceRecord, "id">): Promise<MaintenanceRecord>
   updateMaintenanceRecord(id: string, data: Partial<MaintenanceRecord>): Promise<MaintenanceRecord>
+  deleteMaintenanceRecord(id: string): Promise<void>
 
   // Inventário
   getInventory(propertyId: string): Promise<InventoryItem[]>

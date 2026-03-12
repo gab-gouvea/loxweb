@@ -10,6 +10,8 @@ import { MaintenanceReportPage } from "@/pages/maintenance-report-page"
 import { ExpensesReportPage } from "@/pages/expenses-report-page"
 import { ProprietariosPage } from "@/pages/proprietarios-page"
 import { ProprietarioDetailPage } from "@/pages/proprietario-detail-page"
+import { FaxinaTerceirizadaPage } from "@/pages/faxina-terceirizada-page"
+import { FaxinaPagamentosPage } from "@/pages/faxina-pagamentos-page"
 
 const router = createBrowserRouter([
   {
@@ -27,6 +29,8 @@ const router = createBrowserRouter([
       { path: "relatorios", element: <ReportsPage /> },
       { path: "relatorios/manutencoes", element: <MaintenanceReportPage /> },
       { path: "relatorios/despesas", element: <ExpensesReportPage /> },
+      { path: "faxina-terceirizada", element: <FaxinaTerceirizadaPage /> },
+      { path: "faxina-terceirizada/pagamentos", element: <FaxinaPagamentosPage /> },
     ],
   },
 ])

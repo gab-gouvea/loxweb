@@ -80,7 +80,6 @@ export function ReservationForm({
       numHospedes: reservation?.numHospedes ?? 1,
       faxinaStatus: reservation?.faxinaStatus ?? "nao_agendada",
       faxinaPorMim: reservation?.faxinaPorMim ?? false,
-      valorFaxina: reservation?.valorFaxina ?? undefined,
       despesas: reservation?.despesas ?? [],
     },
   })
@@ -288,117 +287,90 @@ export function ReservationForm({
           />
         </div>
 
+        {/* Despesas — only when editing */}
         {reservation && (
           <div className="space-y-3 rounded-lg border p-3">
-            <FormField
-              control={form.control}
-              name="valorFaxina"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor da Faxina (R$)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      placeholder="0,00"
-                      {...field}
-                      value={field.value || ""}
-                      onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <p className="text-xs text-muted-foreground">
-              O agendamento da faxina é feito na página da reserva após criá-la.
-            </p>
-          </div>
-        )}
+            <div className="flex items-center justify-between">
+              <FormLabel className="text-sm font-medium">Despesas</FormLabel>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => append({ descricao: "", valor: 0, reembolsavel: false })}
+              >
+                <Plus className="mr-1 h-3 w-3" />
+                Adicionar
+              </Button>
+            </div>
 
-        {/* Despesas */}
-        <div className="space-y-3 rounded-lg border p-3">
-          <div className="flex items-center justify-between">
-            <FormLabel className="text-sm font-medium">Despesas</FormLabel>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => append({ descricao: "", valor: 0, reembolsavel: false })}
-            >
-              <Plus className="mr-1 h-3 w-3" />
-              Adicionar
-            </Button>
-          </div>
+            {fields.length === 0 && (
+              <p className="text-sm text-muted-foreground">Nenhuma despesa adicionada.</p>
+            )}
 
-          {fields.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhuma despesa adicionada.</p>
-          )}
-
-          {fields.map((field, index) => (
-            <div key={field.id} className="space-y-2 rounded border p-2">
-              <div className="flex items-start gap-2">
+            {fields.map((field, index) => (
+              <div key={field.id} className="space-y-2 rounded border p-2">
+                <div className="flex items-start gap-2">
+                  <FormField
+                    control={form.control}
+                    name={`despesas.${index}.descricao`}
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormControl>
+                          <Input placeholder="Nome do item ou descrição da despesa" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`despesas.${index}.valor`}
+                    render={({ field }) => (
+                      <FormItem className="w-28">
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            placeholder="R$"
+                            {...field}
+                            value={field.value || ""}
+                            onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-destructive"
+                    onClick={() => remove(index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
                 <FormField
                   control={form.control}
-                  name={`despesas.${index}.descricao`}
+                  name={`despesas.${index}.reembolsavel`}
                   render={({ field }) => (
-                    <FormItem className="flex-1">
+                    <FormItem className="flex flex-row items-center space-x-2 space-y-0">
                       <FormControl>
-                        <Input placeholder="Nome do item ou descrição da despesa" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`despesas.${index}.valor`}
-                  render={({ field }) => (
-                    <FormItem className="w-28">
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
-                          step={0.01}
-                          placeholder="R$"
-                          {...field}
-                          value={field.value || ""}
-                          onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <FormMessage />
+                      <FormLabel className="text-xs font-normal">Reembolsavel</FormLabel>
                     </FormItem>
                   )}
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 text-destructive"
-                  onClick={() => remove(index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
               </div>
-              <FormField
-                control={form.control}
-                name={`despesas.${index}.reembolsavel`}
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormLabel className="text-xs font-normal">Reembolsavel</FormLabel>
-                  </FormItem>
-                )}
-              />
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <FormField
           control={form.control}

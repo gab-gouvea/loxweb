@@ -45,7 +45,7 @@ export function PropertyDialog({ open, onOpenChange, property }: PropertyDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Editar Propriedade" : "Nova Propriedade"}

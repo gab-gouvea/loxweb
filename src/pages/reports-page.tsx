@@ -36,12 +36,13 @@ import { ReservationStatusBadge } from "@/components/reservations/reservation-st
 import type { Reservation } from "@/types/reservation"
 import type { Property } from "@/types/property"
 
-function calcFaxinaLiquida(reservation: Reservation): number {
+function calcFaxinaReceita(reservation: Reservation, property: Property | undefined): number {
   if (reservation.status === "cancelada") return 0
   const status = reservation.faxinaStatus ?? "nao_agendada"
   if (status === "nao_agendada") return 0
-  const valorFaxina = reservation.valorFaxina ?? 0
-  return reservation.faxinaPorMim ? valorFaxina : -valorFaxina
+  const taxaLimpeza = property?.taxaLimpeza ?? 0
+  if (reservation.faxinaPorMim) return taxaLimpeza
+  return taxaLimpeza - (reservation.custoEmpresaFaxina ?? 0)
 }
 
 function calcDespesas(reservation: Reservation): { reembolsavel: number; naoReembolsavel: number } {
@@ -63,7 +64,8 @@ function calcTotalRecebido(reservation: Reservation, property: Property | undefi
   const comissaoPercent = property?.percentualComissao ?? 0
   const valorComissao = (precoTotal * comissaoPercent) / 100
   const { naoReembolsavel } = calcDespesas(reservation)
-  return valorComissao + calcFaxinaLiquida(reservation) - naoReembolsavel
+  const receitaFaxina = calcFaxinaReceita(reservation, property)
+  return valorComissao + receitaFaxina - naoReembolsavel
 }
 
 function formatCurrency(value: number): string {
@@ -276,8 +278,8 @@ export function ReportsPage() {
                     const valorComissao = isCancelada
                       ? 0
                       : ((reservation.precoTotal ?? 0) * comissaoPercent) / 100
-                    const valorFaxina = reservation.valorFaxina ?? 0
                     const faxStatus = reservation.faxinaStatus ?? "nao_agendada"
+                    const receitaFaxina = calcFaxinaReceita(reservation, property)
                     const despesas = calcDespesas(reservation)
                     const totalRecebido = calcTotalRecebido(reservation, property)
 
@@ -303,11 +305,11 @@ export function ReportsPage() {
                           {isCancelada ? "—" : formatCurrency(valorComissao)}
                         </TableCell>
                         <TableCell className="text-right">
-                          {isCancelada || faxStatus === "nao_agendada" || valorFaxina === 0 ? (
+                          {isCancelada || faxStatus === "nao_agendada" || receitaFaxina === 0 ? (
                             <span className="text-muted-foreground">—</span>
                           ) : (
-                            <span className={reservation.faxinaPorMim ? "text-green-700" : "text-red-600"}>
-                              {reservation.faxinaPorMim ? "+" : "−"}{formatCurrency(valorFaxina)}
+                            <span className="text-green-700">
+                              +{formatCurrency(receitaFaxina)}
                             </span>
                           )}
                         </TableCell>

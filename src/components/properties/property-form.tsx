@@ -51,6 +51,7 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
       quartos: property?.quartos ?? 1,
       fotoCapa: property?.fotoCapa ?? "",
       percentualComissao: property?.percentualComissao ?? 0,
+      taxaLimpeza: property?.taxaLimpeza ?? 0,
       temHobbyBox: property?.temHobbyBox ?? false,
       acessoPredio: property?.acessoPredio ?? "",
       acessoApartamento: property?.acessoApartamento ?? "",
@@ -155,28 +156,52 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="percentualComissao"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Comissao (%)</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={1}
-                  placeholder="0"
-                  {...field}
-                  value={field.value || ""}
-                  onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="percentualComissao"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Comissão (%)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    placeholder="0"
+                    {...field}
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="taxaLimpeza"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Taxa de Limpeza (R$)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    placeholder="0"
+                    {...field}
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}

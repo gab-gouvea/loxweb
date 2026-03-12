@@ -38,9 +38,16 @@ export function CalendarPage() {
   }, [allReservations])
 
   const filteredProperties = useMemo(() => {
-    if (!selectedPropertyIds) return properties
-    return properties.filter((p) => selectedPropertyIds.includes(p.id))
-  }, [properties, selectedPropertyIds])
+    const list = !selectedPropertyIds
+      ? [...properties]
+      : properties.filter((p) => selectedPropertyIds.includes(p.id))
+    // Sort by owner name
+    return list.sort((a, b) => {
+      const ownerA = ownerNames.get(a.proprietarioId ?? "") ?? ""
+      const ownerB = ownerNames.get(b.proprietarioId ?? "") ?? ""
+      return ownerA.localeCompare(ownerB, "pt-BR")
+    })
+  }, [properties, selectedPropertyIds, ownerNames])
 
   function handleDayClick(date: Date) {
     setDefaultCheckIn(date)

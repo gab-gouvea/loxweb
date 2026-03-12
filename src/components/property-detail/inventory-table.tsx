@@ -1,15 +1,8 @@
 import { useState } from "react"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus, Pencil, Trash2, Package } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { Button } from "@/components/ui/button"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,7 +54,6 @@ export function InventoryTable({ propertyId }: InventoryTableProps) {
     )
   }
 
-  // Data mais recente de atualização entre os itens
   const lastUpdated = items && items.length > 0
     ? items.reduce((latest, item) =>
         item.atualizadoEm > latest ? item.atualizadoEm : latest
@@ -90,46 +82,36 @@ export function InventoryTable({ propertyId }: InventoryTableProps) {
       </div>
 
       {items && items.length > 0 ? (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[60px]">Foto</TableHead>
-                <TableHead>Nome</TableHead>
-                <TableHead className="w-[100px]">Quantidade</TableHead>
-                <TableHead className="w-[80px]" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    {item.imagemUrl ? (
-                      <img
-                        src={item.imagemUrl}
-                        alt={item.nome}
-                        className="h-10 w-10 rounded object-cover"
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded bg-muted" />
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">{item.nome}</TableCell>
-                  <TableCell>{item.quantidade}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(item)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeletingId(item.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {items.map((item) => (
+            <Card key={item.id} className="overflow-hidden">
+              <div className="aspect-square w-full overflow-hidden bg-muted">
+                {item.imagemUrl ? (
+                  <img
+                    src={item.imagemUrl}
+                    alt={item.nome}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                    <Package className="h-10 w-10" />
+                  </div>
+                )}
+              </div>
+              <CardContent className="p-3 space-y-1">
+                <h3 className="font-medium text-sm truncate">{item.nome}</h3>
+                <p className="text-sm text-muted-foreground">Qtd: {item.quantidade}</p>
+                <div className="flex items-center gap-1 pt-1">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingId(item.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">Nenhum item no inventário.</p>

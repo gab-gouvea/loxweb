@@ -34,6 +34,7 @@ function formatCurrency(value: number): string {
 export function ExpensesReportPage() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
+  const [tipoFilter, setTipoFilter] = useState<string>("todos")
 
   const navigate = useNavigate()
   const { data: reservations = [], isLoading } = useReservations()
@@ -61,8 +62,19 @@ export function ExpensesReportPage() {
       result = result.filter((r) => r.propriedadeId === propertyFilter)
     }
 
+    // Filter despesas by tipo and exclude reservations with no matching despesas
+    if (tipoFilter !== "todos") {
+      const isReembolsavel = tipoFilter === "reembolsavel"
+      result = result
+        .map((r) => ({
+          ...r,
+          despesas: (r.despesas || []).filter((d) => d.reembolsavel === isReembolsavel),
+        }))
+        .filter((r) => r.despesas.length > 0)
+    }
+
     return result.sort((a, b) => a.checkIn.localeCompare(b.checkIn))
-  }, [reservations, monthStart, monthEnd, propertyFilter])
+  }, [reservations, monthStart, monthEnd, propertyFilter, tipoFilter])
 
   const groupedByProperty = useMemo(() => {
     const groups = new Map<string, Reservation[]>()
@@ -135,19 +147,32 @@ export function ExpensesReportPage() {
           </Button>
         </div>
 
-        <Select value={propertyFilter} onValueChange={setPropertyFilter}>
-          <SelectTrigger className="w-[220px]">
-            <SelectValue placeholder="Propriedade" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todas propriedades</SelectItem>
-            {properties.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={propertyFilter} onValueChange={setPropertyFilter}>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="Propriedade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas propriedades</SelectItem>
+              {properties.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={tipoFilter} onValueChange={setTipoFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas despesas</SelectItem>
+              <SelectItem value="reembolsavel">Reembolsáveis</SelectItem>
+              <SelectItem value="nao_reembolsavel">Não reembolsáveis</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Summary cards */}

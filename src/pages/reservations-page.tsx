@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -40,6 +41,8 @@ export function ReservationsPage() {
   const [deletingReservation, setDeletingReservation] = useState<Reservation | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>("todos")
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
+  const [sortBy, setSortBy] = useState<string>("recente")
+  const [searchName, setSearchName] = useState("")
 
   const propertyMap = useMemo(() => {
     const map = new Map<string, (typeof properties)[number]>()
@@ -55,8 +58,24 @@ export function ReservationsPage() {
     if (propertyFilter !== "todos") {
       result = result.filter((r) => r.propriedadeId === propertyFilter)
     }
-    return result.sort((a, b) => a.checkIn.localeCompare(b.checkIn))
-  }, [reservations, statusFilter, propertyFilter])
+    if (searchName.trim()) {
+      const term = searchName.trim().toLowerCase()
+      result = result.filter((r) => r.nomeHospede.toLowerCase().includes(term))
+    }
+
+    switch (sortBy) {
+      case "recente":
+        return [...result].sort((a, b) => b.checkIn.localeCompare(a.checkIn))
+      case "antigo":
+        return [...result].sort((a, b) => a.checkIn.localeCompare(b.checkIn))
+      case "nome_az":
+        return [...result].sort((a, b) => a.nomeHospede.localeCompare(b.nomeHospede, "pt-BR"))
+      case "nome_za":
+        return [...result].sort((a, b) => b.nomeHospede.localeCompare(a.nomeHospede, "pt-BR"))
+      default:
+        return result
+    }
+  }, [reservations, statusFilter, propertyFilter, sortBy, searchName])
 
   return (
     <div className="space-y-4">
@@ -68,7 +87,17 @@ export function ReservationsPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por hospede..."
+            value={searchName}
+            onChange={(e) => setSearchName(e.target.value)}
+            className="w-[200px] pl-8"
+          />
+        </div>
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Status" />
@@ -94,6 +123,18 @@ export function ReservationsPage() {
                 {p.nome}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-[190px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="recente">Mais recentes</SelectItem>
+            <SelectItem value="antigo">Mais antigas</SelectItem>
+            <SelectItem value="nome_az">Nome A → Z</SelectItem>
+            <SelectItem value="nome_za">Nome Z → A</SelectItem>
           </SelectContent>
         </Select>
       </div>

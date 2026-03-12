@@ -213,15 +213,41 @@ export function CalendarGrid({
                       )}
                       style={{ width: COL_WIDTH }}
                     >
-                      {labels?.checkins && labels.checkins.length > 0 && (
-                        <span className="text-[10px] font-bold text-green-600 leading-tight">CHECKIN</span>
-                      )}
-                      {labels?.checkouts && labels.checkouts.length > 0 && (
-                        <span className="text-[10px] font-bold text-red-600 leading-tight">CHECKOUT</span>
-                      )}
-                      {labels?.faxinas && labels.faxinas.length > 0 && (
-                        <span className="text-[10px] font-bold text-yellow-500 leading-tight">FAXINA</span>
-                      )}
+                      {labels && (() => {
+                        const hasCheckIn = labels.checkins.length > 0
+                        const hasCheckOut = labels.checkouts.length > 0
+                        const hasFaxina = labels.faxinas.length > 0
+                        const hasBoth = hasCheckIn && hasCheckOut
+
+                        if (hasBoth) {
+                          return (
+                            <>
+                              <span className="flex items-center gap-0.5">
+                                <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500" />
+                                <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
+                              </span>
+                              <span className="text-[9px] font-bold leading-tight"><span className="text-red-600">OUT</span><span className="text-black">/</span><span className="text-green-600">IN</span></span>
+                              {hasFaxina && (
+                                <span className="text-[9px] font-bold text-yellow-500 leading-tight">FAXINA</span>
+                              )}
+                            </>
+                          )
+                        }
+
+                        return (
+                          <>
+                            {hasCheckIn && (
+                              <span className="text-[10px] font-bold text-green-600 leading-tight">CHECKIN</span>
+                            )}
+                            {hasCheckOut && (
+                              <span className="text-[10px] font-bold text-red-600 leading-tight">CHECKOUT</span>
+                            )}
+                            {hasFaxina && (
+                              <span className="text-[10px] font-bold text-yellow-500 leading-tight">FAXINA</span>
+                            )}
+                          </>
+                        )
+                      })()}
                     </button>
                   )
                 })}

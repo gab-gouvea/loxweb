@@ -15,6 +15,7 @@ export const propertySchema = z.object({
   quartos: z.number().int().min(0),
   fotoCapa: z.string().url("URL inválida").optional(),
   percentualComissao: z.number().min(0).max(100),
+  taxaLimpeza: z.number().min(0).optional(),
   temHobbyBox: z.boolean(),
   acessoPredio: z.string().optional(),
   acessoApartamento: z.string().optional(),

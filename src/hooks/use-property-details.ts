@@ -76,6 +76,17 @@ export function useUpdateMaintenanceRecord() {
   })
 }
 
+export function useDeleteMaintenanceRecord() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      propertyDetailService.deleteMaintenanceRecord(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["maintenance-records"] })
+    },
+  })
+}
+
 // --- Inventário ---
 
 export function useInventoryItems(propertyId: string) {

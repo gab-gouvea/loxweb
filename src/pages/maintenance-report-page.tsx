@@ -1,10 +1,12 @@
 import { useState, useMemo } from "react"
-import { ChevronLeft, ChevronRight, Check, X, Trash2 } from "lucide-react"
-import { startOfMonth, endOfMonth, addMonths, subMonths, format } from "date-fns"
-import { ptBR } from "date-fns/locale/pt-BR"
-import { Link, useNavigate } from "react-router-dom"
+import { Check, X, Trash2 } from "lucide-react"
+import { startOfMonth, endOfMonth } from "date-fns"
+import { useNavigate } from "react-router-dom"
+import { MonthNavigation } from "@/components/shared/month-navigation"
+import { TabNavigation } from "@/components/shared/tab-navigation"
+import { SummaryCard } from "@/components/shared/summary-card"
+import { PropertyFilterSelect } from "@/components/shared/property-filter-select"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -30,10 +32,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useProperties } from "@/hooks/use-properties"
+import { usePropertyMap } from "@/hooks/use-property-map"
 import { useMaintenanceRecords, useUpdateMaintenanceRecord, useDeleteMaintenanceRecord } from "@/hooks/use-property-details"
 import { formatDate } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
+import { groupByProperty } from "@/lib/collection-utils"
 import type { Property } from "@/types/property"
 import type { MaintenanceRecord } from "@/types/property-detail"
 
@@ -45,15 +48,9 @@ export function MaintenanceReportPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const navigate = useNavigate()
 
-  const { data: properties = [] } = useProperties()
+  const { properties, propertyMap } = usePropertyMap()
   const updateMaintenanceRecord = useUpdateMaintenanceRecord()
   const deleteMaintenanceRecord = useDeleteMaintenanceRecord()
-
-  const propertyMap = useMemo(() => {
-    const map = new Map<string, Property>()
-    for (const p of properties) map.set(p.id, p)
-    return map
-  }, [properties])
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
@@ -70,19 +67,9 @@ export function MaintenanceReportPage() {
     return maintenanceRecords.filter((m) => m.pago === isPago)
   }, [maintenanceRecords, pagoFilter])
 
-  const maintenanceByProperty = useMemo(() => {
-    const groups = new Map<string, MaintenanceRecord[]>()
-    for (const m of filteredRecords) {
-      const existing = groups.get(m.propriedadeId) || []
-      existing.push(m)
-      groups.set(m.propriedadeId, existing)
-    }
-    return groups
-  }, [filteredRecords])
+  const maintenanceByProperty = useMemo(() => groupByProperty(filteredRecords), [filteredRecords])
 
-  const maintenancePropertyIds = useMemo(() => {
-    return Array.from(maintenanceByProperty.keys())
-  }, [maintenanceByProperty])
+  const maintenancePropertyIds = useMemo(() => Array.from(maintenanceByProperty.keys()), [maintenanceByProperty])
 
   const maintenanceSummary = useMemo(() => {
     const total = filteredRecords.reduce((sum, m) => sum + m.valor, 0)
@@ -90,65 +77,22 @@ export function MaintenanceReportPage() {
     return { total, pendente }
   }, [filteredRecords])
 
-  const monthLabel = format(currentMonth, "MMMM yyyy", { locale: ptBR })
+
 
   return (
     <div className="space-y-6">
-      {/* Header with tab navigation */}
-      <div className="flex items-center gap-6 border-b">
-        <Link
-          to="/relatorios"
-          className="pb-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-        >
-          Recebimentos
-        </Link>
-        <span className="pb-2 text-sm font-medium border-b-2 border-primary">
-          Manutenções
-        </span>
-        <Link
-          to="/relatorios/despesas"
-          className="pb-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-        >
-          Despesas
-        </Link>
-      </div>
+      <TabNavigation tabs={[
+        { label: "Recebimentos", to: "/relatorios" },
+        { label: "Manutenções", to: "/relatorios/manutencoes" },
+        { label: "Despesas", to: "/relatorios/despesas" },
+      ]} />
 
       {/* Month navigation + property filter */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <h2 className="min-w-[180px] text-center text-lg font-semibold capitalize">
-            {monthLabel}
-          </h2>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <MonthNavigation currentMonth={currentMonth} onMonthChange={setCurrentMonth} />
 
         <div className="flex items-center gap-2">
-          <Select value={propertyFilter} onValueChange={setPropertyFilter}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Propriedade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todas propriedades</SelectItem>
-              {properties.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <PropertyFilterSelect value={propertyFilter} onValueChange={setPropertyFilter} properties={properties} />
 
           <Select value={pagoFilter} onValueChange={setPagoFilter}>
             <SelectTrigger className="w-[180px]">
@@ -165,28 +109,8 @@ export function MaintenanceReportPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Manutenções
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{formatCurrency(maintenanceSummary.total)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pagamento Pendente
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className={`text-2xl font-bold ${maintenanceSummary.pendente > 0 ? "text-red-600" : ""}`}>
-              {formatCurrency(maintenanceSummary.pendente)}
-            </p>
-          </CardContent>
-        </Card>
+        <SummaryCard title="Total Manutenções" value={formatCurrency(maintenanceSummary.total)} />
+        <SummaryCard title="Pagamento Pendente" value={formatCurrency(maintenanceSummary.pendente)} valueClassName={maintenanceSummary.pendente > 0 ? "text-red-600" : ""} />
       </div>
 
       {/* Maintenance grouped by property */}

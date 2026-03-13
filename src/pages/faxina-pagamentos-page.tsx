@@ -1,10 +1,12 @@
 import { useState, useMemo } from "react"
-import { ChevronLeft, ChevronRight, Check, X } from "lucide-react"
-import { startOfMonth, endOfMonth, addMonths, subMonths, format, parseISO } from "date-fns"
-import { ptBR } from "date-fns/locale/pt-BR"
-import { useNavigate, Link } from "react-router-dom"
+import { Check, X } from "lucide-react"
+import { startOfMonth, parseISO, format } from "date-fns"
+import { useNavigate } from "react-router-dom"
+import { MonthNavigation } from "@/components/shared/month-navigation"
+import { PropertyFilterSelect } from "@/components/shared/property-filter-select"
+import { SummaryCard } from "@/components/shared/summary-card"
+import { TabNavigation } from "@/components/shared/tab-navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -20,10 +22,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
-import { useProperties } from "@/hooks/use-properties"
+import { useReservationsByMonth } from "@/hooks/use-reservations-by-month"
+import { useUpdateReservation } from "@/hooks/use-reservations"
+import { usePropertyMap } from "@/hooks/use-property-map"
 import { formatCurrency } from "@/lib/constants"
-import type { Property } from "@/types/property"
 
 export function FaxinaPagamentosPage() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
@@ -31,26 +33,10 @@ export function FaxinaPagamentosPage() {
   const [pagoFilter, setPagoFilter] = useState<string>("todos")
 
   const navigate = useNavigate()
-  const { data: properties = [] } = useProperties()
+  const { properties, propertyMap } = usePropertyMap()
   const updateReservation = useUpdateReservation()
 
-  const monthStart = startOfMonth(currentMonth)
-  const monthEnd = endOfMonth(currentMonth)
-
-  const { data: allReservationsRaw = [] } = useReservations()
-
-  const allReservations = useMemo(() => {
-    return allReservationsRaw.filter((r) => {
-      const checkIn = parseISO(r.checkIn)
-      return checkIn >= monthStart && checkIn <= monthEnd
-    })
-  }, [allReservationsRaw, monthStart, monthEnd])
-
-  const propertyMap = useMemo(() => {
-    const map = new Map<string, Property>()
-    for (const p of properties) map.set(p.id, p)
-    return map
-  }, [properties])
+  const { data: allReservations = [] } = useReservationsByMonth(currentMonth)
 
   // Filter only empresa parceira faxinas (agendada or concluida, not por mim)
   const faxinas = useMemo(() => {
@@ -74,59 +60,25 @@ export function FaxinaPagamentosPage() {
     return { total, pago, pendente }
   }, [faxinas])
 
-  const monthLabel = format(currentMonth, "MMMM yyyy", { locale: ptBR })
+
 
   return (
     <div className="space-y-6">
-      {/* Tab navigation */}
-      <div className="flex items-center gap-6 border-b">
-        <Link
-          to="/faxina-terceirizada"
-          className="pb-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-        >
-          Faxinas
-        </Link>
-        <span className="pb-2 text-sm font-medium border-b-2 border-primary">
-          Pagamentos
-        </span>
-      </div>
+      <TabNavigation tabs={[
+        { label: "Faxinas", to: "/faxina-terceirizada" },
+        { label: "Pagamentos", to: "/faxina-terceirizada/pagamentos" },
+      ]} />
 
       {/* Month navigation + filters */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <h2 className="min-w-[180px] text-center text-lg font-semibold capitalize">
-            {monthLabel}
-          </h2>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <MonthNavigation currentMonth={currentMonth} onMonthChange={setCurrentMonth} />
 
         <div className="flex items-center gap-2">
-          <Select value={propertyFilter} onValueChange={setPropertyFilter}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Propriedade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todas propriedades</SelectItem>
-              {properties.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <PropertyFilterSelect
+            value={propertyFilter}
+            onValueChange={setPropertyFilter}
+            properties={properties}
+          />
 
           <Select value={pagoFilter} onValueChange={setPagoFilter}>
             <SelectTrigger className="w-[180px]">
@@ -143,38 +95,9 @@ export function FaxinaPagamentosPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Faxinas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{formatCurrency(summary.total)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pago
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-green-700">{formatCurrency(summary.pago)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pendente
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className={`text-2xl font-bold ${summary.pendente > 0 ? "text-red-600" : ""}`}>
-              {formatCurrency(summary.pendente)}
-            </p>
-          </CardContent>
-        </Card>
+        <SummaryCard title="Total Faxinas" value={formatCurrency(summary.total)} />
+        <SummaryCard title="Pago" value={formatCurrency(summary.pago)} valueClassName="text-green-700" />
+        <SummaryCard title="Pendente" value={formatCurrency(summary.pendente)} valueClassName={summary.pendente > 0 ? "text-red-600" : ""} />
       </div>
 
       {/* Table */}

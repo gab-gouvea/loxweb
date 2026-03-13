@@ -19,7 +19,6 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
@@ -34,6 +33,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { useProperties } from "@/hooks/use-properties"
 import { cn } from "@/lib/utils"
 import { statusLabels, sourceLabels } from "@/lib/constants"
+import { FormTextField, FormNumberField, FormTextareaField } from "@/components/shared/form-fields"
 
 interface ReservationFormProps {
   reservation?: Reservation
@@ -80,18 +80,11 @@ export function ReservationForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
+        <FormTextField<ReservationFormData>
           control={form.control}
           name="nomeHospede"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nome do Hospede</FormLabel>
-              <FormControl>
-                <Input placeholder="Ex: Maria Silva" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Nome do Hospede"
+          placeholder="Ex: Maria Silva"
         />
 
         <FormField
@@ -238,40 +231,20 @@ export function ReservationForm({
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField
+          <FormNumberField<ReservationFormData>
             control={form.control}
             name="numHospedes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Hospedes</FormLabel>
-                <FormControl>
-                  <Input type="number" min={1} {...field} value={field.value || ""} onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Hospedes"
+            min={1}
           />
 
-          <FormField
+          <FormNumberField<ReservationFormData>
             control={form.control}
             name="precoTotal"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Valor Total (R$)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    placeholder="0,00"
-                    {...field}
-                    value={field.value || ""}
-                    onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Valor Total (R$)"
+            min={0}
+            step={0.01}
+            placeholder="0,00"
           />
         </div>
 
@@ -360,18 +333,12 @@ export function ReservationForm({
           </div>
         )}
 
-        <FormField
+        <FormTextareaField<ReservationFormData>
           control={form.control}
           name="notas"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notas</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Observacoes sobre a reserva..." rows={3} {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Notas"
+          placeholder="Observacoes sobre a reserva..."
+          rows={3}
         />
 
         <div className="flex justify-end gap-2 pt-4">

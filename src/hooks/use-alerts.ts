@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { useReservations } from "./use-reservations"
-import { useProperties } from "./use-properties"
+import { usePropertyMap } from "./use-property-map"
 import { useAllPropertyComponents } from "./use-property-details"
 import { toLocalDateStr, getTodayStr } from "@/lib/date-utils"
 
@@ -30,14 +30,8 @@ const alertLabels: Record<AlertType, string> = {
 
 export function useAlerts() {
   const { data: reservations = [] } = useReservations()
-  const { data: properties = [] } = useProperties()
+  const { propertyMap } = usePropertyMap()
   const { data: components = [] } = useAllPropertyComponents()
-
-  const propertyMap = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const p of properties) map.set(p.id, p.nome)
-    return map
-  }, [properties])
 
   const alerts = useMemo(() => {
     const today = getTodayStr()
@@ -51,7 +45,7 @@ export function useAlerts() {
     for (const r of ativas) {
       const checkInDate = toLocalDateStr(r.checkIn)
       const checkOutDate = toLocalDateStr(r.checkOut)
-      const propNome = propertyMap.get(r.propriedadeId) ?? "Propriedade"
+      const propNome = propertyMap.get(r.propriedadeId)?.nome ?? "Propriedade"
 
       // Check-in hoje
       if (checkInDate === today) {
@@ -101,7 +95,7 @@ export function useAlerts() {
         r.faxinaStatus &&
         r.faxinaStatus !== "nao_agendada"
       ) {
-        const propNome = propertyMap.get(r.propriedadeId) ?? "Propriedade"
+        const propNome = propertyMap.get(r.propriedadeId)?.nome ?? "Propriedade"
         result.push({
           id: `faxina-paga-${r.id}`,
           type: "faxina_nao_paga",
@@ -116,7 +110,7 @@ export function useAlerts() {
     for (const c of components) {
       const proxDate = toLocalDateStr(c.proximaManutencao)
       if (proxDate < today) {
-        const propNome = propertyMap.get(c.propriedadeId) ?? "Propriedade"
+        const propNome = propertyMap.get(c.propriedadeId)?.nome ?? "Propriedade"
         result.push({
           id: `manut-${c.id}`,
           type: "manutencao_atrasada",

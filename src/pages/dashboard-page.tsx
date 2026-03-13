@@ -9,7 +9,7 @@ import {
   LogIn,
   LogOut,
 } from "lucide-react"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { SummaryCard } from "@/components/shared/summary-card"
 import {
   Table,
   TableBody,
@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useProperties } from "@/hooks/use-properties"
+import { usePropertyMap } from "@/hooks/use-property-map"
 import { useReservations } from "@/hooks/use-reservations"
 import { useAllPropertyComponents } from "@/hooks/use-property-details"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
@@ -33,15 +33,9 @@ function addDays(dateStr: string, days: number): string {
 
 export function DashboardPage() {
   const navigate = useNavigate()
-  const { data: properties = [] } = useProperties()
+  const { properties, propertyMap } = usePropertyMap()
   const { data: reservations = [] } = useReservations()
   const { data: components = [] } = useAllPropertyComponents()
-
-  const propertyMap = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const p of properties) map.set(p.id, p.nome)
-    return map
-  }, [properties])
 
   const stats = useMemo(() => {
     const today = getTodayStr()
@@ -103,80 +97,11 @@ export function DashboardPage() {
 
       {/* Cards de métricas */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <Card
-          className="cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => navigate("/propriedades")}
-        >
-          <CardHeader className="flex flex-row items-start justify-between pb-2 min-h-[3rem]">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Imóveis
-            </CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{stats.imoveis}</p>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => navigate("/reservas")}
-        >
-          <CardHeader className="flex flex-row items-start justify-between pb-2 min-h-[3rem]">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total de Reservas
-            </CardTitle>
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{stats.reservasAtivas}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-start justify-between pb-2 min-h-[3rem]">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Agend. Faxina Pendentes
-            </CardTitle>
-            <SprayCan className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className={`text-2xl font-bold ${stats.faxinasPendentes.length > 0 ? "text-yellow-600" : "text-green-600"}`}>
-              {stats.faxinasPendentes.length}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => navigate("/faxina-terceirizada/pagamentos")}
-        >
-          <CardHeader className="flex flex-row items-start justify-between pb-2 min-h-[3rem]">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Faxinas Não Pagas
-            </CardTitle>
-            <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className={`text-2xl font-bold ${stats.faxinasNaoPagas.length > 0 ? "text-orange-600" : "text-green-600"}`}>
-              {stats.faxinasNaoPagas.length}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-start justify-between pb-2 min-h-[3rem]">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Manut. Atrasadas
-            </CardTitle>
-            <Wrench className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className={`text-2xl font-bold ${stats.manutencoesAtrasadas.length > 0 ? "text-red-600" : "text-green-600"}`}>
-              {stats.manutencoesAtrasadas.length}
-            </p>
-          </CardContent>
-        </Card>
+        <SummaryCard title="Imóveis" value={stats.imoveis} icon={Building2} onClick={() => navigate("/propriedades")} />
+        <SummaryCard title="Total de Reservas" value={stats.reservasAtivas} icon={CalendarDays} onClick={() => navigate("/reservas")} />
+        <SummaryCard title="Agend. Faxina Pendentes" value={stats.faxinasPendentes.length} icon={SprayCan} valueClassName={stats.faxinasPendentes.length > 0 ? "text-yellow-600" : "text-green-600"} />
+        <SummaryCard title="Faxinas Não Pagas" value={stats.faxinasNaoPagas.length} icon={CircleDollarSign} onClick={() => navigate("/faxina-terceirizada/pagamentos")} valueClassName={stats.faxinasNaoPagas.length > 0 ? "text-orange-600" : "text-green-600"} />
+        <SummaryCard title="Manut. Atrasadas" value={stats.manutencoesAtrasadas.length} icon={Wrench} valueClassName={stats.manutencoesAtrasadas.length > 0 ? "text-red-600" : "text-green-600"} />
       </div>
 
       {/* Seções lado a lado: Check-ins e Checkouts */}
@@ -208,7 +133,7 @@ export function DashboardPage() {
                       onClick={() => navigate(`/reservas/${r.id}`)}
                     >
                       <TableCell className="font-medium">{r.nomeHospede}</TableCell>
-                      <TableCell>{propertyMap.get(r.propriedadeId)}</TableCell>
+                      <TableCell>{propertyMap.get(r.propriedadeId)?.nome}</TableCell>
                       <TableCell>{formatDate(r.checkIn)}</TableCell>
                     </TableRow>
                   ))}
@@ -245,7 +170,7 @@ export function DashboardPage() {
                       onClick={() => navigate(`/reservas/${r.id}`)}
                     >
                       <TableCell className="font-medium">{r.nomeHospede}</TableCell>
-                      <TableCell>{propertyMap.get(r.propriedadeId)}</TableCell>
+                      <TableCell>{propertyMap.get(r.propriedadeId)?.nome}</TableCell>
                       <TableCell>{formatDate(r.checkOut)}</TableCell>
                     </TableRow>
                   ))}
@@ -281,7 +206,7 @@ export function DashboardPage() {
                     onClick={() => navigate(`/reservas/${r.id}`)}
                   >
                     <TableCell className="font-medium">{r.nomeHospede}</TableCell>
-                    <TableCell>{propertyMap.get(r.propriedadeId)}</TableCell>
+                    <TableCell>{propertyMap.get(r.propriedadeId)?.nome}</TableCell>
                     <TableCell>{formatDate(r.checkOut)}</TableCell>
                     <TableCell>
                       <ReservationStatusBadge status={r.status as ReservationStatus} />
@@ -319,7 +244,7 @@ export function DashboardPage() {
                     onClick={() => navigate(`/propriedades/${c.propriedadeId}`)}
                   >
                     <TableCell className="font-medium">{c.nome}</TableCell>
-                    <TableCell>{propertyMap.get(c.propriedadeId)}</TableCell>
+                    <TableCell>{propertyMap.get(c.propriedadeId)?.nome}</TableCell>
                     <TableCell>{c.prestador || "—"}</TableCell>
                     <TableCell className="text-red-600">
                       {formatDate(c.proximaManutencao)}

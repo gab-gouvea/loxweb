@@ -19,30 +19,24 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useReservations } from "@/hooks/use-reservations"
-import { useProperties } from "@/hooks/use-properties"
+import { usePropertyMap } from "@/hooks/use-property-map"
 import { ReservationDialog } from "@/components/reservations/reservation-dialog"
 import { ReservationDeleteDialog } from "@/components/reservations/reservation-delete-dialog"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
 import { formatDate } from "@/lib/date-utils"
-import { sourceLabels } from "@/lib/constants"
+import { sourceLabels, formatCurrency } from "@/lib/constants"
 import type { Reservation, ReservationStatus } from "@/types/reservation"
 
 export function ReservationsPage() {
   const navigate = useNavigate()
   const { data: reservations = [], isLoading } = useReservations()
-  const { data: properties = [] } = useProperties()
+  const { properties, propertyMap } = usePropertyMap()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deletingReservation, setDeletingReservation] = useState<Reservation | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>("todos")
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
   const [sortBy, setSortBy] = useState<string>("recente")
   const [searchName, setSearchName] = useState("")
-
-  const propertyMap = useMemo(() => {
-    const map = new Map<string, (typeof properties)[number]>()
-    for (const p of properties) map.set(p.id, p)
-    return map
-  }, [properties])
 
   const filtered = useMemo(() => {
     let result = reservations
@@ -180,7 +174,7 @@ export function ReservationsPage() {
                       <TableCell>{sourceLabels[reservation.fonte]}</TableCell>
                       <TableCell className="text-right">
                         {reservation.precoTotal
-                          ? `R$ ${reservation.precoTotal.toLocaleString("pt-BR")}`
+                          ? formatCurrency(reservation.precoTotal)
                           : "—"}
                       </TableCell>
                       <TableCell>

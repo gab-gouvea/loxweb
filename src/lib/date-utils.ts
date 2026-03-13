@@ -26,6 +26,12 @@ export function getTodayStr(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
 }
 
+/** Converte YYYY-MM-DD local para ISO string (evita shift de timezone) */
+export function localDateToISO(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number)
+  return new Date(y, m - 1, d).toISOString()
+}
+
 export { isSameMonth, isToday, isSameDay, parseISO }
 
 export const DAYS_OF_WEEK = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]

@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { startOfMonth, endOfMonth, addMonths, subMonths, parseISO, format } from "date-fns"
-import { ptBR } from "date-fns/locale/pt-BR"
-import { Link, useNavigate } from "react-router-dom"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { startOfMonth } from "date-fns"
+import { useNavigate } from "react-router-dom"
+import { MonthNavigation } from "@/components/shared/month-navigation"
+import { TabNavigation } from "@/components/shared/tab-navigation"
+import { SummaryCard } from "@/components/shared/summary-card"
+import { PropertyFilterSelect } from "@/components/shared/property-filter-select"
 import {
   Select,
   SelectContent,
@@ -21,12 +21,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { useReservations } from "@/hooks/use-reservations"
-import { useProperties } from "@/hooks/use-properties"
+import { useReservationsByMonth } from "@/hooks/use-reservations-by-month"
+import { usePropertyMap } from "@/hooks/use-property-map"
 import { formatDate } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
-import type { Reservation } from "@/types/reservation"
-import type { Property } from "@/types/property"
+import { groupByProperty } from "@/lib/collection-utils"
 
 export function ExpensesReportPage() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
@@ -34,24 +33,14 @@ export function ExpensesReportPage() {
   const [tipoFilter, setTipoFilter] = useState<string>("todos")
 
   const navigate = useNavigate()
-  const { data: reservations = [], isLoading } = useReservations()
-  const { data: properties = [] } = useProperties()
+  const { data: reservations = [], isLoading } = useReservationsByMonth(currentMonth)
+  const { properties, propertyMap } = usePropertyMap()
 
-  const propertyMap = useMemo(() => {
-    const map = new Map<string, Property>()
-    for (const p of properties) map.set(p.id, p)
-    return map
-  }, [properties])
-
-  const monthStart = startOfMonth(currentMonth)
-  const monthEnd = endOfMonth(currentMonth)
-
-  // Filter reservations that have expenses and checkIn falls in the month
+  // Filter reservations that have expenses
   const filteredReservations = useMemo(() => {
     let result = reservations.filter((r) => {
       if (!r.despesas?.length) return false
-      const checkIn = parseISO(r.checkIn)
-      return checkIn >= monthStart && checkIn <= monthEnd
+      return true
     })
 
     if (propertyFilter !== "todos") {
@@ -70,21 +59,10 @@ export function ExpensesReportPage() {
     }
 
     return result.sort((a, b) => a.checkIn.localeCompare(b.checkIn))
-  }, [reservations, monthStart, monthEnd, propertyFilter, tipoFilter])
+  }, [reservations, propertyFilter, tipoFilter])
 
-  const groupedByProperty = useMemo(() => {
-    const groups = new Map<string, Reservation[]>()
-    for (const r of filteredReservations) {
-      const existing = groups.get(r.propriedadeId) || []
-      existing.push(r)
-      groups.set(r.propriedadeId, existing)
-    }
-    return groups
-  }, [filteredReservations])
-
-  const propertyIds = useMemo(() => {
-    return Array.from(groupedByProperty.keys())
-  }, [groupedByProperty])
+  const grouped = useMemo(() => groupByProperty(filteredReservations), [filteredReservations])
+  const propertyIds = useMemo(() => Array.from(grouped.keys()), [grouped])
 
   const summary = useMemo(() => {
     let totalReembolsavel = 0
@@ -98,65 +76,22 @@ export function ExpensesReportPage() {
     return { totalReembolsavel, totalNaoReembolsavel, total: totalReembolsavel + totalNaoReembolsavel }
   }, [filteredReservations])
 
-  const monthLabel = format(currentMonth, "MMMM yyyy", { locale: ptBR })
+
 
   return (
     <div className="space-y-6">
-      {/* Header with tab navigation */}
-      <div className="flex items-center gap-6 border-b">
-        <Link
-          to="/relatorios"
-          className="pb-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-        >
-          Recebimentos
-        </Link>
-        <Link
-          to="/relatorios/manutencoes"
-          className="pb-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-        >
-          Manutenções
-        </Link>
-        <span className="pb-2 text-sm font-medium border-b-2 border-primary">
-          Despesas
-        </span>
-      </div>
+      <TabNavigation tabs={[
+        { label: "Recebimentos", to: "/relatorios" },
+        { label: "Manutenções", to: "/relatorios/manutencoes" },
+        { label: "Despesas", to: "/relatorios/despesas" },
+      ]} />
 
       {/* Month navigation + property filter */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <h2 className="min-w-[180px] text-center text-lg font-semibold capitalize">
-            {monthLabel}
-          </h2>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <MonthNavigation currentMonth={currentMonth} onMonthChange={setCurrentMonth} />
 
         <div className="flex items-center gap-2">
-          <Select value={propertyFilter} onValueChange={setPropertyFilter}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Propriedade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todas propriedades</SelectItem>
-              {properties.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <PropertyFilterSelect value={propertyFilter} onValueChange={setPropertyFilter} properties={properties} />
 
           <Select value={tipoFilter} onValueChange={setTipoFilter}>
             <SelectTrigger className="w-[200px]">
@@ -173,38 +108,9 @@ export function ExpensesReportPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Despesas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{formatCurrency(summary.total)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Reembolsáveis
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-green-700">{formatCurrency(summary.totalReembolsavel)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Não Reembolsáveis
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className={`text-2xl font-bold ${summary.totalNaoReembolsavel > 0 ? "text-red-600" : ""}`}>
-              {formatCurrency(summary.totalNaoReembolsavel)}
-            </p>
-          </CardContent>
-        </Card>
+        <SummaryCard title="Total Despesas" value={formatCurrency(summary.total)} />
+        <SummaryCard title="Reembolsáveis" value={formatCurrency(summary.totalReembolsavel)} valueClassName="text-green-700" />
+        <SummaryCard title="Não Reembolsáveis" value={formatCurrency(summary.totalNaoReembolsavel)} valueClassName={summary.totalNaoReembolsavel > 0 ? "text-red-600" : ""} />
       </div>
 
       {/* Expenses grouped by property */}
@@ -212,7 +118,7 @@ export function ExpensesReportPage() {
         const property = propertyMap.get(propertyId)
         if (!property) return null
 
-        const propReservations = groupedByProperty.get(propertyId) || []
+        const propReservations = grouped.get(propertyId) || []
 
         return (
           <div key={propertyId} className="space-y-3">

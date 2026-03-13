@@ -1,8 +1,10 @@
 import { useState, useMemo } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { startOfMonth, endOfMonth, addMonths, subMonths, format, parseISO, isSameDay } from "date-fns"
+import { startOfMonth, parseISO, isSameDay, format } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
-import { useNavigate, Link } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
+import { MonthNavigation } from "@/components/shared/month-navigation"
+import { PropertyFilterSelect } from "@/components/shared/property-filter-select"
+import { TabNavigation } from "@/components/shared/tab-navigation"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -19,8 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useReservations } from "@/hooks/use-reservations"
-import { useProperties } from "@/hooks/use-properties"
+import { useReservationsByMonth } from "@/hooks/use-reservations-by-month"
+import { usePropertyMap } from "@/hooks/use-property-map"
 import { useProprietarios } from "@/hooks/use-proprietarios"
 import type { Property } from "@/types/property"
 import type { Proprietario } from "@/types/proprietario"
@@ -33,20 +35,10 @@ export function FaxinaTerceirizadaPage() {
   const [statusFilter, setStatusFilter] = useState<string>("agendadas")
 
   const navigate = useNavigate()
-  const { data: properties = [] } = useProperties()
+  const { properties, propertyMap } = usePropertyMap()
   const { data: proprietarios = [] } = useProprietarios()
 
-  const monthStart = startOfMonth(currentMonth)
-  const monthEnd = endOfMonth(currentMonth)
-
-  const { data: allReservationsRaw = [] } = useReservations()
-
-  const allReservations = useMemo(() => {
-    return allReservationsRaw.filter((r) => {
-      const checkIn = parseISO(r.checkIn)
-      return checkIn >= monthStart && checkIn <= monthEnd
-    })
-  }, [allReservationsRaw, monthStart, monthEnd])
+  const { data: allReservations = [] } = useReservationsByMonth(currentMonth)
 
   const proprietarioMap = useMemo(() => {
     const map = new Map<string, Proprietario>()
@@ -54,11 +46,7 @@ export function FaxinaTerceirizadaPage() {
     return map
   }, [proprietarios])
 
-  const propertyMap = useMemo(() => {
-    const map = new Map<string, Property>()
-    for (const p of properties) map.set(p.id, p)
-    return map
-  }, [properties])
+
 
   // Filter only third-party cleanings (hide paid ones by default)
   const faxinas = useMemo(() => {
@@ -93,59 +81,25 @@ export function FaxinaTerceirizadaPage() {
     return properties
   }, [properties, propertyFilter])
 
-  const monthLabel = format(currentMonth, "MMMM yyyy", { locale: ptBR })
+
 
   return (
     <div className="space-y-6">
-      {/* Tab navigation */}
-      <div className="flex items-center gap-6 border-b">
-        <span className="pb-2 text-sm font-medium border-b-2 border-primary">
-          Faxinas
-        </span>
-        <Link
-          to="/faxina-terceirizada/pagamentos"
-          className="pb-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-        >
-          Pagamentos
-        </Link>
-      </div>
+      <TabNavigation tabs={[
+        { label: "Faxinas", to: "/faxina-terceirizada" },
+        { label: "Pagamentos", to: "/faxina-terceirizada/pagamentos" },
+      ]} />
 
       {/* Month navigation + property filter */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <h2 className="min-w-[180px] text-center text-lg font-semibold capitalize">
-            {monthLabel}
-          </h2>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <MonthNavigation currentMonth={currentMonth} onMonthChange={setCurrentMonth} />
 
         <div className="flex items-center gap-2">
-          <Select value={propertyFilter} onValueChange={setPropertyFilter}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Propriedade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todas propriedades</SelectItem>
-              {properties.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <PropertyFilterSelect
+            value={propertyFilter}
+            onValueChange={setPropertyFilter}
+            properties={properties}
+          />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[200px]">
               <SelectValue />

@@ -1,18 +1,13 @@
 import { useState, useMemo } from "react"
-import { ChevronLeft, ChevronRight, Pencil } from "lucide-react"
-import { startOfMonth, endOfMonth, addMonths, subMonths, parseISO, format } from "date-fns"
-import { ptBR } from "date-fns/locale/pt-BR"
-import { Link, useNavigate } from "react-router-dom"
+import { Pencil } from "lucide-react"
+import { startOfMonth } from "date-fns"
+import { useNavigate } from "react-router-dom"
+import { MonthNavigation } from "@/components/shared/month-navigation"
+import { TabNavigation } from "@/components/shared/tab-navigation"
+import { SummaryCard } from "@/components/shared/summary-card"
+import { PropertyFilterSelect } from "@/components/shared/property-filter-select"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -29,45 +24,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
-import { useProperties } from "@/hooks/use-properties"
+import { useUpdateReservation } from "@/hooks/use-reservations"
+import { useReservationsByMonth } from "@/hooks/use-reservations-by-month"
+import { usePropertyMap } from "@/hooks/use-property-map"
 import { formatDate } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
+import { calcFaxinaReceita, calcDespesas, calcTotalRecebido } from "@/lib/reservation-calculations"
+import { groupByProperty } from "@/lib/collection-utils"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
 import type { Reservation } from "@/types/reservation"
-import type { Property } from "@/types/property"
-
-function calcFaxinaReceita(reservation: Reservation, property: Property | undefined): number {
-  if (reservation.status === "cancelada") return 0
-  const status = reservation.faxinaStatus ?? "nao_agendada"
-  if (status === "nao_agendada") return 0
-  const taxaLimpeza = property?.taxaLimpeza ?? 0
-  if (reservation.faxinaPorMim) return taxaLimpeza
-  return taxaLimpeza - (reservation.custoEmpresaFaxina ?? 0)
-}
-
-function calcDespesas(reservation: Reservation): { reembolsavel: number; naoReembolsavel: number } {
-  if (!reservation.despesas?.length) return { reembolsavel: 0, naoReembolsavel: 0 }
-  let reembolsavel = 0
-  let naoReembolsavel = 0
-  for (const d of reservation.despesas) {
-    if (d.reembolsavel) reembolsavel += d.valor
-    else naoReembolsavel += d.valor
-  }
-  return { reembolsavel, naoReembolsavel }
-}
-
-function calcTotalRecebido(reservation: Reservation, property: Property | undefined): number {
-  if (reservation.status === "cancelada") {
-    return reservation.valorRecebidoCancelamento ?? 0
-  }
-  const precoTotal = reservation.precoTotal ?? 0
-  const comissaoPercent = property?.percentualComissao ?? 0
-  const valorComissao = (precoTotal * comissaoPercent) / 100
-  const { naoReembolsavel } = calcDespesas(reservation)
-  const receitaFaxina = calcFaxinaReceita(reservation, property)
-  return valorComissao + receitaFaxina - naoReembolsavel
-}
 
 export function ReportsPage() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
@@ -77,46 +42,26 @@ export function ReportsPage() {
   const [editingCancelada, setEditingCancelada] = useState<Reservation | null>(null)
   const [canceladaValor, setCanceladaValor] = useState(0)
 
-  const { data: reservations = [], isLoading: loadingReservations } = useReservations()
-  const { data: properties = [] } = useProperties()
+  const { data: monthReservations = [], isLoading: loadingReservations } = useReservationsByMonth(currentMonth)
+  const { properties, propertyMap } = usePropertyMap()
   const navigate = useNavigate()
   const updateReservation = useUpdateReservation()
 
-  const propertyMap = useMemo(() => {
-    const map = new Map<string, Property>()
-    for (const p of properties) map.set(p.id, p)
-    return map
-  }, [properties])
-
-  const monthStart = startOfMonth(currentMonth)
-  const monthEnd = endOfMonth(currentMonth)
-
   const filteredReservations = useMemo(() => {
-    let result = reservations.filter((r) => {
-      const checkIn = parseISO(r.checkIn)
-      return checkIn >= monthStart && checkIn <= monthEnd
-    })
+    let result = monthReservations
 
     if (propertyFilter !== "todos") {
       result = result.filter((r) => r.propriedadeId === propertyFilter)
     }
 
     return result.sort((a, b) => a.checkIn.localeCompare(b.checkIn))
-  }, [reservations, monthStart, monthEnd, propertyFilter])
+  }, [monthReservations, propertyFilter])
 
-  const groupedByProperty = useMemo(() => {
-    const groups = new Map<string, Reservation[]>()
-    for (const r of filteredReservations) {
-      const existing = groups.get(r.propriedadeId) || []
-      existing.push(r)
-      groups.set(r.propriedadeId, existing)
-    }
-    return groups
-  }, [filteredReservations])
+  const grouped = useMemo(() => groupByProperty(filteredReservations), [filteredReservations])
 
-  const reservationPropertyIds = useMemo(() => {
-    return Array.from(groupedByProperty.keys())
-  }, [groupedByProperty])
+  const propertyIds = useMemo(() => {
+    return Array.from(grouped.keys())
+  }, [grouped])
 
   const summaryTotals = useMemo(() => {
     let totalRecebido = 0
@@ -132,7 +77,7 @@ export function ReportsPage() {
     }
   }, [filteredReservations, propertyMap])
 
-  const monthLabel = format(currentMonth, "MMMM yyyy", { locale: ptBR })
+
 
   function handleOpenCanceladaDialog(reservation: Reservation) {
     setEditingCancelada(reservation)
@@ -154,104 +99,32 @@ export function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header with tab navigation */}
-      <div className="flex items-center gap-6 border-b">
-        <span className="pb-2 text-sm font-medium border-b-2 border-primary">
-          Recebimentos
-        </span>
-        <Link
-          to="/relatorios/manutencoes"
-          className="pb-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-        >
-          Manutenções
-        </Link>
-        <Link
-          to="/relatorios/despesas"
-          className="pb-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-        >
-          Despesas
-        </Link>
-      </div>
+      <TabNavigation tabs={[
+        { label: "Recebimentos", to: "/relatorios" },
+        { label: "Manutenções", to: "/relatorios/manutencoes" },
+        { label: "Despesas", to: "/relatorios/despesas" },
+      ]} />
 
       {/* Month navigation + property filter */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <h2 className="min-w-[180px] text-center text-lg font-semibold capitalize">
-            {monthLabel}
-          </h2>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <MonthNavigation currentMonth={currentMonth} onMonthChange={setCurrentMonth} />
 
-        <Select value={propertyFilter} onValueChange={setPropertyFilter}>
-          <SelectTrigger className="w-[220px]">
-            <SelectValue placeholder="Propriedade" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todas propriedades</SelectItem>
-            {properties.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <PropertyFilterSelect value={propertyFilter} onValueChange={setPropertyFilter} properties={properties} />
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Recebido
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{formatCurrency(summaryTotals.totalRecebido)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Reservas no Período
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{summaryTotals.numReservas}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Reservas Canceladas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className={`text-2xl font-bold ${summaryTotals.canceladas > 0 ? "text-red-600" : "text-muted-foreground"}`}>
-              {summaryTotals.canceladas}
-            </p>
-          </CardContent>
-        </Card>
+        <SummaryCard title="Total Recebido" value={formatCurrency(summaryTotals.totalRecebido)} />
+        <SummaryCard title="Reservas no Período" value={summaryTotals.numReservas} />
+        <SummaryCard title="Reservas Canceladas" value={summaryTotals.canceladas} valueClassName={summaryTotals.canceladas > 0 ? "text-red-600" : "text-muted-foreground"} />
       </div>
 
       {/* Reservations grouped by property */}
-      {reservationPropertyIds.map((propertyId) => {
+      {propertyIds.map((propertyId) => {
         const property = propertyMap.get(propertyId)
         if (!property) return null
 
-        const propReservations = groupedByProperty.get(propertyId) || []
+        const propReservations = grouped.get(propertyId) || []
         const subtotalReservas = propReservations.reduce(
           (sum, r) => sum + calcTotalRecebido(r, property),
           0,
@@ -362,7 +235,7 @@ export function ReportsPage() {
         )
       })}
 
-      {reservationPropertyIds.length === 0 && !loadingReservations && (
+      {propertyIds.length === 0 && !loadingReservations && (
         <div className="py-12 text-center text-muted-foreground">
           Nenhuma reserva encontrada para este período.
         </div>

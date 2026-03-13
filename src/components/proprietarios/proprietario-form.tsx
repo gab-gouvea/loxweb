@@ -1,5 +1,6 @@
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { localDateToISO } from "@/lib/date-utils"
 import { proprietarioFormSchema, estadosCivis, type ProprietarioFormData, type Proprietario } from "@/types/proprietario"
 import {
   Form,
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { estadoCivilLabels } from "@/lib/constants"
+import { FormTextField, FormDateField } from "@/components/shared/form-fields"
 
 interface ProprietarioFormProps {
   proprietario?: Proprietario
@@ -53,8 +55,7 @@ export function ProprietarioForm({ proprietario, onSubmit, onCancel, isSubmittin
 
   function handleFormSubmit(data: ProprietarioFormData) {
     if (data.dataNascimento) {
-      const [y, m, d] = data.dataNascimento.split("-").map(Number)
-      data.dataNascimento = new Date(y, m - 1, d).toISOString()
+      data.dataNascimento = localDateToISO(data.dataNascimento)
     }
     onSubmit(data)
   }
@@ -62,77 +63,41 @@ export function ProprietarioForm({ proprietario, onSubmit, onCancel, isSubmittin
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-        <FormField
+        <FormTextField<ProprietarioFormData>
           control={form.control}
           name="nomeCompleto"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nome Completo</FormLabel>
-              <FormControl>
-                <Input placeholder="Nome completo do proprietário" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Nome Completo"
+          placeholder="Nome completo do proprietário"
         />
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField
+          <FormTextField<ProprietarioFormData>
             control={form.control}
             name="cpf"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>CPF</FormLabel>
-                <FormControl>
-                  <Input placeholder="000.000.000-00" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="CPF"
+            placeholder="000.000.000-00"
           />
 
-          <FormField
+          <FormTextField<ProprietarioFormData>
             control={form.control}
             name="rg"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>RG</FormLabel>
-                <FormControl>
-                  <Input placeholder="00.000.000-0" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="RG"
+            placeholder="00.000.000-0"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField
+          <FormDateField<ProprietarioFormData>
             control={form.control}
             name="dataNascimento"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Data de Nascimento</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Data de Nascimento"
           />
 
-          <FormField
+          <FormTextField<ProprietarioFormData>
             control={form.control}
             name="profissao"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Profissão</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ex: Empresário" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Profissão"
+            placeholder="Ex: Empresário"
           />
         </div>
 
@@ -177,18 +142,11 @@ export function ProprietarioForm({ proprietario, onSubmit, onCancel, isSubmittin
           />
         </div>
 
-        <FormField
+        <FormTextField<ProprietarioFormData>
           control={form.control}
           name="endereco"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Endereço Completo</FormLabel>
-              <FormControl>
-                <Input placeholder="Rua X, 123 - Bairro, Cidade/UF - CEP 00000-000" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Endereço Completo"
+          placeholder="Rua X, 123 - Bairro, Cidade/UF - CEP 00000-000"
         />
 
         <div className="flex justify-end gap-2 pt-4">

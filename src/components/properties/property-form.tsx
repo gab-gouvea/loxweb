@@ -9,8 +9,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
@@ -22,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { useProprietarios } from "@/hooks/use-proprietarios"
 import { tipoLabels } from "@/lib/constants"
+import { FormTextField, FormNumberField, FormTextareaField } from "@/components/shared/form-fields"
 
 interface PropertyFormProps {
   property?: Property
@@ -54,32 +53,18 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
+        <FormTextField<PropertyFormData>
           control={form.control}
           name="nome"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nome</FormLabel>
-              <FormControl>
-                <Input placeholder="Ex: Apartamento Copacabana" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Nome"
+          placeholder="Ex: Apartamento Copacabana"
         />
 
-        <FormField
+        <FormTextField<PropertyFormData>
           control={form.control}
           name="endereco"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Endereco</FormLabel>
-              <FormControl>
-                <Input placeholder="Ex: Rua Barata Ribeiro, 200" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Endereco"
+          placeholder="Ex: Rua Barata Ribeiro, 200"
         />
 
         <FormField
@@ -133,80 +118,40 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
             )}
           />
 
-          <FormField
+          <FormNumberField<PropertyFormData>
             control={form.control}
             name="quartos"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Quartos</FormLabel>
-                <FormControl>
-                  <Input type="number" min={0} {...field} value={field.value || ""} onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Quartos"
+            min={0}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField
+          <FormNumberField<PropertyFormData>
             control={form.control}
             name="percentualComissao"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Comissão (%)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={1}
-                    placeholder="0"
-                    {...field}
-                    value={field.value || ""}
-                    onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Comissão (%)"
+            min={0}
+            max={100}
+            step={1}
+            placeholder="0"
           />
 
-          <FormField
+          <FormNumberField<PropertyFormData>
             control={form.control}
             name="taxaLimpeza"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Taxa de Limpeza (R$)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    placeholder="0"
-                    {...field}
-                    value={field.value || ""}
-                    onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Taxa de Limpeza (R$)"
+            min={0}
+            step={0.01}
+            placeholder="0"
           />
         </div>
 
-        <FormField
+        <FormTextField<PropertyFormData>
           control={form.control}
           name="fotoCapa"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Foto de Capa (URL)</FormLabel>
-              <FormControl>
-                <Input placeholder="https://exemplo.com/foto.jpg" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Foto de Capa (URL)"
+          placeholder="https://exemplo.com/foto.jpg"
         />
 
         <FormField
@@ -222,32 +167,20 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
           )}
         />
 
-        <FormField
+        <FormTextareaField<PropertyFormData>
           control={form.control}
           name="acessoPredio"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Como entrar no prédio</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Ex: Portaria 24h, informar nome na recepção" rows={2} {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Como entrar no prédio"
+          placeholder="Ex: Portaria 24h, informar nome na recepção"
+          rows={2}
         />
 
-        <FormField
+        <FormTextareaField<PropertyFormData>
           control={form.control}
           name="acessoApartamento"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Como entrar no apartamento</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Ex: Senha da fechadura digital: 1234#" rows={2} {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Como entrar no apartamento"
+          placeholder="Ex: Senha da fechadura digital: 1234#"
+          rows={2}
         />
 
         <div className="flex justify-end gap-2 pt-4">

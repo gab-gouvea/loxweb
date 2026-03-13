@@ -22,19 +22,8 @@ import { useProperties } from "@/hooks/use-properties"
 import { useReservations } from "@/hooks/use-reservations"
 import { useAllPropertyComponents } from "@/hooks/use-property-details"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
-import { formatDate } from "@/lib/date-utils"
+import { formatDate, toLocalDateStr, getTodayStr } from "@/lib/date-utils"
 import type { ReservationStatus } from "@/types/reservation"
-
-/** Converte ISO string para YYYY-MM-DD local */
-function toLocalDateStr(isoStr: string): string {
-  const d = new Date(isoStr)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-}
-
-function getTodayStr(): string {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
-}
 
 function addDays(dateStr: string, days: number): string {
   const [y, m, d] = dateStr.split("-").map(Number)

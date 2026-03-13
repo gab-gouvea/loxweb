@@ -30,8 +30,10 @@ export type ComponentFormData = z.infer<typeof componentFormSchema>
 export const inventoryItemSchema = z.object({
   id: z.string(),
   propriedadeId: z.string(),
+  secao: z.string().min(1, "Seção é obrigatória"),
   nome: z.string().min(1, "Nome é obrigatório"),
   quantidade: z.number().int().min(0, "Quantidade deve ser positiva"),
+  descricao: z.string().optional(),
   imagemUrl: z.string().url("URL inválida").optional(),
   atualizadoEm: z.string(),
 })
@@ -39,8 +41,10 @@ export const inventoryItemSchema = z.object({
 export type InventoryItem = z.infer<typeof inventoryItemSchema>
 
 export const inventoryFormSchema = z.object({
+  secao: z.string().min(1, "Seção é obrigatória"),
   nome: z.string().min(1, "Nome é obrigatório"),
   quantidade: z.number().int().min(0, "Quantidade deve ser positiva"),
+  descricao: z.string().optional(),
   imagemUrl: z.string().url("URL inválida").or(z.literal("")).optional(),
 })
 

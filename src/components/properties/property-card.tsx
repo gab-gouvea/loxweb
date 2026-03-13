@@ -4,15 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { Property } from "@/types/property"
-
-const tipoLabels: Record<string, string> = {
-  apartamento: "Apartamento",
-  casa: "Casa",
-  studio: "Studio",
-  chalé: "Chalé",
-  flat: "Flat",
-  outro: "Outro",
-}
+import { tipoLabels } from "@/lib/constants"
 
 interface PropertyCardProps {
   property: Property

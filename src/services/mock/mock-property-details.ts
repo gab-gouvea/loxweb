@@ -61,6 +61,7 @@ const initialInventory: InventoryItem[] = [
   {
     id: "inv-1",
     propriedadeId: "prop-1",
+    secao: "Banheiro",
     nome: "Toalha de Banho",
     quantidade: 8,
     imagemUrl: "https://images.unsplash.com/photo-1616627561950-9f746e330187?w=100&h=100&fit=crop",
@@ -69,6 +70,7 @@ const initialInventory: InventoryItem[] = [
   {
     id: "inv-2",
     propriedadeId: "prop-1",
+    secao: "Quarto",
     nome: "Jogo de Cama Casal",
     quantidade: 4,
     imagemUrl: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=100&h=100&fit=crop",
@@ -77,6 +79,7 @@ const initialInventory: InventoryItem[] = [
   {
     id: "inv-3",
     propriedadeId: "prop-1",
+    secao: "Quarto",
     nome: "Travesseiro",
     quantidade: 6,
     atualizadoEm: makeDate(2026, 1, 15),
@@ -84,6 +87,7 @@ const initialInventory: InventoryItem[] = [
   {
     id: "inv-4",
     propriedadeId: "prop-2",
+    secao: "Banheiro",
     nome: "Toalha de Banho",
     quantidade: 12,
     atualizadoEm: makeDate(2026, 3, 1),
@@ -91,8 +95,10 @@ const initialInventory: InventoryItem[] = [
   {
     id: "inv-5",
     propriedadeId: "prop-2",
+    secao: "Cozinha",
     nome: "Panela Inox",
     quantidade: 3,
+    descricao: "3 panelas na gaveta inferior do fogão",
     atualizadoEm: makeDate(2026, 2, 10),
   },
 ]
@@ -210,6 +216,7 @@ export class MockPropertyDetailService implements PropertyDetailService {
       ...data,
       id: crypto.randomUUID(),
       propriedadeId: propertyId,
+      descricao: data.descricao || undefined,
       imagemUrl: data.imagemUrl || undefined,
       atualizadoEm: new Date().toISOString(),
     }
@@ -224,6 +231,7 @@ export class MockPropertyDetailService implements PropertyDetailService {
     this.inventory[index] = {
       ...this.inventory[index],
       ...data,
+      descricao: data.descricao === "" ? undefined : (data.descricao ?? this.inventory[index].descricao),
       imagemUrl: data.imagemUrl === "" ? undefined : (data.imagemUrl ?? this.inventory[index].imagemUrl),
       atualizadoEm: new Date().toISOString(),
     }

@@ -24,12 +24,9 @@ import { Badge } from "@/components/ui/badge"
 import { useReservations } from "@/hooks/use-reservations"
 import { useProperties } from "@/hooks/use-properties"
 import { formatDate } from "@/lib/date-utils"
+import { formatCurrency } from "@/lib/constants"
 import type { Reservation } from "@/types/reservation"
 import type { Property } from "@/types/property"
-
-function formatCurrency(value: number): string {
-  return `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
 
 export function ExpensesReportPage() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))

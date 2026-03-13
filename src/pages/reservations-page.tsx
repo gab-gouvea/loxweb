@@ -24,14 +24,8 @@ import { ReservationDialog } from "@/components/reservations/reservation-dialog"
 import { ReservationDeleteDialog } from "@/components/reservations/reservation-delete-dialog"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
 import { formatDate } from "@/lib/date-utils"
+import { sourceLabels } from "@/lib/constants"
 import type { Reservation, ReservationStatus } from "@/types/reservation"
-
-const sourceLabels: Record<string, string> = {
-  airbnb: "Airbnb",
-  booking: "Booking.com",
-  direto: "Direto",
-  outro: "Outro",
-}
 
 export function ReservationsPage() {
   const navigate = useNavigate()

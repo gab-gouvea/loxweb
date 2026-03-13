@@ -28,14 +28,8 @@ import { useReservation, useReservations, useUpdateReservation } from "@/hooks/u
 import { useProperties } from "@/hooks/use-properties"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
 import { formatDate } from "@/lib/date-utils"
+import { sourceLabels } from "@/lib/constants"
 import { type ReservationStatus, type Despesa, type FaxinaStatus } from "@/types/reservation"
-
-const sourceLabels: Record<string, string> = {
-  airbnb: "Airbnb",
-  booking: "Booking.com",
-  direto: "Direto",
-  outro: "Outro",
-}
 
 export function ReservationDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -103,8 +97,6 @@ export function ReservationDetailPage() {
   const currentNotas = notas !== null ? notas : (reservation.notas ?? "")
   const faxinaStatus: FaxinaStatus = reservation.faxinaStatus ?? "nao_agendada"
   const taxaLimpeza = property?.taxaLimpeza ?? 0
-
-  const infoChanged = editCheckIn !== null || editCheckOut !== null || editPrecoTotal !== null || editNumHospedes !== null
 
   function handleSaveInfo() {
     const data: Record<string, unknown> = {}

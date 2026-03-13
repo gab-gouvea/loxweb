@@ -10,21 +10,25 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 
 interface InventoryFormProps {
   item?: InventoryItem
+  defaultSecao?: string
   onSubmit: (data: InventoryFormData) => void
   onCancel: () => void
   isSubmitting?: boolean
 }
 
-export function InventoryForm({ item, onSubmit, onCancel, isSubmitting }: InventoryFormProps) {
+export function InventoryForm({ item, defaultSecao, onSubmit, onCancel, isSubmitting }: InventoryFormProps) {
   const form = useForm<InventoryFormData>({
     resolver: zodResolver(inventoryFormSchema),
     defaultValues: {
+      secao: item?.secao ?? defaultSecao ?? "",
       nome: item?.nome ?? "",
       quantidade: item?.quantidade ?? 1,
+      descricao: item?.descricao ?? "",
       imagemUrl: item?.imagemUrl ?? "",
     },
   })
@@ -59,6 +63,24 @@ export function InventoryForm({ item, onSubmit, onCancel, isSubmitting }: Invent
                   {...field}
                   value={field.value || ""}
                   onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="descricao"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Descrição</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Ex: 30 talheres na gaveta inferior"
+                  rows={2}
+                  {...field}
                 />
               </FormControl>
               <FormMessage />

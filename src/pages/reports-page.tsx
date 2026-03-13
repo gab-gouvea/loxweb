@@ -32,6 +32,7 @@ import {
 import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
 import { useProperties } from "@/hooks/use-properties"
 import { formatDate } from "@/lib/date-utils"
+import { formatCurrency } from "@/lib/constants"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
 import type { Reservation } from "@/types/reservation"
 import type { Property } from "@/types/property"
@@ -66,10 +67,6 @@ function calcTotalRecebido(reservation: Reservation, property: Property | undefi
   const { naoReembolsavel } = calcDespesas(reservation)
   const receitaFaxina = calcFaxinaReceita(reservation, property)
   return valorComissao + receitaFaxina - naoReembolsavel
-}
-
-function formatCurrency(value: number): string {
-  return `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 export function ReportsPage() {

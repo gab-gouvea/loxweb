@@ -24,15 +24,13 @@ import { useProperties } from "@/hooks/use-properties"
 import { useProprietarios } from "@/hooks/use-proprietarios"
 import type { Property } from "@/types/property"
 import type { Proprietario } from "@/types/proprietario"
+import { formatCurrency } from "@/lib/constants"
 import type { Reservation } from "@/types/reservation"
-
-function formatCurrency(value: number): string {
-  return `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
 
 export function FaxinaTerceirizadaPage() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
+  const [statusFilter, setStatusFilter] = useState<string>("agendadas")
 
   const navigate = useNavigate()
   const { data: properties = [] } = useProperties()
@@ -62,7 +60,7 @@ export function FaxinaTerceirizadaPage() {
     return map
   }, [properties])
 
-  // Filter only third-party cleanings
+  // Filter only third-party cleanings (hide paid ones by default)
   const faxinas = useMemo(() => {
     return allReservations
       .filter((r) => {
@@ -70,10 +68,11 @@ export function FaxinaTerceirizadaPage() {
         if (r.faxinaPorMim !== false) return false
         if (!r.faxinaStatus || r.faxinaStatus === "nao_agendada") return false
         if (propertyFilter !== "todos" && r.propriedadeId !== propertyFilter) return false
+        if (statusFilter === "agendadas" && r.faxinaPaga) return false
         return true
       })
       .sort((a, b) => a.checkOut.localeCompare(b.checkOut))
-  }, [allReservations, propertyFilter])
+  }, [allReservations, propertyFilter, statusFilter])
 
   // Check if there's a next check-in on the same day as checkout
   function hasNextCheckInToday(reservation: Reservation): boolean {
@@ -133,24 +132,35 @@ export function FaxinaTerceirizadaPage() {
           </Button>
         </div>
 
-        <Select value={propertyFilter} onValueChange={setPropertyFilter}>
-          <SelectTrigger className="w-[220px]">
-            <SelectValue placeholder="Propriedade" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todas propriedades</SelectItem>
-            {properties.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={propertyFilter} onValueChange={setPropertyFilter}>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="Propriedade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas propriedades</SelectItem>
+              {properties.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="agendadas">Faxinas agendadas</SelectItem>
+              <SelectItem value="todas">Todas do mês</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Table 1: Faxinas do Mês */}
       <div className="space-y-3">
-        <h3 className="text-lg font-semibold">Faxinas do Mês</h3>
+        <h3 className="text-lg font-semibold">{statusFilter === "todas" ? "Todas do Mês" : "Agendadas"}</h3>
         {faxinas.length > 0 ? (
           <div className="overflow-x-auto rounded-lg border">
             <Table>

@@ -9,15 +9,7 @@ import { useProprietario } from "@/hooks/use-proprietarios"
 import { ComponentTable } from "@/components/property-detail/component-table"
 import { InventoryTable } from "@/components/property-detail/inventory-table"
 import { PropertyDialog } from "@/components/properties/property-dialog"
-
-const tipoLabels: Record<string, string> = {
-  apartamento: "Apartamento",
-  casa: "Casa",
-  studio: "Studio",
-  chalé: "Chalé",
-  flat: "Flat",
-  outro: "Outro",
-}
+import { tipoLabels } from "@/lib/constants"
 
 export function PropertyDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -140,7 +132,7 @@ export function PropertyDetailPage() {
       <Separator className="print:hidden" />
 
       {/* Inventário */}
-      <InventoryTable propertyId={property.id} propertyName={property.nome} />
+      <InventoryTable propertyId={property.id} />
 
       <PropertyDialog
         open={dialogOpen}

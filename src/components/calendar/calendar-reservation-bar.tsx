@@ -9,14 +9,7 @@ import {
 import type { Reservation } from "@/types/reservation"
 import type { Property } from "@/types/property"
 import { formatDateShort } from "@/lib/date-utils"
-
-const statusLabels: Record<string, string> = {
-  pendente: "Pendente",
-  confirmada: "Confirmada",
-  "em andamento": "Em Andamento",
-  cancelada: "Cancelada",
-  concluída: "Concluída",
-}
+import { statusLabels } from "@/lib/constants"
 
 interface CalendarReservationBarProps {
   segment: TimelineSegment

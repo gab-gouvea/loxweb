@@ -1,8 +1,16 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Plus, Pencil, Trash2, Package } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +28,6 @@ import { toast } from "sonner"
 
 interface InventoryTableProps {
   propertyId: string
-  propertyName: string
 }
 
 export function InventoryTable({ propertyId }: InventoryTableProps) {
@@ -29,15 +36,58 @@ export function InventoryTable({ propertyId }: InventoryTableProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<InventoryItem | undefined>()
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [defaultSecao, setDefaultSecao] = useState<string | undefined>()
+  const [sectionDialogOpen, setSectionDialogOpen] = useState(false)
+  const [newSectionName, setNewSectionName] = useState("")
+  const [emptySections, setEmptySections] = useState<string[]>([])
+
+  const grouped = useMemo(() => {
+    if (!items) return new Map<string, InventoryItem[]>()
+    const map = new Map<string, InventoryItem[]>()
+    for (const item of items) {
+      const secao = item.secao || "Geral"
+      const list = map.get(secao) ?? []
+      list.push(item)
+      map.set(secao, list)
+    }
+    // Add empty sections that don't have items yet
+    for (const s of emptySections) {
+      if (!map.has(s)) map.set(s, [])
+    }
+    return map
+  }, [items, emptySections])
 
   function handleEdit(item: InventoryItem) {
     setEditingItem(item)
+    setDefaultSecao(undefined)
+    setDialogOpen(true)
+  }
+
+  function handleNewItem(secao: string) {
+    setEditingItem(undefined)
+    setDefaultSecao(secao)
     setDialogOpen(true)
   }
 
   function handleDialogClose(open: boolean) {
     setDialogOpen(open)
-    if (!open) setEditingItem(undefined)
+    if (!open) {
+      setEditingItem(undefined)
+      setDefaultSecao(undefined)
+    }
+  }
+
+  function handleAddSection() {
+    const trimmed = newSectionName.trim()
+    if (!trimmed) return
+    if (grouped.has(trimmed)) {
+      toast.error("Seção já existe")
+      return
+    }
+    setEmptySections((prev) => [...prev, trimmed])
+    setNewSectionName("")
+    setSectionDialogOpen(false)
+    toast.success("Seção adicionada")
   }
 
   function handleDelete() {
@@ -75,55 +125,101 @@ export function InventoryTable({ propertyId }: InventoryTableProps) {
             </span>
           )}
         </div>
-        <Button size="sm" onClick={() => setDialogOpen(true)}>
+        <Button size="sm" variant="outline" onClick={() => setSectionDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Novo Item
+          Adicionar Seção
         </Button>
       </div>
 
-      {items && items.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {items.map((item) => (
-            <Card key={item.id} className="overflow-hidden">
-              <div className="aspect-square w-full overflow-hidden bg-muted">
-                {item.imagemUrl ? (
-                  <img
-                    src={item.imagemUrl}
-                    alt={item.nome}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                    <Package className="h-10 w-10" />
+      {grouped.size > 0 ? (
+        <div className="space-y-6">
+          {Array.from(grouped.entries()).map(([secao, sectionItems]) => (
+            <div key={secao} className="space-y-3">
+              <h3 className="text-base font-medium text-muted-foreground">{secao}</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {sectionItems.map((item) => (
+                  <Card key={item.id} className="overflow-hidden">
+                    <div className="aspect-square w-full overflow-hidden bg-muted">
+                      {item.imagemUrl ? (
+                        <img
+                          src={item.imagemUrl}
+                          alt={item.nome}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                          <Package className="h-10 w-10" />
+                        </div>
+                      )}
+                    </div>
+                    <CardContent className="p-3 space-y-1">
+                      <h3 className="font-medium text-sm truncate">{item.nome}</h3>
+                      <p className="text-sm text-muted-foreground">Qtd: {item.quantidade}</p>
+                      {item.descricao && (
+                        <p className="text-xs text-muted-foreground truncate">{item.descricao}</p>
+                      )}
+                      <div className="flex items-center gap-1 pt-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingId(item.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                {/* Card placeholder para novo item */}
+                <Card
+                  className="overflow-hidden border-dashed cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => handleNewItem(secao)}
+                >
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-6 text-muted-foreground">
+                    <Plus className="h-8 w-8" />
+                    <span className="text-sm font-medium">Novo Item</span>
                   </div>
-                )}
+                </Card>
               </div>
-              <CardContent className="p-3 space-y-1">
-                <h3 className="font-medium text-sm truncate">{item.nome}</h3>
-                <p className="text-sm text-muted-foreground">Qtd: {item.quantidade}</p>
-                <div className="flex items-center gap-1 pt-1">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingId(item.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            </div>
           ))}
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">Nenhum item no inventário.</p>
       )}
 
+      {/* Dialog: Adicionar Seção */}
+      <Dialog open={sectionDialogOpen} onOpenChange={setSectionDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Nova Seção</DialogTitle>
+          </DialogHeader>
+          <Input
+            placeholder="Ex: Cozinha, Sala, Quarto"
+            value={newSectionName}
+            onChange={(e) => setNewSectionName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAddSection()}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSectionDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAddSection} disabled={!newSectionName.trim()}>
+              Adicionar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Novo/Editar Item */}
       <InventoryDialog
         open={dialogOpen}
         onOpenChange={handleDialogClose}
         propertyId={propertyId}
         item={editingItem}
+        defaultSecao={defaultSecao}
       />
 
+      {/* Dialog: Confirmar exclusão */}
       <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

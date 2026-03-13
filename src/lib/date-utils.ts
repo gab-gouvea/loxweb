@@ -1,4 +1,4 @@
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, isSameDay, parseISO } from "date-fns"
+import { format, isSameMonth, isToday, isSameDay, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
 
 export function formatMonth(date: Date): string {
@@ -15,22 +15,15 @@ export function formatDateShort(date: Date | string): string {
   return format(d, "dd MMM", { locale: ptBR })
 }
 
-export function toDateString(date: Date): string {
-  return date.toISOString()
+/** Converte ISO string para YYYY-MM-DD local (evita shift de timezone) */
+export function toLocalDateStr(isoStr: string): string {
+  const d = new Date(isoStr)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
-export function getCalendarDays(month: Date): Date[] {
-  const start = startOfWeek(startOfMonth(month), { weekStartsOn: 0 })
-  const end = endOfWeek(endOfMonth(month), { weekStartsOn: 0 })
-  return eachDayOfInterval({ start, end })
-}
-
-export function getWeeks(days: Date[]): Date[][] {
-  const weeks: Date[][] = []
-  for (let i = 0; i < days.length; i += 7) {
-    weeks.push(days.slice(i, i + 7))
-  }
-  return weeks
+export function getTodayStr(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
 }
 
 export { isSameMonth, isToday, isSameDay, parseISO }

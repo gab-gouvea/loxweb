@@ -18,15 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-
-const estadoCivilLabels: Record<string, string> = {
-  solteiro: "Solteiro(a)",
-  casado: "Casado(a)",
-  divorciado: "Divorciado(a)",
-  viuvo: "Viúvo(a)",
-  separado: "Separado(a)",
-  uniao_estavel: "União Estável",
-}
+import { estadoCivilLabels } from "@/lib/constants"
 
 interface ProprietarioFormProps {
   proprietario?: Proprietario

@@ -33,21 +33,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { useProperties } from "@/hooks/use-properties"
 import { cn } from "@/lib/utils"
-
-const statusLabels: Record<string, string> = {
-  pendente: "Pendente",
-  confirmada: "Confirmada",
-  "em andamento": "Em Andamento",
-  cancelada: "Cancelada",
-  concluída: "Concluída",
-}
-
-const sourceLabels: Record<string, string> = {
-  airbnb: "Airbnb",
-  booking: "Booking.com",
-  direto: "Direto",
-  outro: "Outro",
-}
+import { statusLabels, sourceLabels } from "@/lib/constants"
 
 interface ReservationFormProps {
   reservation?: Reservation

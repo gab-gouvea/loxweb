@@ -2,8 +2,7 @@ import { useMemo } from "react"
 import { useReservations } from "./use-reservations"
 import { useProperties } from "./use-properties"
 import { useAllPropertyComponents } from "./use-property-details"
-import type { Reservation } from "@/types/reservation"
-import type { PropertyComponent } from "@/types/property-detail"
+import { toLocalDateStr, getTodayStr } from "@/lib/date-utils"
 
 export type AlertType =
   | "checkin_hoje"
@@ -27,17 +26,6 @@ const alertLabels: Record<AlertType, string> = {
   faxina_hoje: "Faxina Hoje",
   faxina_nao_paga: "Faxina Não Paga",
   manutencao_atrasada: "Manutenção Atrasada",
-}
-
-/** Converte ISO string para YYYY-MM-DD local */
-function toLocalDateStr(isoStr: string): string {
-  const d = new Date(isoStr)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-}
-
-function getTodayStr(): string {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
 }
 
 export function useAlerts() {

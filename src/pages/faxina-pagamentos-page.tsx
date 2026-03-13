@@ -22,11 +22,8 @@ import {
 } from "@/components/ui/table"
 import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
 import { useProperties } from "@/hooks/use-properties"
+import { formatCurrency } from "@/lib/constants"
 import type { Property } from "@/types/property"
-
-function formatCurrency(value: number): string {
-  return `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
 
 export function FaxinaPagamentosPage() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))

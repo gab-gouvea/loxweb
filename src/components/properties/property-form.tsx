@@ -21,15 +21,7 @@ import {
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { useProprietarios } from "@/hooks/use-proprietarios"
-
-const tipoLabels: Record<string, string> = {
-  apartamento: "Apartamento",
-  casa: "Casa",
-  studio: "Studio",
-  chalé: "Chalé",
-  flat: "Flat",
-  outro: "Outro",
-}
+import { tipoLabels } from "@/lib/constants"
 
 interface PropertyFormProps {
   property?: Property

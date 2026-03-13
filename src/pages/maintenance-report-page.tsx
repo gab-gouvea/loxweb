@@ -33,12 +33,9 @@ import {
 import { useProperties } from "@/hooks/use-properties"
 import { useMaintenanceRecords, useUpdateMaintenanceRecord, useDeleteMaintenanceRecord } from "@/hooks/use-property-details"
 import { formatDate } from "@/lib/date-utils"
+import { formatCurrency } from "@/lib/constants"
 import type { Property } from "@/types/property"
 import type { MaintenanceRecord } from "@/types/property-detail"
-
-function formatCurrency(value: number): string {
-  return `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
 
 export function MaintenanceReportPage() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))

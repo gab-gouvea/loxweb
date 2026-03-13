@@ -9,24 +9,7 @@ import { useProprietario } from "@/hooks/use-proprietarios"
 import { useProperties } from "@/hooks/use-properties"
 import { ProprietarioDialog } from "@/components/proprietarios/proprietario-dialog"
 import { formatDate } from "@/lib/date-utils"
-
-const estadoCivilLabels: Record<string, string> = {
-  solteiro: "Solteiro(a)",
-  casado: "Casado(a)",
-  divorciado: "Divorciado(a)",
-  viuvo: "Viúvo(a)",
-  separado: "Separado(a)",
-  uniao_estavel: "União Estável",
-}
-
-const tipoLabels: Record<string, string> = {
-  apartamento: "Apartamento",
-  casa: "Casa",
-  studio: "Studio",
-  chalé: "Chalé",
-  flat: "Flat",
-  outro: "Outro",
-}
+import { estadoCivilLabels, tipoLabels } from "@/lib/constants"
 
 export function ProprietarioDetailPage() {
   const { id } = useParams<{ id: string }>()

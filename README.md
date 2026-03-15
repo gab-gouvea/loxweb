@@ -31,7 +31,7 @@ O Loxweb permite gerenciar todo o fluxo de alugueis por temporada:
 
 - Java + Spring Boot
 - Spring Security com JWT
-- PostgreSQL
+- MySQL
 
 ## Como rodar
 

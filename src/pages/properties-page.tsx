@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useProperties } from "@/hooks/use-properties"
-import { useProprietarios } from "@/hooks/use-proprietarios"
+import { useProprietarioMap } from "@/hooks/use-proprietario-map"
 import { PropertyCard } from "@/components/properties/property-card"
 import { PropertyDialog } from "@/components/properties/property-dialog"
 import { PropertyDeleteDialog } from "@/components/properties/property-delete-dialog"
@@ -10,16 +10,10 @@ import type { Property } from "@/types/property"
 
 export function PropertiesPage() {
   const { data: properties, isLoading } = useProperties()
-  const { data: proprietarios = [] } = useProprietarios()
+  const { proprietarioMap } = useProprietarioMap()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingProperty, setEditingProperty] = useState<Property | undefined>()
   const [deletingProperty, setDeletingProperty] = useState<Property | null>(null)
-
-  const ownerMap = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const o of proprietarios) map.set(o.id, o.nomeCompleto)
-    return map
-  }, [proprietarios])
 
   function handleEdit(property: Property) {
     setEditingProperty(property)
@@ -53,7 +47,7 @@ export function PropertiesPage() {
             <PropertyCard
               key={property.id}
               property={property}
-              ownerName={property.proprietarioId ? ownerMap.get(property.proprietarioId) : undefined}
+              ownerName={property.proprietarioId ? proprietarioMap.get(property.proprietarioId)?.nomeCompleto : undefined}
               onEdit={handleEdit}
               onDelete={setDeletingProperty}
             />

@@ -6,6 +6,7 @@ import { DAYS_OF_WEEK } from "@/lib/date-utils"
 import { CalendarReservationBar } from "./calendar-reservation-bar"
 import type { Reservation } from "@/types/reservation"
 import type { Property } from "@/types/property"
+import type { Proprietario } from "@/types/proprietario"
 
 const COL_WIDTH = 80
 const ROW_HEIGHT = 56
@@ -16,7 +17,7 @@ interface CalendarGridProps {
   visibleDays: number
   reservations: Reservation[]
   properties: Property[]
-  ownerNames?: Map<string, string>
+  proprietarioMap?: Map<string, Proprietario>
   onDayClick: (date: Date, propertyId: string) => void
   onReservationClick: (reservationId: string) => void
   showCheckoutsFaxinas: boolean
@@ -33,7 +34,7 @@ export function CalendarGrid({
   visibleDays,
   reservations,
   properties,
-  ownerNames,
+  proprietarioMap,
   onDayClick,
   onReservationClick,
   showCheckoutsFaxinas,
@@ -126,7 +127,7 @@ export function CalendarGrid({
           Imóveis
         </div>
         {properties.map((prop) => {
-          const owner = ownerNames?.get(prop.proprietarioId ?? "")
+          const owner = proprietarioMap?.get(prop.proprietarioId ?? "")?.nomeCompleto
           return (
             <div
               key={prop.id}

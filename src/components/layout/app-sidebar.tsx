@@ -3,6 +3,7 @@ import { NavLink, Link } from "react-router-dom"
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -55,6 +56,11 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <span className="text-xs text-muted-foreground px-2">
+          v{__APP_VERSION__}
+        </span>
+      </SidebarFooter>
     </Sidebar>
   )
 }

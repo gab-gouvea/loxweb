@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom"
 import { MonthNavigation } from "@/components/shared/month-navigation"
 import { PropertyFilterSelect } from "@/components/shared/property-filter-select"
 import { TabNavigation } from "@/components/shared/tab-navigation"
-import { Button } from "@/components/ui/button"
 import {
   Select,
   SelectContent,
@@ -23,9 +22,7 @@ import {
 } from "@/components/ui/table"
 import { useReservationsByMonth } from "@/hooks/use-reservations-by-month"
 import { usePropertyMap } from "@/hooks/use-property-map"
-import { useProprietarios } from "@/hooks/use-proprietarios"
-import type { Property } from "@/types/property"
-import type { Proprietario } from "@/types/proprietario"
+import { useProprietarioMap } from "@/hooks/use-proprietario-map"
 import { formatCurrency } from "@/lib/constants"
 import type { Reservation } from "@/types/reservation"
 
@@ -36,15 +33,9 @@ export function FaxinaTerceirizadaPage() {
 
   const navigate = useNavigate()
   const { properties, propertyMap } = usePropertyMap()
-  const { data: proprietarios = [] } = useProprietarios()
+  const { proprietarioMap } = useProprietarioMap()
 
   const { data: allReservations = [] } = useReservationsByMonth(currentMonth)
-
-  const proprietarioMap = useMemo(() => {
-    const map = new Map<string, Proprietario>()
-    for (const p of proprietarios) map.set(p.id, p)
-    return map
-  }, [proprietarios])
 
 
 

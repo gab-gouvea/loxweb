@@ -4,7 +4,7 @@ import { addDays } from "date-fns"
 import { useCalendarStore } from "@/hooks/use-calendar-store"
 import { useReservationsByDateRange } from "@/hooks/use-reservations"
 import { useProperties } from "@/hooks/use-properties"
-import { useProprietarios } from "@/hooks/use-proprietarios"
+import { useProprietarioMap } from "@/hooks/use-proprietario-map"
 import { CalendarHeader } from "@/components/calendar/calendar-header"
 import { CalendarGrid } from "@/components/calendar/calendar-grid"
 import { ReservationDialog } from "@/components/reservations/reservation-dialog"
@@ -24,15 +24,7 @@ export function CalendarPage() {
 
   const { data: allReservations = [] } = useReservationsByDateRange(dateRange.start, dateRange.end)
   const { data: properties = [] } = useProperties()
-  const { data: proprietarios = [] } = useProprietarios()
-
-  const ownerNames = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const p of proprietarios) {
-      map.set(p.id, p.nomeCompleto)
-    }
-    return map
-  }, [proprietarios])
+  const { proprietarioMap } = useProprietarioMap()
 
   const reservations = useMemo(() => {
     return allReservations.filter((r) => r.status !== "cancelada")
@@ -44,11 +36,11 @@ export function CalendarPage() {
       : properties.filter((p) => selectedPropertyIds.includes(p.id))
     // Sort by owner name
     return list.sort((a, b) => {
-      const ownerA = ownerNames.get(a.proprietarioId ?? "") ?? ""
-      const ownerB = ownerNames.get(b.proprietarioId ?? "") ?? ""
+      const ownerA = proprietarioMap.get(a.proprietarioId ?? "")?.nomeCompleto ?? ""
+      const ownerB = proprietarioMap.get(b.proprietarioId ?? "")?.nomeCompleto ?? ""
       return ownerA.localeCompare(ownerB, "pt-BR")
     })
-  }, [properties, selectedPropertyIds, ownerNames])
+  }, [properties, selectedPropertyIds, proprietarioMap])
 
   function handleDayClick(date: Date, propertyId: string) {
     setDefaultCheckIn(date)
@@ -82,7 +74,7 @@ export function CalendarPage() {
         visibleDays={visibleDays}
         reservations={reservations}
         properties={filteredProperties}
-        ownerNames={ownerNames}
+        proprietarioMap={proprietarioMap}
         onDayClick={handleDayClick}
         onReservationClick={handleReservationClick}
         showCheckoutsFaxinas={showCheckoutsFaxinas}

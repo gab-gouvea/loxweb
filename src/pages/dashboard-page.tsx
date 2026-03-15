@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { getUserName } from "@/lib/auth"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { useReservations } from "@/hooks/use-reservations"
 import { useAllPropertyComponents } from "@/hooks/use-property-details"
@@ -33,6 +34,7 @@ function addDays(dateStr: string, days: number): string {
 
 export function DashboardPage() {
   const navigate = useNavigate()
+  const userName = getUserName()
   const { properties, propertyMap } = usePropertyMap()
   const { data: reservations = [] } = useReservations()
   const { data: components = [] } = useAllPropertyComponents()
@@ -93,7 +95,9 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Olá, Gabriel</h1>
+      <h1 className="text-2xl font-bold">
+        {userName ? `Olá, ${userName}` : "Olá"}
+      </h1>
 
       {/* Cards de métricas */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">

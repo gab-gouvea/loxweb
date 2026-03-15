@@ -1,73 +1,50 @@
-# React + TypeScript + Vite
+# Loxweb
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Sistema de gestao de alugueis por temporada, feito sob medida para uma pessoa muito especial: minha mae.
 
-Currently, two official plugins are available:
+Este e um projeto pessoal de minha autoria, desenvolvido com o objetivo de aprender e aplicar tecnologias modernas de desenvolvimento web enquanto resolvo um problema real — ajudar minha mae a gerenciar suas propriedades de aluguel por temporada de forma simples e organizada.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Sobre o projeto
 
-## React Compiler
+O Loxweb permite gerenciar todo o fluxo de alugueis por temporada:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Propriedades** — cadastro e visualizacao dos imoveis
+- **Reservas** — controle de check-in, check-out, hospedes e valores
+- **Calendario** — timeline visual de todas as reservas
+- **Faxinas** — agendamento e pagamento de faxinas terceirizadas
+- **Proprietarios** — gestao dos donos dos imoveis
+- **Relatorios** — recebimentos, despesas e manutencoes por mes
+- **Inventario e manutencao** — controle por propriedade
 
-## Expanding the ESLint configuration
+## Tecnologias
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+**Frontend**
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- React 19 + TypeScript
+- Vite
+- Tailwind CSS + shadcn/ui
+- TanStack React Query
+- React Router
+- React Hook Form + Zod
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+**Backend**
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- Java + Spring Boot
+- Spring Security com JWT
+- PostgreSQL
+
+## Como rodar
+
+```bash
+# instalar dependencias
+npm install
+
+# configurar variavel de ambiente
+cp .env.example .env
+# editar VITE_API_URL no .env para apontar para o backend
+
+# rodar em desenvolvimento
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+O backend (repositorio separado) precisa estar rodando para a aplicacao funcionar.

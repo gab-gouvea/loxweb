@@ -1,5 +1,7 @@
-import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom"
+import { createBrowserRouter, RouterProvider } from "react-router-dom"
 import { AppLayout } from "@/components/layout/app-layout"
+import { ProtectedRoute } from "@/components/auth/protected-route"
+import { LoginPage } from "@/pages/login-page"
 import { CalendarPage } from "@/pages/calendar-page"
 import { ReservationsPage } from "@/pages/reservations-page"
 import { PropertiesPage } from "@/pages/properties-page"
@@ -16,22 +18,31 @@ import { DashboardPage } from "@/pages/dashboard-page"
 
 const router = createBrowserRouter([
   {
-    path: "/",
-    element: <AppLayout />,
+    path: "/login",
+    element: <LoginPage />,
+  },
+  {
+    element: <ProtectedRoute />,
     children: [
-      { index: true, element: <DashboardPage /> },
-      { path: "calendario", element: <CalendarPage /> },
-      { path: "reservas", element: <ReservationsPage /> },
-      { path: "reservas/:id", element: <ReservationDetailPage /> },
-      { path: "propriedades", element: <PropertiesPage /> },
-      { path: "propriedades/:id", element: <PropertyDetailPage /> },
-      { path: "proprietarios", element: <ProprietariosPage /> },
-      { path: "proprietarios/:id", element: <ProprietarioDetailPage /> },
-      { path: "relatorios", element: <ReportsPage /> },
-      { path: "relatorios/manutencoes", element: <MaintenanceReportPage /> },
-      { path: "relatorios/despesas", element: <ExpensesReportPage /> },
-      { path: "faxina-terceirizada", element: <FaxinaTerceirizadaPage /> },
-      { path: "faxina-terceirizada/pagamentos", element: <FaxinaPagamentosPage /> },
+      {
+        path: "/",
+        element: <AppLayout />,
+        children: [
+          { index: true, element: <DashboardPage /> },
+          { path: "calendario", element: <CalendarPage /> },
+          { path: "reservas", element: <ReservationsPage /> },
+          { path: "reservas/:id", element: <ReservationDetailPage /> },
+          { path: "propriedades", element: <PropertiesPage /> },
+          { path: "propriedades/:id", element: <PropertyDetailPage /> },
+          { path: "proprietarios", element: <ProprietariosPage /> },
+          { path: "proprietarios/:id", element: <ProprietarioDetailPage /> },
+          { path: "relatorios", element: <ReportsPage /> },
+          { path: "relatorios/manutencoes", element: <MaintenanceReportPage /> },
+          { path: "relatorios/despesas", element: <ExpensesReportPage /> },
+          { path: "faxina-terceirizada", element: <FaxinaTerceirizadaPage /> },
+          { path: "faxina-terceirizada/pagamentos", element: <FaxinaPagamentosPage /> },
+        ],
+      },
     ],
   },
 ])

@@ -36,7 +36,7 @@ export function InventoryTable({ propertyId }: InventoryTableProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<InventoryItem | undefined>()
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [defaultSecao, setDefaultSecao] = useState<string | undefined>()
+  const [defaultComodo, setDefaultComodo] = useState<string | undefined>()
   const [sectionDialogOpen, setSectionDialogOpen] = useState(false)
   const [newSectionName, setNewSectionName] = useState("")
   const [emptySections, setEmptySections] = useState<string[]>([])
@@ -45,10 +45,10 @@ export function InventoryTable({ propertyId }: InventoryTableProps) {
     if (!items) return new Map<string, InventoryItem[]>()
     const map = new Map<string, InventoryItem[]>()
     for (const item of items) {
-      const secao = item.secao || "Geral"
-      const list = map.get(secao) ?? []
+      const comodo = item.comodo || "Geral"
+      const list = map.get(comodo) ?? []
       list.push(item)
-      map.set(secao, list)
+      map.set(comodo, list)
     }
     // Add empty sections that don't have items yet
     for (const s of emptySections) {
@@ -59,13 +59,13 @@ export function InventoryTable({ propertyId }: InventoryTableProps) {
 
   function handleEdit(item: InventoryItem) {
     setEditingItem(item)
-    setDefaultSecao(undefined)
+    setDefaultComodo(undefined)
     setDialogOpen(true)
   }
 
-  function handleNewItem(secao: string) {
+  function handleNewItem(comodo: string) {
     setEditingItem(undefined)
-    setDefaultSecao(secao)
+    setDefaultComodo(comodo)
     setDialogOpen(true)
   }
 
@@ -73,7 +73,7 @@ export function InventoryTable({ propertyId }: InventoryTableProps) {
     setDialogOpen(open)
     if (!open) {
       setEditingItem(undefined)
-      setDefaultSecao(undefined)
+      setDefaultComodo(undefined)
     }
   }
 
@@ -81,13 +81,13 @@ export function InventoryTable({ propertyId }: InventoryTableProps) {
     const trimmed = newSectionName.trim()
     if (!trimmed) return
     if (grouped.has(trimmed)) {
-      toast.error("Seção já existe")
+      toast.error("Cômodo já existe")
       return
     }
     setEmptySections((prev) => [...prev, trimmed])
     setNewSectionName("")
     setSectionDialogOpen(false)
-    toast.success("Seção adicionada")
+    toast.success("Cômodo adicionado")
   }
 
   function handleDelete() {
@@ -127,15 +127,15 @@ export function InventoryTable({ propertyId }: InventoryTableProps) {
         </div>
         <Button size="sm" variant="outline" onClick={() => setSectionDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Adicionar Seção
+          Adicionar Cômodo
         </Button>
       </div>
 
       {grouped.size > 0 ? (
         <div className="space-y-6">
-          {Array.from(grouped.entries()).map(([secao, sectionItems]) => (
-            <div key={secao} className="space-y-3">
-              <h3 className="text-base font-medium text-muted-foreground">{secao}</h3>
+          {Array.from(grouped.entries()).map(([comodo, sectionItems]) => (
+            <div key={comodo} className="space-y-3">
+              <h3 className="text-base font-medium text-muted-foreground">{comodo}</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {sectionItems.map((item) => (
                   <Card key={item.id} className="overflow-hidden">
@@ -172,7 +172,7 @@ export function InventoryTable({ propertyId }: InventoryTableProps) {
                 {/* Card placeholder para novo item */}
                 <Card
                   className="overflow-hidden border-dashed cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => handleNewItem(secao)}
+                  onClick={() => handleNewItem(comodo)}
                 >
                   <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-6 text-muted-foreground">
                     <Plus className="h-8 w-8" />
@@ -187,11 +187,11 @@ export function InventoryTable({ propertyId }: InventoryTableProps) {
         <p className="text-sm text-muted-foreground">Nenhum item no inventário.</p>
       )}
 
-      {/* Dialog: Adicionar Seção */}
+      {/* Dialog: Adicionar Cômodo */}
       <Dialog open={sectionDialogOpen} onOpenChange={setSectionDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Nova Seção</DialogTitle>
+            <DialogTitle>Novo Cômodo</DialogTitle>
           </DialogHeader>
           <Input
             placeholder="Ex: Cozinha, Sala, Quarto"
@@ -216,7 +216,7 @@ export function InventoryTable({ propertyId }: InventoryTableProps) {
         onOpenChange={handleDialogClose}
         propertyId={propertyId}
         item={editingItem}
-        defaultSecao={defaultSecao}
+        defaultComodo={defaultComodo}
       />
 
       {/* Dialog: Confirmar exclusão */}

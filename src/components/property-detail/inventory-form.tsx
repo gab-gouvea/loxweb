@@ -15,17 +15,17 @@ import { Button } from "@/components/ui/button"
 
 interface InventoryFormProps {
   item?: InventoryItem
-  defaultSecao?: string
+  defaultComodo?: string
   onSubmit: (data: InventoryFormData) => void
   onCancel: () => void
   isSubmitting?: boolean
 }
 
-export function InventoryForm({ item, defaultSecao, onSubmit, onCancel, isSubmitting }: InventoryFormProps) {
+export function InventoryForm({ item, defaultComodo, onSubmit, onCancel, isSubmitting }: InventoryFormProps) {
   const form = useForm<InventoryFormData>({
     resolver: zodResolver(inventoryFormSchema),
     defaultValues: {
-      secao: item?.secao ?? defaultSecao ?? "",
+      comodo: item?.comodo ?? defaultComodo ?? "",
       nome: item?.nome ?? "",
       quantidade: item?.quantidade ?? 1,
       descricao: item?.descricao ?? "",

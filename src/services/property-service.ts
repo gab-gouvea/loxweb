@@ -1,5 +1,5 @@
 import type { Property, PropertyFormData } from "@/types/property"
-import { MockPropertyService } from "./mock/mock-properties"
+import { ApiPropertyService } from "./api/api-property-service"
 
 export interface PropertyService {
   getAll(): Promise<Property[]>
@@ -9,4 +9,4 @@ export interface PropertyService {
   delete(id: string): Promise<void>
 }
 
-export const propertyService: PropertyService = new MockPropertyService()
+export const propertyService: PropertyService = new ApiPropertyService()

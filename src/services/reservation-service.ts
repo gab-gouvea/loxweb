@@ -1,5 +1,5 @@
 import type { Reservation, ReservationFormData } from "@/types/reservation"
-import { MockReservationService } from "./mock/mock-reservations"
+import { ApiReservationService } from "./api/api-reservation-service"
 
 export interface ReservationService {
   getAll(): Promise<Reservation[]>
@@ -11,4 +11,4 @@ export interface ReservationService {
   delete(id: string): Promise<void>
 }
 
-export const reservationService: ReservationService = new MockReservationService()
+export const reservationService: ReservationService = new ApiReservationService()

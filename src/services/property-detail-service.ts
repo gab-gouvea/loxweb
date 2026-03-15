@@ -1,5 +1,5 @@
 import type { PropertyComponent, ComponentFormData, InventoryItem, InventoryFormData, MaintenanceRecord } from "@/types/property-detail"
-import { MockPropertyDetailService } from "./mock/mock-property-details"
+import { ApiPropertyDetailService } from "./api/api-property-detail-service"
 
 export interface PropertyDetailService {
   // Componentes
@@ -22,4 +22,4 @@ export interface PropertyDetailService {
   deleteInventoryItem(id: string): Promise<void>
 }
 
-export const propertyDetailService: PropertyDetailService = new MockPropertyDetailService()
+export const propertyDetailService: PropertyDetailService = new ApiPropertyDetailService()

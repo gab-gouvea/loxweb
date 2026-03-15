@@ -1,5 +1,5 @@
 import type { Proprietario, ProprietarioFormData } from "@/types/proprietario"
-import { MockProprietarioService } from "./mock/mock-proprietarios"
+import { ApiProprietarioService } from "./api/api-proprietario-service"
 
 export interface ProprietarioService {
   getAll(): Promise<Proprietario[]>
@@ -9,4 +9,4 @@ export interface ProprietarioService {
   delete(id: string): Promise<void>
 }
 
-export const proprietarioService: ProprietarioService = new MockProprietarioService()
+export const proprietarioService: ProprietarioService = new ApiProprietarioService()

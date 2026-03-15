@@ -9,10 +9,10 @@ interface InventoryDialogProps {
   onOpenChange: (open: boolean) => void
   propertyId: string
   item?: InventoryItem
-  defaultSecao?: string
+  defaultComodo?: string
 }
 
-export function InventoryDialog({ open, onOpenChange, propertyId, item, defaultSecao }: InventoryDialogProps) {
+export function InventoryDialog({ open, onOpenChange, propertyId, item, defaultComodo }: InventoryDialogProps) {
   const createMutation = useCreateInventoryItem()
   const updateMutation = useUpdateInventoryItem()
   const isEditing = !!item
@@ -51,7 +51,7 @@ export function InventoryDialog({ open, onOpenChange, propertyId, item, defaultS
         </DialogHeader>
         <InventoryForm
           item={item}
-          defaultSecao={defaultSecao}
+          defaultComodo={defaultComodo}
           onSubmit={handleSubmit}
           onCancel={() => onOpenChange(false)}
           isSubmitting={createMutation.isPending || updateMutation.isPending}

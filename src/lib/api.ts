@@ -1,4 +1,4 @@
-import axios from "axios"
+import axios, { AxiosError } from "axios"
 import { getToken, removeToken } from "./auth"
 
 export const api = axios.create({
@@ -23,3 +23,12 @@ api.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof AxiosError) {
+    const message = error.response?.data?.message
+    if (message) return message
+    if (!error.response) return "Sem conexão com o servidor"
+  }
+  return "Erro inesperado, tente novamente"
+}

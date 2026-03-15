@@ -48,3 +48,11 @@ npm run dev
 ```
 
 O backend (repositorio separado) precisa estar rodando para a aplicacao funcionar.
+
+## Deploy
+
+A aplicacao esta configurada para deploy gratuito:
+
+- **Frontend:** Vercel
+- **Backend:** Render
+- **Banco de dados:** Neon (PostgreSQL)

@@ -8,6 +8,7 @@ import { ProprietarioForm } from "./proprietario-form"
 import { useCreateProprietario, useUpdateProprietario } from "@/hooks/use-proprietarios"
 import type { Proprietario, ProprietarioFormData } from "@/types/proprietario"
 import { toast } from "sonner"
+import { getErrorMessage } from "@/lib/api"
 
 interface ProprietarioDialogProps {
   open: boolean
@@ -29,7 +30,7 @@ export function ProprietarioDialog({ open, onOpenChange, proprietario }: Proprie
             toast.success("Proprietário atualizado")
             onOpenChange(false)
           },
-          onError: () => toast.error("Erro ao atualizar proprietário"),
+          onError: (err) => toast.error(getErrorMessage(err)),
         },
       )
     } else {
@@ -38,7 +39,7 @@ export function ProprietarioDialog({ open, onOpenChange, proprietario }: Proprie
           toast.success("Proprietário criado")
           onOpenChange(false)
         },
-        onError: () => toast.error("Erro ao criar proprietário"),
+        onError: (err) => toast.error(getErrorMessage(err)),
       })
     }
   }

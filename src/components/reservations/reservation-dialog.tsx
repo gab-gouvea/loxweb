@@ -8,6 +8,7 @@ import { ReservationForm } from "./reservation-form"
 import { useCreateReservation, useUpdateReservation } from "@/hooks/use-reservations"
 import type { Reservation, ReservationFormData } from "@/types/reservation"
 import { toast } from "sonner"
+import { getErrorMessage } from "@/lib/api"
 
 interface ReservationDialogProps {
   open: boolean
@@ -37,7 +38,7 @@ export function ReservationDialog({
             toast.success("Reserva atualizada")
             onOpenChange(false)
           },
-          onError: () => toast.error("Erro ao atualizar reserva"),
+          onError: (err) => toast.error(getErrorMessage(err)),
         },
       )
     } else {
@@ -46,7 +47,7 @@ export function ReservationDialog({
           toast.success("Reserva criada")
           onOpenChange(false)
         },
-        onError: () => toast.error("Erro ao criar reserva"),
+        onError: (err) => toast.error(getErrorMessage(err)),
       })
     }
   }

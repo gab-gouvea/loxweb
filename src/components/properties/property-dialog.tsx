@@ -8,6 +8,7 @@ import { PropertyForm } from "./property-form"
 import { useCreateProperty, useUpdateProperty } from "@/hooks/use-properties"
 import type { Property, PropertyFormData } from "@/types/property"
 import { toast } from "sonner"
+import { getErrorMessage } from "@/lib/api"
 
 interface PropertyDialogProps {
   open: boolean
@@ -29,7 +30,7 @@ export function PropertyDialog({ open, onOpenChange, property }: PropertyDialogP
             toast.success("Propriedade atualizada")
             onOpenChange(false)
           },
-          onError: () => toast.error("Erro ao atualizar propriedade"),
+          onError: (err) => toast.error(getErrorMessage(err)),
         },
       )
     } else {
@@ -38,7 +39,7 @@ export function PropertyDialog({ open, onOpenChange, property }: PropertyDialogP
           toast.success("Propriedade criada")
           onOpenChange(false)
         },
-        onError: () => toast.error("Erro ao criar propriedade"),
+        onError: (err) => toast.error(getErrorMessage(err)),
       })
     }
   }

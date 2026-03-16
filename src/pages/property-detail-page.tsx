@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator"
 import { useProperty } from "@/hooks/use-properties"
 import { useProprietario } from "@/hooks/use-proprietarios"
 import { ComponentTable } from "@/components/property-detail/component-table"
+import { ScheduledMaintenanceTable } from "@/components/property-detail/scheduled-maintenance-table"
 import { InventoryTable } from "@/components/property-detail/inventory-table"
 import { PropertyDialog } from "@/components/properties/property-dialog"
 import { tipoLabels } from "@/lib/constants"
@@ -127,6 +128,13 @@ export function PropertyDetailPage() {
       {/* Serviços e manutenção */}
       <div className="print:hidden">
         <ComponentTable propertyId={property.id} />
+      </div>
+
+      <Separator className="print:hidden" />
+
+      {/* Manutenções agendadas */}
+      <div className="print:hidden">
+        <ScheduledMaintenanceTable propertyId={property.id} />
       </div>
 
       <Separator className="print:hidden" />

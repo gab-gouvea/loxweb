@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { getErrorMessage } from "@/lib/api"
 import { useReservation, useReservations, useUpdateReservation } from "@/hooks/use-reservations"
 import { useProperties } from "@/hooks/use-properties"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
@@ -63,20 +64,29 @@ export function ReservationDetailPage() {
   const property = properties.find((p) => p.id === reservation.propriedadeId)
 
   function handleMutate(data: Record<string, unknown>, options?: { onSuccess?: () => void }) {
-    updateMutation.mutate({ id: reservation!.id, data }, options)
+    updateMutation.mutate({ id: reservation!.id, data }, {
+      ...options,
+      onError: (err) => toast.error(getErrorMessage(err)),
+    })
   }
 
   function handleConfirmarReserva() {
     updateMutation.mutate(
       { id: reservation!.id, data: { status: "confirmada" as ReservationStatus } },
-      { onSuccess: () => toast.success("Reserva confirmada") },
+      {
+        onSuccess: () => toast.success("Reserva confirmada"),
+        onError: (err) => toast.error(getErrorMessage(err)),
+      },
     )
   }
 
   function handleCancelarReserva() {
     updateMutation.mutate(
       { id: reservation!.id, data: { status: "cancelada" as ReservationStatus } },
-      { onSuccess: () => toast.success("Reserva cancelada") },
+      {
+        onSuccess: () => toast.success("Reserva cancelada"),
+        onError: (err) => toast.error(getErrorMessage(err)),
+      },
     )
   }
 

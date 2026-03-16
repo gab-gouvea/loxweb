@@ -17,7 +17,9 @@ export function CalendarPage() {
   const [defaultPropertyId, setDefaultPropertyId] = useState<string | undefined>()
 
   const dateRange = useMemo(() => {
-    const start = startDate.toISOString()
+    // Fetch 1 day before to catch reservations whose checkout falls on startDate
+    // (the bar renders checkout day, but the API uses checkOut > start which misses exact matches)
+    const start = addDays(startDate, -1).toISOString()
     const end = addDays(startDate, visibleDays).toISOString()
     return { start, end }
   }, [startDate, visibleDays])

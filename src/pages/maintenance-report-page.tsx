@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { Check, X, Trash2 } from "lucide-react"
+import { Check, X, Trash2, CalendarClock, RotateCw } from "lucide-react"
 import { startOfMonth, endOfMonth, format } from "date-fns"
 import { useNavigate } from "react-router-dom"
 import { MonthNavigation } from "@/components/shared/month-navigation"
@@ -33,6 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { usePropertyMap } from "@/hooks/use-property-map"
+import { useProprietarioMap } from "@/hooks/use-proprietario-map"
 import { useMaintenanceRecords, useUpdateMaintenanceRecord, useDeleteMaintenanceRecord } from "@/hooks/use-property-details"
 import { formatDate } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
@@ -44,11 +45,13 @@ export function MaintenanceReportPage() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
   const [pagoFilter, setPagoFilter] = useState<string>("todos")
+  const [tipoFilter, setTipoFilter] = useState<string>("todos")
 
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const navigate = useNavigate()
 
   const { properties, propertyMap } = usePropertyMap()
+  const { proprietarioMap } = useProprietarioMap()
   const updateMaintenanceRecord = useUpdateMaintenanceRecord()
   const deleteMaintenanceRecord = useDeleteMaintenanceRecord()
 
@@ -62,10 +65,18 @@ export function MaintenanceReportPage() {
   )
 
   const filteredRecords = useMemo(() => {
-    if (pagoFilter === "todos") return maintenanceRecords
-    const isPago = pagoFilter === "pago"
-    return maintenanceRecords.filter((m) => m.pago === isPago)
-  }, [maintenanceRecords, pagoFilter])
+    let records = maintenanceRecords
+    if (pagoFilter !== "todos") {
+      const isPago = pagoFilter === "pago"
+      records = records.filter((m) => m.pago === isPago)
+    }
+    if (tipoFilter === "agendada") {
+      records = records.filter((m) => m.componenteId === "agendada")
+    } else if (tipoFilter === "recorrente") {
+      records = records.filter((m) => m.componenteId && m.componenteId !== "agendada")
+    }
+    return [...records].sort((a, b) => a.data.localeCompare(b.data) || a.nomeServico.localeCompare(b.nomeServico) || a.id.localeCompare(b.id))
+  }, [maintenanceRecords, pagoFilter, tipoFilter])
 
   const maintenanceByProperty = useMemo(() => groupByProperty(filteredRecords), [filteredRecords])
 
@@ -94,6 +105,17 @@ export function MaintenanceReportPage() {
         <div className="flex items-center gap-2">
           <PropertyFilterSelect value={propertyFilter} onValueChange={setPropertyFilter} properties={properties} />
 
+          <Select value={tipoFilter} onValueChange={setTipoFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os tipos</SelectItem>
+              <SelectItem value="agendada">Agendada</SelectItem>
+              <SelectItem value="recorrente">Recorrente</SelectItem>
+            </SelectContent>
+          </Select>
+
           <Select value={pagoFilter} onValueChange={setPagoFilter}>
             <SelectTrigger className="w-[180px]">
               <SelectValue />
@@ -121,12 +143,20 @@ export function MaintenanceReportPage() {
 
         return (
           <div key={propertyId} className="space-y-3">
-            <h3 className="text-lg font-semibold">{property.nome}</h3>
+            <div>
+              <h3 className="text-lg font-semibold">{property.nome}</h3>
+              {property.proprietarioId && proprietarioMap.get(property.proprietarioId) && (
+                <span className="text-xs text-muted-foreground/70 uppercase">
+                  {proprietarioMap.get(property.proprietarioId)!.nomeCompleto}
+                </span>
+              )}
+            </div>
             <div className="rounded-lg border">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Serviço</TableHead>
+                    <TableHead>Tipo</TableHead>
                     <TableHead>Prestador</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
@@ -138,6 +168,19 @@ export function MaintenanceReportPage() {
                   {propMaintenance.map((record) => (
                     <TableRow key={record.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/propriedades/${record.propriedadeId}`)}>
                       <TableCell className="font-medium">{record.nomeServico}</TableCell>
+                      <TableCell>
+                        {record.componenteId === "agendada" ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                            <CalendarClock className="h-3 w-3" />
+                            Agendada
+                          </span>
+                        ) : record.componenteId ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700">
+                            <RotateCw className="h-3 w-3" />
+                            Recorrente
+                          </span>
+                        ) : null}
+                      </TableCell>
                       <TableCell>{record.prestador || "—"}</TableCell>
                       <TableCell>{formatDate(record.data)}</TableCell>
                       <TableCell className="text-right">

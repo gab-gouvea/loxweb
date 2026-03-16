@@ -32,15 +32,15 @@ export function ReservationInfoSection({
   const [editingInfo, setEditingInfo] = useState(false)
   const [editCheckIn, setEditCheckIn] = useState<string | null>(null)
   const [editCheckOut, setEditCheckOut] = useState<string | null>(null)
-  const [editPrecoTotal, setEditPrecoTotal] = useState<number | null>(null)
-  const [editNumHospedes, setEditNumHospedes] = useState<number | null>(null)
+  const [editPrecoTotal, setEditPrecoTotal] = useState<string | null>(null)
+  const [editNumHospedes, setEditNumHospedes] = useState<string | null>(null)
 
   function handleSaveInfo() {
     const data: Record<string, unknown> = {}
     if (editCheckIn !== null) data.checkIn = localDateToISO(editCheckIn)
     if (editCheckOut !== null) data.checkOut = localDateToISO(editCheckOut)
-    if (editPrecoTotal !== null) data.precoTotal = editPrecoTotal
-    if (editNumHospedes !== null) data.numHospedes = editNumHospedes
+    if (editPrecoTotal !== null) data.precoTotal = Number(editPrecoTotal)
+    if (editNumHospedes !== null) data.numHospedes = Number(editNumHospedes)
 
     onMutate(data, {
       onSuccess: () => {
@@ -152,7 +152,7 @@ export function ReservationInfoSection({
                 min={1}
                 className="h-8 w-20"
                 value={editNumHospedes ?? reservation.numHospedes}
-                onChange={(e) => setEditNumHospedes(e.target.value === "" ? 1 : Number(e.target.value))}
+                onChange={(e) => setEditNumHospedes(e.target.value)}
               />
             </div>
             <div>
@@ -163,7 +163,7 @@ export function ReservationInfoSection({
                 step={0.01}
                 className="h-8 w-32"
                 value={editPrecoTotal ?? reservation.precoTotal ?? ""}
-                onChange={(e) => setEditPrecoTotal(e.target.value === "" ? 0 : Number(e.target.value))}
+                onChange={(e) => setEditPrecoTotal(e.target.value)}
               />
             </div>
           </div>

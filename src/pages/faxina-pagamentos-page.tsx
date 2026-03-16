@@ -50,7 +50,7 @@ export function FaxinaPagamentosPage() {
         if (pagoFilter === "nao_pago" && r.faxinaPaga) return false
         return true
       })
-      .sort((a, b) => a.checkOut.localeCompare(b.checkOut))
+      .sort((a, b) => a.checkOut.localeCompare(b.checkOut) || a.id.localeCompare(b.id))
   }, [allReservations, propertyFilter, pagoFilter])
 
   const summary = useMemo(() => {

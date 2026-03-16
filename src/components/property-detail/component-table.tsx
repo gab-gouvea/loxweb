@@ -126,7 +126,7 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Serviços</h2>
+        <h2 className="text-lg font-semibold">Serviços de Rotina</h2>
         <Button size="sm" onClick={() => setDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Novo Serviço
@@ -235,8 +235,8 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
                 type="number"
                 min={0}
                 step={0.01}
-                value={concludeValor || ""}
-                onChange={(e) => setConcludeValor(e.target.value === "" ? 0 : Number(e.target.value))}
+                value={concludeValor ?? ""}
+                onChange={(e) => setConcludeValor(e.target.value === "" ? "" : Number(e.target.value))}
               />
             </div>
           </div>

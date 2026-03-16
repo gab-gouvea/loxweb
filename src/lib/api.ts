@@ -17,9 +17,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const isLoginRequest = error.config?.url?.includes("/auth/login")
-    if (error.response?.status === 401 && !isLoginRequest) {
+    const status = error.response?.status
+    if ((status === 401 || status === 403) && !isLoginRequest) {
       removeToken()
-      window.location.href = "/login"
+      window.location.href = "/login?expired=true"
     }
     return Promise.reject(error)
   }

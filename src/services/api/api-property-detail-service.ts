@@ -5,6 +5,9 @@ import type {
   InventoryItem,
   InventoryFormData,
   MaintenanceRecord,
+  ScheduledMaintenance,
+  CreateScheduledMaintenanceData,
+  ConfirmScheduledMaintenanceData,
 } from "@/types/property-detail"
 import type { PropertyDetailService } from "../property-detail-service"
 
@@ -60,6 +63,32 @@ export class ApiPropertyDetailService implements PropertyDetailService {
 
   async deleteMaintenanceRecord(id: string): Promise<void> {
     await api.delete(`/maintenance-records/${id}`)
+  }
+
+  // Manutencoes agendadas
+
+  async getScheduledMaintenances(propertyId: string): Promise<ScheduledMaintenance[]> {
+    const { data } = await api.get<ScheduledMaintenance[]>(`/properties/${propertyId}/scheduled-maintenances`)
+    return data
+  }
+
+  async createScheduledMaintenance(propertyId: string, formData: CreateScheduledMaintenanceData): Promise<ScheduledMaintenance> {
+    const { data } = await api.post<ScheduledMaintenance>(`/properties/${propertyId}/scheduled-maintenances`, formData)
+    return data
+  }
+
+  async updateScheduledMaintenance(id: string, formData: Partial<CreateScheduledMaintenanceData>): Promise<ScheduledMaintenance> {
+    const { data } = await api.put<ScheduledMaintenance>(`/scheduled-maintenances/${id}`, formData)
+    return data
+  }
+
+  async confirmScheduledMaintenance(id: string, formData: ConfirmScheduledMaintenanceData): Promise<ScheduledMaintenance> {
+    const { data } = await api.patch<ScheduledMaintenance>(`/scheduled-maintenances/${id}/confirm`, formData)
+    return data
+  }
+
+  async deleteScheduledMaintenance(id: string): Promise<void> {
+    await api.delete(`/scheduled-maintenances/${id}`)
   }
 
   // Inventario

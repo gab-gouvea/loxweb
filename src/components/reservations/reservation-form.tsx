@@ -5,7 +5,6 @@ import { ptBR } from "date-fns/locale/pt-BR"
 import { CalendarIcon, Plus, Trash2 } from "lucide-react"
 import {
   reservationFormSchema,
-  reservationStatuses,
   reservationSources,
   type ReservationFormData,
   type Reservation,
@@ -32,7 +31,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { useProperties } from "@/hooks/use-properties"
 import { cn } from "@/lib/utils"
-import { statusLabels, sourceLabels } from "@/lib/constants"
+import { sourceLabels } from "@/lib/constants"
 import { FormTextField, FormNumberField, FormTextareaField } from "@/components/shared/form-fields"
 
 interface ReservationFormProps {
@@ -178,32 +177,7 @@ export function ReservationForm({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {reservationStatuses.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {statusLabels[s]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
+        <div>
           <FormField
             control={form.control}
             name="fonte"
@@ -295,8 +269,8 @@ export function ReservationForm({
                             step={0.01}
                             placeholder="R$"
                             {...field}
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />

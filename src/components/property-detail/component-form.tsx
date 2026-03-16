@@ -100,8 +100,8 @@ export function ComponentForm({ component, onSubmit, onCancel, isSubmitting }: C
                     min={1}
                     placeholder="30"
                     {...field}
-                    value={field.value || ""}
-                    onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                    value={field.value ?? ""}
+                    onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
                   />
                 </FormControl>
                 <FormMessage />

@@ -58,7 +58,7 @@ export function getComponentStatus(proximaManutencao: string): ComponentStatus {
 export const maintenanceRecordSchema = z.object({
   id: z.string(),
   propriedadeId: z.string(),
-  componenteId: z.string(),
+  componenteId: z.string().optional(),
   nomeServico: z.string(),
   prestador: z.string().optional(),
   data: z.string(),
@@ -67,3 +67,27 @@ export const maintenanceRecordSchema = z.object({
 })
 
 export type MaintenanceRecord = z.infer<typeof maintenanceRecordSchema>
+
+// Manutencao agendada
+export interface ScheduledMaintenance {
+  id: string
+  propriedadeId: string
+  nome: string
+  dataPrevista: string
+  prestador?: string
+  confirmada: boolean
+  valor?: number
+  dataConclusao?: string
+  criadoEm: string
+}
+
+export interface CreateScheduledMaintenanceData {
+  nome: string
+  dataPrevista: string
+  prestador?: string
+}
+
+export interface ConfirmScheduledMaintenanceData {
+  valor: number
+  prestador: string
+}

@@ -29,6 +29,8 @@ import { useReservationsByMonth } from "@/hooks/use-reservations-by-month"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { formatDate } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
+import { getErrorMessage } from "@/lib/api"
+import { toast } from "sonner"
 import { calcFaxinaReceita, calcDespesas, calcTotalRecebido } from "@/lib/reservation-calculations"
 import { groupByProperty } from "@/lib/collection-utils"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
@@ -93,6 +95,7 @@ export function ReportsPage() {
       },
       {
         onSuccess: () => setEditingCancelada(null),
+        onError: (err) => toast.error(getErrorMessage(err)),
       },
     )
   }
@@ -257,8 +260,8 @@ export function ReportsPage() {
                 type="number"
                 min={0}
                 step={0.01}
-                value={canceladaValor || ""}
-                onChange={(e) => setCanceladaValor(e.target.value === "" ? 0 : Number(e.target.value))}
+                value={canceladaValor ?? ""}
+                onChange={(e) => setCanceladaValor(e.target.value === "" ? "" : Number(e.target.value))}
               />
             </div>
           </div>

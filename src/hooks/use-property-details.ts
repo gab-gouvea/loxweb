@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { propertyDetailService } from "@/services/property-detail-service"
-import type { ComponentFormData, InventoryFormData, MaintenanceRecord } from "@/types/property-detail"
+import type { ComponentFormData, InventoryFormData, MaintenanceRecord, CreateScheduledMaintenanceData, ConfirmScheduledMaintenanceData } from "@/types/property-detail"
 
 // --- Componentes ---
 
@@ -90,6 +90,61 @@ export function useDeleteMaintenanceRecord() {
       propertyDetailService.deleteMaintenanceRecord(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["maintenance-records"] })
+    },
+  })
+}
+
+// --- Manutencoes Agendadas ---
+
+export function useScheduledMaintenances(propertyId: string) {
+  return useQuery({
+    queryKey: ["scheduled-maintenances", propertyId],
+    queryFn: () => propertyDetailService.getScheduledMaintenances(propertyId),
+    enabled: !!propertyId,
+  })
+}
+
+export function useCreateScheduledMaintenance() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ propertyId, data }: { propertyId: string; data: CreateScheduledMaintenanceData }) =>
+      propertyDetailService.createScheduledMaintenance(propertyId, data),
+    onSuccess: (_, { propertyId }) => {
+      queryClient.invalidateQueries({ queryKey: ["scheduled-maintenances", propertyId] })
+    },
+  })
+}
+
+export function useUpdateScheduledMaintenance() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { id: string; propertyId: string; data: Partial<CreateScheduledMaintenanceData> }) =>
+      propertyDetailService.updateScheduledMaintenance(vars.id, vars.data),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["scheduled-maintenances", vars.propertyId] })
+    },
+  })
+}
+
+export function useConfirmScheduledMaintenance() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { id: string; propertyId: string; data: ConfirmScheduledMaintenanceData }) =>
+      propertyDetailService.confirmScheduledMaintenance(vars.id, vars.data),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["scheduled-maintenances", vars.propertyId] })
+      queryClient.invalidateQueries({ queryKey: ["maintenance-records"] })
+    },
+  })
+}
+
+export function useDeleteScheduledMaintenance() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { id: string; propertyId: string }) =>
+      propertyDetailService.deleteScheduledMaintenance(vars.id),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["scheduled-maintenances", vars.propertyId] })
     },
   })
 }

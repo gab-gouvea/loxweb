@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -32,6 +32,14 @@ export function LoginPage() {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+
+  useEffect(() => {
+    const expired = new URLSearchParams(window.location.search).get("expired")
+    if (expired === "true") {
+      window.history.replaceState({}, "", "/login")
+      setTimeout(() => toast.error("Sessão expirada. Faça login novamente."), 100)
+    }
+  }, [])
 
   const savedEmail = getSavedEmail()
   const [lembrarEmail, setLembrarEmail] = useState(savedEmail !== "")

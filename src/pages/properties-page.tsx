@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useProperties } from "@/hooks/use-properties"
@@ -9,8 +9,9 @@ import { PropertyDeleteDialog } from "@/components/properties/property-delete-di
 import type { Property } from "@/types/property"
 
 export function PropertiesPage() {
-  const { data: properties, isLoading } = useProperties()
+  const { data: rawProperties, isLoading } = useProperties()
   const { proprietarioMap } = useProprietarioMap()
+  const properties = useMemo(() => rawProperties ? [...rawProperties].sort((a, b) => a.nome.localeCompare(b.nome)) : undefined, [rawProperties])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingProperty, setEditingProperty] = useState<Property | undefined>()
   const [deletingProperty, setDeletingProperty] = useState<Property | null>(null)

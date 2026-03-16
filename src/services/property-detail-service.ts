@@ -1,4 +1,4 @@
-import type { PropertyComponent, ComponentFormData, InventoryItem, InventoryFormData, MaintenanceRecord } from "@/types/property-detail"
+import type { PropertyComponent, ComponentFormData, InventoryItem, InventoryFormData, MaintenanceRecord, ScheduledMaintenance, CreateScheduledMaintenanceData, ConfirmScheduledMaintenanceData } from "@/types/property-detail"
 import { ApiPropertyDetailService } from "./api/api-property-detail-service"
 
 export interface PropertyDetailService {
@@ -14,6 +14,13 @@ export interface PropertyDetailService {
   createMaintenanceRecord(data: Omit<MaintenanceRecord, "id">): Promise<MaintenanceRecord>
   updateMaintenanceRecord(id: string, data: Partial<MaintenanceRecord>): Promise<MaintenanceRecord>
   deleteMaintenanceRecord(id: string): Promise<void>
+
+  // Manutencoes agendadas
+  getScheduledMaintenances(propertyId: string): Promise<ScheduledMaintenance[]>
+  createScheduledMaintenance(propertyId: string, data: CreateScheduledMaintenanceData): Promise<ScheduledMaintenance>
+  updateScheduledMaintenance(id: string, data: Partial<CreateScheduledMaintenanceData>): Promise<ScheduledMaintenance>
+  confirmScheduledMaintenance(id: string, data: ConfirmScheduledMaintenanceData): Promise<ScheduledMaintenance>
+  deleteScheduledMaintenance(id: string): Promise<void>
 
   // Inventário
   getInventory(propertyId: string): Promise<InventoryItem[]>

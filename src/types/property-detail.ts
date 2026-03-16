@@ -21,7 +21,7 @@ export const componentFormSchema = z.object({
   ultimaManutencao: z.string().min(1, "Data é obrigatória"),
   proximaManutencao: z.string().optional(),
   intervaloDias: z.number().int().min(1, "Intervalo deve ser ao menos 1 dia"),
-  prestador: z.string().optional(),
+  prestador: z.string().min(1, "Prestador é obrigatório"),
   observacoes: z.string().optional(),
 })
 
@@ -34,7 +34,7 @@ export const inventoryItemSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   quantidade: z.number().int().min(0, "Quantidade deve ser positiva"),
   descricao: z.string().optional(),
-  imagemUrl: z.string().url("URL inválida").optional(),
+  imagemUrl: z.string().optional(),
   atualizadoEm: z.string(),
 })
 
@@ -45,7 +45,7 @@ export const inventoryFormSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   quantidade: z.number().int().min(0, "Quantidade deve ser positiva"),
   descricao: z.string().optional(),
-  imagemUrl: z.string().url("URL inválida").or(z.literal("")).optional(),
+  imagemUrl: z.string().optional(),
 })
 
 export type InventoryFormData = z.infer<typeof inventoryFormSchema>

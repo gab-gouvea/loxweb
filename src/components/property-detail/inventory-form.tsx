@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
+import { ImageUpload } from "@/components/shared/image-upload"
 
 interface InventoryFormProps {
   item?: InventoryItem
@@ -88,18 +89,10 @@ export function InventoryForm({ item, defaultComodo, onSubmit, onCancel, isSubmi
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="imagemUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>URL da Imagem</FormLabel>
-              <FormControl>
-                <Input placeholder="https://exemplo.com/imagem.jpg" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+        <ImageUpload
+          value={form.watch("imagemUrl")}
+          onChange={(url) => form.setValue("imagemUrl", url)}
+          label="Imagem"
         />
 
         <div className="flex justify-end gap-2 pt-4">

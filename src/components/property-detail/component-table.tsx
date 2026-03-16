@@ -75,7 +75,7 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
         componenteId: concludingComponent.id,
         nomeServico: concludingComponent.nome,
         prestador: concludePrestador,
-        data: hoje.toISOString(),
+        data: format(hoje, "yyyy-MM-dd"),
         valor: concludeValor,
         pago: false,
       },
@@ -86,9 +86,9 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
               id: concludingComponent.id,
               propertyId,
               data: {
-                ultimaManutencao: hoje.toISOString(),
-                proximaManutencao: proxima.toISOString(),
-                ...(prestadorMudou ? { prestador: concludePrestador } : {}),
+                ultimaManutencao: format(hoje, "yyyy-MM-dd"),
+                proximaManutencao: format(proxima, "yyyy-MM-dd"),
+                prestador: concludePrestador,
               },
             },
             {
@@ -246,7 +246,7 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
             </Button>
             <Button
               onClick={handleConfirmConclude}
-              disabled={updateMutation.isPending || createMaintenanceRecord.isPending}
+              disabled={!concludePrestador.trim() || updateMutation.isPending || createMaintenanceRecord.isPending}
             >
               Confirmar
             </Button>

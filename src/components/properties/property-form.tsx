@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button"
 import { useProprietarios } from "@/hooks/use-proprietarios"
 import { tipoLabels } from "@/lib/constants"
 import { FormTextField, FormNumberField, FormTextareaField } from "@/components/shared/form-fields"
+import { ImageUpload } from "@/components/shared/image-upload"
 
 interface PropertyFormProps {
   property?: Property
@@ -147,11 +148,10 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
           />
         </div>
 
-        <FormTextField<PropertyFormData>
-          control={form.control}
-          name="fotoCapa"
-          label="Foto de Capa (URL)"
-          placeholder="https://exemplo.com/foto.jpg"
+        <ImageUpload
+          value={form.watch("fotoCapa")}
+          onChange={(url) => form.setValue("fotoCapa", url)}
+          label="Foto de Capa"
         />
 
         <FormField

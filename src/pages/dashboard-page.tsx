@@ -115,7 +115,7 @@ export function DashboardPage() {
           <div className="flex items-center gap-2">
             <LogIn className="h-4 w-4 text-green-600" />
             <h2 className="text-lg font-semibold">Próximos Check-ins</h2>
-            <span className="text-sm text-muted-foreground">Próximos 7 dias</span>
+            <span className="text-sm text-muted-foreground">(Próximos 7 dias)</span>
           </div>
           {stats.proximosCheckins.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum check-in nos próximos 7 dias</p>
@@ -152,7 +152,7 @@ export function DashboardPage() {
           <div className="flex items-center gap-2">
             <LogOut className="h-4 w-4 text-red-600" />
             <h2 className="text-lg font-semibold">Próximos Checkouts</h2>
-            <span className="text-sm text-muted-foreground">Próximos 7 dias</span>
+            <span className="text-sm text-muted-foreground">(Próximos 7 dias)</span>
           </div>
           {stats.proximosCheckouts.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum checkout nos próximos 7 dias</p>

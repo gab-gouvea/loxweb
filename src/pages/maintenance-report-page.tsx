@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react"
 import { Check, X, Trash2 } from "lucide-react"
-import { startOfMonth, endOfMonth } from "date-fns"
+import { startOfMonth, endOfMonth, format } from "date-fns"
 import { useNavigate } from "react-router-dom"
 import { MonthNavigation } from "@/components/shared/month-navigation"
 import { TabNavigation } from "@/components/shared/tab-navigation"
@@ -56,8 +56,8 @@ export function MaintenanceReportPage() {
   const monthEnd = endOfMonth(currentMonth)
 
   const { data: maintenanceRecords = [] } = useMaintenanceRecords(
-    monthStart.toISOString(),
-    monthEnd.toISOString(),
+    format(monthStart, "yyyy-MM-dd"),
+    format(monthEnd, "yyyy-MM-dd"),
     propertyFilter !== "todos" ? propertyFilter : undefined,
   )
 

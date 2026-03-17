@@ -72,6 +72,11 @@ export class ApiPropertyDetailService implements PropertyDetailService {
     return data
   }
 
+  async getAllPendingScheduledMaintenances(): Promise<ScheduledMaintenance[]> {
+    const { data } = await api.get<ScheduledMaintenance[]>("/scheduled-maintenances/pending")
+    return data
+  }
+
   async createScheduledMaintenance(propertyId: string, formData: CreateScheduledMaintenanceData): Promise<ScheduledMaintenance> {
     const { data } = await api.post<ScheduledMaintenance>(`/properties/${propertyId}/scheduled-maintenances`, formData)
     return data

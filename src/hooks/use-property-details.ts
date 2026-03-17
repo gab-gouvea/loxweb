@@ -96,6 +96,13 @@ export function useDeleteMaintenanceRecord() {
 
 // --- Manutencoes Agendadas ---
 
+export function useAllPendingScheduledMaintenances() {
+  return useQuery({
+    queryKey: ["scheduled-maintenances", "pending"],
+    queryFn: () => propertyDetailService.getAllPendingScheduledMaintenances(),
+  })
+}
+
 export function useScheduledMaintenances(propertyId: string) {
   return useQuery({
     queryKey: ["scheduled-maintenances", propertyId],

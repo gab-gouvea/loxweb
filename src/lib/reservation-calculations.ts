@@ -26,7 +26,7 @@ export function calcTotalRecebido(reservation: Reservation, property: Property |
     return reservation.valorRecebidoCancelamento ?? 0
   }
   const precoTotal = reservation.precoTotal ?? 0
-  const comissaoPercent = property?.percentualComissao ?? 0
+  const comissaoPercent = reservation.percentualComissao ?? property?.percentualComissao ?? 0
   const valorComissao = (precoTotal * comissaoPercent) / 100
   const { naoReembolsavel } = calcDespesas(reservation)
   const receitaFaxina = calcFaxinaReceita(reservation, property)

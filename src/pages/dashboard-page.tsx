@@ -6,6 +6,7 @@ import {
   SprayCan,
   Wrench,
   CircleDollarSign,
+  CalendarClock,
   LogIn,
   LogOut,
 } from "lucide-react"
@@ -21,7 +22,7 @@ import {
 import { getUserName } from "@/lib/auth"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { useReservations } from "@/hooks/use-reservations"
-import { useAllPropertyComponents } from "@/hooks/use-property-details"
+import { useAllPropertyComponents, useAllPendingScheduledMaintenances } from "@/hooks/use-property-details"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
 import { formatDate, toLocalDateStr, getTodayStr } from "@/lib/date-utils"
 import type { ReservationStatus } from "@/types/reservation"
@@ -38,6 +39,7 @@ export function DashboardPage() {
   const { properties, propertyMap } = usePropertyMap()
   const { data: reservations = [] } = useReservations()
   const { data: components = [] } = useAllPropertyComponents()
+  const { data: pendingMaintenances = [] } = useAllPendingScheduledMaintenances()
 
   const stats = useMemo(() => {
     const today = getTodayStr()
@@ -82,6 +84,11 @@ export function DashboardPage() {
       })
       .sort((a, b) => a.checkOut.localeCompare(b.checkOut))
 
+    // Próximas manutenções agendadas (pendentes, hoje + futuras)
+    const proximasManutencoes = pendingMaintenances
+      .filter((sm) => sm.dataPrevista >= today && sm.dataPrevista <= in7days)
+      .sort((a, b) => a.dataPrevista.localeCompare(b.dataPrevista))
+
     return {
       imoveis,
       reservasAtivas: naoCanceladas.length,
@@ -90,8 +97,9 @@ export function DashboardPage() {
       faxinasNaoPagas,
       proximosCheckins,
       proximosCheckouts,
+      proximasManutencoes,
     }
-  }, [properties, reservations, components])
+  }, [properties, reservations, components, pendingMaintenances])
 
   return (
     <div className="space-y-6">
@@ -253,6 +261,43 @@ export function DashboardPage() {
                     <TableCell className="text-red-600">
                       {formatDate(c.proximaManutencao)}
                     </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+
+      {/* Próximas Manutenções Agendadas */}
+      {stats.proximasManutencoes.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <CalendarClock className="h-4 w-4 text-blue-600" />
+            <h2 className="text-lg font-semibold">Próximas Manutenções Agendadas</h2>
+            <span className="text-sm text-muted-foreground">(Próximos 7 dias)</span>
+          </div>
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Serviço</TableHead>
+                  <TableHead>Propriedade</TableHead>
+                  <TableHead>Prestador</TableHead>
+                  <TableHead>Data Prevista</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stats.proximasManutencoes.map((sm) => (
+                  <TableRow
+                    key={sm.id}
+                    className="cursor-pointer"
+                    onClick={() => navigate(`/propriedades/${sm.propriedadeId}`)}
+                  >
+                    <TableCell className="font-medium">{sm.nome}</TableCell>
+                    <TableCell>{propertyMap.get(sm.propriedadeId)?.nome}</TableCell>
+                    <TableCell>{sm.prestador || "—"}</TableCell>
+                    <TableCell>{formatDate(sm.dataPrevista)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

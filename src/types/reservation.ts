@@ -44,6 +44,7 @@ export const reservationSchema = z.object({
   faxinaData: z.string().optional(),
   despesas: z.array(despesaSchema).optional(),
   valorRecebidoCancelamento: z.number().min(0).optional(),
+  percentualComissao: z.number().nullable().optional(),
   criadoEm: z.string(),
   atualizadoEm: z.string(),
 })

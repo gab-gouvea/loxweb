@@ -17,6 +17,7 @@ export interface PropertyDetailService {
 
   // Manutencoes agendadas
   getScheduledMaintenances(propertyId: string): Promise<ScheduledMaintenance[]>
+  getAllPendingScheduledMaintenances(): Promise<ScheduledMaintenance[]>
   createScheduledMaintenance(propertyId: string, data: CreateScheduledMaintenanceData): Promise<ScheduledMaintenance>
   updateScheduledMaintenance(id: string, data: Partial<CreateScheduledMaintenanceData>): Promise<ScheduledMaintenance>
   confirmScheduledMaintenance(id: string, data: ConfirmScheduledMaintenanceData): Promise<ScheduledMaintenance>

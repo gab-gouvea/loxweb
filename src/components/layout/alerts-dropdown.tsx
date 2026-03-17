@@ -6,6 +6,7 @@ import {
   SprayCan,
   Wrench,
   CircleDollarSign,
+  CalendarClock,
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -24,6 +25,8 @@ const alertIcons: Record<AlertType, typeof Bell> = {
   faxina_hoje: SprayCan,
   faxina_nao_paga: CircleDollarSign,
   manutencao_atrasada: Wrench,
+  manutencao_agendada_hoje: CalendarClock,
+  manutencao_agendada_7dias: CalendarClock,
 }
 
 const alertColors: Record<AlertType, string> = {
@@ -32,6 +35,8 @@ const alertColors: Record<AlertType, string> = {
   faxina_hoje: "text-yellow-600",
   faxina_nao_paga: "text-orange-600",
   manutencao_atrasada: "text-red-600",
+  manutencao_agendada_hoje: "text-yellow-600",
+  manutencao_agendada_7dias: "text-blue-600",
 }
 
 export function AlertsDropdown() {
@@ -40,15 +45,16 @@ export function AlertsDropdown() {
   const [open, setOpen] = useState(false)
   const [dismissed, setDismissed] = useState<Map<string, number>>(new Map())
 
-  const SNOOZE_5_DIAS = 5 * 24 * 60 * 60 * 1000
+  const SNOOZE_2_DIAS = 2 * 24 * 60 * 60 * 1000
   const SNOOZE_1_DIA = 1 * 24 * 60 * 60 * 1000
 
   const visibleAlerts = alerts.filter((a) => {
     const dismissedAt = dismissed.get(a.id)
     if (dismissedAt == null) return true
     const elapsed = Date.now() - dismissedAt
-    if (a.type === "manutencao_atrasada") return elapsed >= SNOOZE_5_DIAS
+    if (a.type === "manutencao_atrasada") return elapsed >= SNOOZE_2_DIAS
     if (a.type === "faxina_nao_paga") return elapsed >= SNOOZE_1_DIA
+    if (a.type === "manutencao_agendada_7dias") return elapsed >= SNOOZE_1_DIA
     return false
   })
   const visibleCount = visibleAlerts.length

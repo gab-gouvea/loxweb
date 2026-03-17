@@ -132,13 +132,14 @@ export function ReportsPage() {
           (sum, r) => sum + calcTotalRecebido(r, property),
           0,
         )
+        const comissaoHeader = propReservations.find((r) => r.status !== "cancelada")?.percentualComissao ?? property.percentualComissao ?? 0
 
         return (
           <div key={propertyId} className="space-y-3">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold">{property.nome}</h3>
               <span className="text-sm text-muted-foreground">
-                ({property.percentualComissao}% comissão)
+                ({comissaoHeader}% comissão)
               </span>
             </div>
 
@@ -160,7 +161,7 @@ export function ReportsPage() {
                 <TableBody>
                   {propReservations.map((reservation) => {
                     const isCancelada = reservation.status === "cancelada"
-                    const comissaoPercent = property.percentualComissao ?? 0
+                    const comissaoPercent = reservation.percentualComissao ?? property.percentualComissao ?? 0
                     const valorComissao = isCancelada
                       ? 0
                       : ((reservation.precoTotal ?? 0) * comissaoPercent) / 100

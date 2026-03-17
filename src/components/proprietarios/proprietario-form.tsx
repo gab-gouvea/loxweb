@@ -71,11 +71,30 @@ export function ProprietarioForm({ proprietario, onSubmit, onCancel, isSubmittin
         />
 
         <div className="grid grid-cols-2 gap-4">
-          <FormTextField<ProprietarioFormData>
+          <FormField
             control={form.control}
             name="cpf"
-            label="CPF"
-            placeholder="000.000.000-00"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>CPF</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                    value={field.value}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 11)
+                      const formatted = digits
+                        .replace(/(\d{3})(\d)/, "$1.$2")
+                        .replace(/(\d{3})(\d)/, "$1.$2")
+                        .replace(/(\d{3})(\d{1,2})$/, "$1-$2")
+                      field.onChange(formatted)
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
 
           <FormTextField<ProprietarioFormData>

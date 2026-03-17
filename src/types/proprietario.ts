@@ -24,7 +24,7 @@ export type Proprietario = z.infer<typeof proprietarioSchema>
 
 export const proprietarioFormSchema = z.object({
   nomeCompleto: z.string().min(1, "Nome completo é obrigatório"),
-  cpf: z.string().min(11, "CPF inválido"),
+  cpf: z.string().transform(v => v.replace(/\D/g, "")).pipe(z.string().length(11, "CPF deve ter 11 dígitos")),
   rg: z.string().optional(),
   dataNascimento: z.string().optional(),
   profissao: z.string().optional(),

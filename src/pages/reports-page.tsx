@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react"
 import { Pencil } from "lucide-react"
-import { startOfMonth } from "date-fns"
+import { startOfMonth, endOfMonth, addDays, parseISO } from "date-fns"
 import { useNavigate } from "react-router-dom"
 import { MonthNavigation } from "@/components/shared/month-navigation"
 import { TabNavigation } from "@/components/shared/tab-navigation"
@@ -24,8 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useUpdateReservation } from "@/hooks/use-reservations"
-import { useReservationsByMonth } from "@/hooks/use-reservations-by-month"
+import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { formatDate } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
@@ -44,10 +43,21 @@ export function ReportsPage() {
   const [editingCancelada, setEditingCancelada] = useState<Reservation | null>(null)
   const [canceladaValor, setCanceladaValor] = useState<number | "">(0)
 
-  const { data: monthReservations = [], isLoading: loadingReservations } = useReservationsByMonth(currentMonth)
+  const { data: allReservations = [], isLoading: loadingReservations } = useReservations()
   const { properties, propertyMap } = usePropertyMap()
   const navigate = useNavigate()
   const updateReservation = useUpdateReservation()
+
+  const monthStart = startOfMonth(currentMonth)
+  const monthEnd = endOfMonth(currentMonth)
+
+  // Reserva pertence ao mês de (checkIn + 1 dia) — dia do recebimento
+  const monthReservations = useMemo(() => {
+    return allReservations.filter((r) => {
+      const dataRecebimento = addDays(parseISO(r.checkIn), 1)
+      return dataRecebimento >= monthStart && dataRecebimento <= monthEnd
+    })
+  }, [allReservations, monthStart, monthEnd])
 
   const filteredReservations = useMemo(() => {
     let result = monthReservations

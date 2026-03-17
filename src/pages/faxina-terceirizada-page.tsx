@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { startOfMonth, parseISO, isSameDay, format } from "date-fns"
+import { startOfMonth, endOfMonth, parseISO, isSameDay, format } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
 import { useNavigate } from "react-router-dom"
 import { MonthNavigation } from "@/components/shared/month-navigation"
@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useReservationsByMonth } from "@/hooks/use-reservations-by-month"
+import { useReservations } from "@/hooks/use-reservations"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { useProprietarioMap } from "@/hooks/use-proprietario-map"
 import { formatCurrency } from "@/lib/constants"
@@ -35,14 +35,17 @@ export function FaxinaTerceirizadaPage() {
   const { properties, propertyMap } = usePropertyMap()
   const { proprietarioMap } = useProprietarioMap()
 
-  const { data: allReservations = [] } = useReservationsByMonth(currentMonth)
+  const { data: allReservations = [] } = useReservations()
 
+  const monthStart = startOfMonth(currentMonth)
+  const monthEnd = endOfMonth(currentMonth)
 
-
-  // Filter only third-party cleanings (hide paid ones by default)
+  // Filter only third-party cleanings by checkout month
   const faxinas = useMemo(() => {
     return allReservations
       .filter((r) => {
+        const checkOut = parseISO(r.checkOut)
+        if (checkOut < monthStart || checkOut > monthEnd) return false
         if (r.status === "cancelada") return false
         if (r.faxinaPorMim !== false) return false
         if (!r.faxinaStatus || r.faxinaStatus === "nao_agendada") return false
@@ -51,7 +54,7 @@ export function FaxinaTerceirizadaPage() {
         return true
       })
       .sort((a, b) => a.checkOut.localeCompare(b.checkOut))
-  }, [allReservations, propertyFilter, statusFilter])
+  }, [allReservations, monthStart, monthEnd, propertyFilter, statusFilter])
 
   // Check if there's a next check-in on the same day as checkout
   function hasNextCheckInToday(reservation: Reservation): boolean {

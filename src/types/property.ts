@@ -1,7 +1,7 @@
 import { z } from "zod/v4"
 
 export const propertyTypes = [
-  "apartamento", "casa", "studio", "chalé", "flat", "outro",
+  "apartamento", "casa", "cobertura", "studio", "chalé", "flat", "outro",
 ] as const
 
 export type PropertyType = (typeof propertyTypes)[number]

@@ -19,6 +19,7 @@ export const sourceLabels: Record<string, string> = {
 export const tipoLabels: Record<string, string> = {
   apartamento: "Apartamento",
   casa: "Casa",
+  cobertura: "Cobertura",
   studio: "Studio",
   chalé: "Chalé",
   flat: "Flat",

@@ -38,8 +38,6 @@ import { useMaintenanceRecords, useUpdateMaintenanceRecord, useDeleteMaintenance
 import { formatDate } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
 import { groupByProperty } from "@/lib/collection-utils"
-import type { Property } from "@/types/property"
-import type { MaintenanceRecord } from "@/types/property-detail"
 
 export function MaintenanceReportPage() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))

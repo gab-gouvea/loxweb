@@ -43,7 +43,7 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
 
   // Conclude popup state
   const [concludingComponent, setConcludingComponent] = useState<PropertyComponent | null>(null)
-  const [concludeValor, setConcludeValor] = useState(0)
+  const [concludeValor, setConcludeValor] = useState<number | "">(0)
   const [concludePrestador, setConcludePrestador] = useState("")
 
   function handleEdit(component: PropertyComponent) {
@@ -67,8 +67,6 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
     const hoje = new Date()
     const proxima = addDays(hoje, concludingComponent.intervaloDias)
 
-    const prestadorMudou = concludePrestador !== (concludingComponent.prestador || "")
-
     createMaintenanceRecord.mutate(
       {
         propriedadeId: propertyId,
@@ -76,7 +74,7 @@ export function ComponentTable({ propertyId }: ComponentTableProps) {
         nomeServico: concludingComponent.nome,
         prestador: concludePrestador,
         data: format(hoje, "yyyy-MM-dd"),
-        valor: concludeValor,
+        valor: concludeValor || 0,
         pago: false,
       },
       {

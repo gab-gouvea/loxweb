@@ -32,7 +32,7 @@ export function ReservationDialog({
   function handleSubmit(data: ReservationFormData) {
     if (isEditing) {
       updateMutation.mutate(
-        { id: reservation.id, data },
+        { id: reservation.id, data: data as any },
         {
           onSuccess: () => {
             toast.success("Reserva atualizada")

@@ -38,7 +38,7 @@ export function useCreateReservation() {
 export function useUpdateReservation() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<ReservationFormData> & Partial<Reservation> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<ReservationFormData & Reservation> }) =>
       reservationService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservations"] })

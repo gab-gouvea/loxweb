@@ -41,7 +41,7 @@ const alertColors: Record<AlertType, string> = {
 
 export function AlertsDropdown() {
   const navigate = useNavigate()
-  const { alerts, count } = useAlerts()
+  const { alerts } = useAlerts()
   const [open, setOpen] = useState(false)
   const [dismissed, setDismissed] = useState<Map<string, number>>(new Map())
 

@@ -42,7 +42,7 @@ export function ReportsPage() {
 
   // Dialog state for cancelled reservation value
   const [editingCancelada, setEditingCancelada] = useState<Reservation | null>(null)
-  const [canceladaValor, setCanceladaValor] = useState(0)
+  const [canceladaValor, setCanceladaValor] = useState<number | "">(0)
 
   const { data: monthReservations = [], isLoading: loadingReservations } = useReservationsByMonth(currentMonth)
   const { properties, propertyMap } = usePropertyMap()
@@ -91,7 +91,7 @@ export function ReportsPage() {
     updateReservation.mutate(
       {
         id: editingCancelada.id,
-        data: { valorRecebidoCancelamento: canceladaValor },
+        data: { valorRecebidoCancelamento: canceladaValor || 0 },
       },
       {
         onSuccess: () => setEditingCancelada(null),

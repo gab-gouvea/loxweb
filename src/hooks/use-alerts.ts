@@ -94,22 +94,25 @@ export function useAlerts() {
       }
     }
 
-    // Faxinas não pagas (empresa parceira, não paga)
+    // Faxinas não pagas (empresa parceira, agendada, a partir de 1 dia antes do checkout)
     for (const r of reservations) {
       if (
         !r.faxinaPorMim &&
         r.faxinaPaga === false &&
-        r.faxinaStatus &&
-        r.faxinaStatus !== "nao_agendada"
+        r.faxinaStatus === "agendada"
       ) {
-        const propNome = propertyMap.get(r.propriedadeId)?.nome ?? "Propriedade"
-        result.push({
-          id: `faxina-paga-${r.id}`,
-          type: "faxina_nao_paga",
-          title: alertLabels.faxina_nao_paga,
-          description: `${r.nomeHospede} — ${propNome}`,
-          link: `/faxina-terceirizada/pagamentos`,
-        })
+        const checkOutDate = toLocalDateStr(r.checkOut)
+        const oneDayBefore = format(addDays(parseISO(checkOutDate), -1), "yyyy-MM-dd")
+        if (today >= oneDayBefore) {
+          const propNome = propertyMap.get(r.propriedadeId)?.nome ?? "Propriedade"
+          result.push({
+            id: `faxina-paga-${r.id}`,
+            type: "faxina_nao_paga",
+            title: alertLabels.faxina_nao_paga,
+            description: `${r.nomeHospede} — ${propNome}`,
+            link: `/faxina-terceirizada/pagamentos`,
+          })
+        }
       }
     }
 

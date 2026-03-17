@@ -63,7 +63,7 @@ export function ReservationForm({
       status: reservation?.status ?? "pendente",
       precoTotal: reservation?.precoTotal ?? undefined,
       notas: reservation?.notas ?? "",
-      fonte: reservation?.fonte ?? "direto",
+      fonte: reservation?.fonte ?? "airbnb",
       numHospedes: reservation?.numHospedes ?? 1,
       faxinaStatus: reservation?.faxinaStatus ?? "nao_agendada",
       faxinaPorMim: reservation?.faxinaPorMim ?? false,

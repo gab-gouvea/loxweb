@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatCpf } from "@/lib/constants"
 import { useProprietario } from "@/hooks/use-proprietarios"
 import { useProperties } from "@/hooks/use-properties"
 import { ProprietarioDialog } from "@/components/proprietarios/proprietario-dialog"
@@ -64,7 +65,7 @@ export function ProprietarioDetailPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
           <div>
             <span className="text-muted-foreground">CPF:</span>
-            <span className="ml-2 font-medium">{proprietario.cpf}</span>
+            <span className="ml-2 font-medium">{formatCpf(proprietario.cpf)}</span>
           </div>
           {proprietario.rg && (
             <div>

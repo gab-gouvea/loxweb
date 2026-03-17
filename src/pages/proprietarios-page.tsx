@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { Plus, Pencil, Trash2 } from "lucide-react"
+import { formatCpf } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -88,7 +89,7 @@ export function ProprietariosPage() {
                     onClick={() => navigate(`/proprietarios/${proprietario.id}`)}
                   >
                     <TableCell className="font-medium">{proprietario.nomeCompleto}</TableCell>
-                    <TableCell>{proprietario.cpf}</TableCell>
+                    <TableCell>{formatCpf(proprietario.cpf)}</TableCell>
                     <TableCell>{proprietario.email || "—"}</TableCell>
                     <TableCell>{proprietario.profissao || "—"}</TableCell>
                     <TableCell className="text-center">{propertyCountMap.get(proprietario.id) ?? 0}</TableCell>

@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { localDateToISO } from "@/lib/date-utils"
+import { formatCpf } from "@/lib/constants"
 import { proprietarioFormSchema, estadosCivis, type ProprietarioFormData, type Proprietario } from "@/types/proprietario"
 import {
   Form,
@@ -38,12 +39,13 @@ function isoToDateInput(iso?: string): string {
   return `${y}-${m}-${day}`
 }
 
+
 export function ProprietarioForm({ proprietario, onSubmit, onCancel, isSubmitting }: ProprietarioFormProps) {
   const form = useForm<ProprietarioFormData>({
     resolver: zodResolver(proprietarioFormSchema),
     defaultValues: {
       nomeCompleto: proprietario?.nomeCompleto ?? "",
-      cpf: proprietario?.cpf ?? "",
+      cpf: proprietario?.cpf ? formatCpf(proprietario.cpf) : "",
       rg: proprietario?.rg ?? "",
       dataNascimento: isoToDateInput(proprietario?.dataNascimento),
       profissao: proprietario?.profissao ?? "",

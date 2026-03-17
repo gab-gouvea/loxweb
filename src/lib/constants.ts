@@ -37,3 +37,12 @@ export const estadoCivilLabels: Record<string, string> = {
 export function formatCurrency(value: number): string {
   return `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
+
+export function formatCpf(cpf?: string): string {
+  if (!cpf) return "—"
+  const digits = cpf.replace(/\D/g, "").slice(0, 11)
+  return digits
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2")
+}

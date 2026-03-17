@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react"
 import { Check, X } from "lucide-react"
-import { startOfMonth, parseISO, format } from "date-fns"
+import { startOfMonth, endOfMonth, parseISO, format } from "date-fns"
 import { useNavigate } from "react-router-dom"
 import { MonthNavigation } from "@/components/shared/month-navigation"
 import { PropertyFilterSelect } from "@/components/shared/property-filter-select"
@@ -22,8 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useReservationsByMonth } from "@/hooks/use-reservations-by-month"
-import { useUpdateReservation } from "@/hooks/use-reservations"
+import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { formatCurrency } from "@/lib/constants"
 
@@ -36,12 +35,17 @@ export function FaxinaPagamentosPage() {
   const { properties, propertyMap } = usePropertyMap()
   const updateReservation = useUpdateReservation()
 
-  const { data: allReservations = [] } = useReservationsByMonth(currentMonth)
+  const { data: allReservations = [] } = useReservations()
 
-  // Filter only empresa parceira faxinas (agendada or concluida, not por mim)
+  const monthStart = startOfMonth(currentMonth)
+  const monthEnd = endOfMonth(currentMonth)
+
+  // Filter only empresa parceira faxinas by checkout month
   const faxinas = useMemo(() => {
     return allReservations
       .filter((r) => {
+        const checkOut = parseISO(r.checkOut)
+        if (checkOut < monthStart || checkOut > monthEnd) return false
         if (r.status === "cancelada") return false
         if (r.faxinaPorMim !== false) return false
         if (!r.faxinaStatus || r.faxinaStatus === "nao_agendada") return false
@@ -51,7 +55,7 @@ export function FaxinaPagamentosPage() {
         return true
       })
       .sort((a, b) => a.checkOut.localeCompare(b.checkOut) || a.id.localeCompare(b.id))
-  }, [allReservations, propertyFilter, pagoFilter])
+  }, [allReservations, monthStart, monthEnd, propertyFilter, pagoFilter])
 
   const summary = useMemo(() => {
     const total = faxinas.reduce((sum, r) => sum + (r.custoEmpresaFaxina ?? 0), 0)

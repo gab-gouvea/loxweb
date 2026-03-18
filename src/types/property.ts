@@ -41,6 +41,8 @@ export const propertyFormSchema = z.object({
   acessoPredio: z.string().optional(),
   acessoApartamento: z.string().optional(),
   ativo: z.boolean(),
+  inativoAte: z.string().optional(),
+  observacaoInatividade: z.string().optional(),
 })
 
 export type PropertyFormData = z.infer<typeof propertyFormSchema>

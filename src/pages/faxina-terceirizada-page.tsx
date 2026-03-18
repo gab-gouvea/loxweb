@@ -70,11 +70,9 @@ export function FaxinaTerceirizadaPage() {
   }
 
   const filteredProperties = useMemo(() => {
-    if (propertyFilter !== "todos") {
-      return properties.filter((p) => p.id === propertyFilter)
-    }
-    return properties
-  }, [properties, propertyFilter])
+    const propertyIdsComFaxina = new Set(faxinas.map((f) => f.propriedadeId))
+    return properties.filter((p) => propertyIdsComFaxina.has(p.id))
+  }, [properties, faxinas])
 
 
 
@@ -114,7 +112,7 @@ export function FaxinaTerceirizadaPage() {
           <div className="overflow-x-auto rounded-lg border">
             <Table>
               <TableHeader>
-                <TableRow className="bg-yellow-100">
+                <TableRow className="bg-yellow-100 hover:bg-yellow-100">
                   <TableHead className="font-bold text-black">LOCAL</TableHead>
                   <TableHead className="font-bold text-black">PROPRIETÁRIO</TableHead>
                   <TableHead className="font-bold text-black">HÓSPEDE</TableHead>
@@ -172,25 +170,25 @@ export function FaxinaTerceirizadaPage() {
       {/* Table 2: Property Reference */}
       <div className="space-y-3">
         <h3 className="text-lg font-semibold">Informações das Propriedades</h3>
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="rounded-lg border max-w-5xl" style={{ fontSize: "12px" }}>
           <Table>
             <TableHeader>
-              <TableRow className="bg-yellow-100">
-                <TableHead className="font-bold text-black">PROPRIEDADE</TableHead>
-                <TableHead className="font-bold text-black">ENDEREÇO</TableHead>
-                <TableHead className="font-bold text-black">QUARTOS</TableHead>
-                <TableHead className="font-bold text-black">ACESSO PRÉDIO</TableHead>
-                <TableHead className="font-bold text-black">ACESSO APARTAMENTO</TableHead>
+              <TableRow className="bg-yellow-100 hover:bg-yellow-100">
+                <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>PROPRIEDADE</TableHead>
+                <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>ENDEREÇO</TableHead>
+                <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>DORMS</TableHead>
+                <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>ACESSO PRÉDIO</TableHead>
+                <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>ACESSO APTO</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProperties.map((property) => (
                 <TableRow key={property.id}>
-                  <TableCell className="font-medium">{property.nome}</TableCell>
-                  <TableCell>{property.endereco || "—"}</TableCell>
-                  <TableCell>{property.quartos} DORM</TableCell>
-                  <TableCell>{property.acessoPredio || "—"}</TableCell>
-                  <TableCell>{property.acessoApartamento || "—"}</TableCell>
+                  <TableCell className="font-medium py-0.5 px-1 whitespace-normal break-words" style={{ fontSize: "12px" }}>{property.nome}</TableCell>
+                  <TableCell className="py-0.5 px-1 whitespace-normal break-words" style={{ fontSize: "12px" }}>{property.endereco || "—"}</TableCell>
+                  <TableCell className="py-0.5 px-1 whitespace-normal" style={{ fontSize: "12px" }}>{property.quartos} DORM</TableCell>
+                  <TableCell className="py-0.5 px-1 whitespace-normal break-words" style={{ fontSize: "12px" }}>{property.acessoPredio || "—"}</TableCell>
+                  <TableCell className="py-0.5 px-1 whitespace-normal break-words" style={{ fontSize: "12px" }}>{property.acessoApartamento || "—"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -129,7 +129,7 @@ export function DashboardPage() {
             <p className="text-sm text-muted-foreground">Nenhum check-in nos próximos 7 dias</p>
           ) : (
             <div className="rounded-lg border">
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Hóspede</TableHead>
@@ -144,8 +144,8 @@ export function DashboardPage() {
                       className="cursor-pointer"
                       onClick={() => navigate(`/reservas/${r.id}`)}
                     >
-                      <TableCell className="font-medium">{r.nomeHospede}</TableCell>
-                      <TableCell>{propertyMap.get(r.propriedadeId)?.nome}</TableCell>
+                      <TableCell className="font-medium max-w-[140px] truncate">{r.nomeHospede}</TableCell>
+                      <TableCell className="max-w-[140px] truncate">{propertyMap.get(r.propriedadeId)?.nome}</TableCell>
                       <TableCell>{formatDate(r.checkIn)}</TableCell>
                     </TableRow>
                   ))}
@@ -166,7 +166,7 @@ export function DashboardPage() {
             <p className="text-sm text-muted-foreground">Nenhum checkout nos próximos 7 dias</p>
           ) : (
             <div className="rounded-lg border">
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Hóspede</TableHead>
@@ -181,8 +181,8 @@ export function DashboardPage() {
                       className="cursor-pointer"
                       onClick={() => navigate(`/reservas/${r.id}`)}
                     >
-                      <TableCell className="font-medium">{r.nomeHospede}</TableCell>
-                      <TableCell>{propertyMap.get(r.propriedadeId)?.nome}</TableCell>
+                      <TableCell className="font-medium max-w-[140px] truncate">{r.nomeHospede}</TableCell>
+                      <TableCell className="max-w-[140px] truncate">{propertyMap.get(r.propriedadeId)?.nome}</TableCell>
                       <TableCell>{formatDate(r.checkOut)}</TableCell>
                     </TableRow>
                   ))}
@@ -201,7 +201,7 @@ export function DashboardPage() {
             <h2 className="text-lg font-semibold">Agendamentos de Faxina Pendentes</h2>
           </div>
           <div className="rounded-lg border">
-            <Table>
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
                   <TableHead>Hóspede</TableHead>
@@ -217,8 +217,8 @@ export function DashboardPage() {
                     className="cursor-pointer"
                     onClick={() => navigate(`/reservas/${r.id}`)}
                   >
-                    <TableCell className="font-medium">{r.nomeHospede}</TableCell>
-                    <TableCell>{propertyMap.get(r.propriedadeId)?.nome}</TableCell>
+                    <TableCell className="font-medium max-w-[140px] truncate">{r.nomeHospede}</TableCell>
+                    <TableCell className="max-w-[140px] truncate">{propertyMap.get(r.propriedadeId)?.nome}</TableCell>
                     <TableCell>{formatDate(r.checkOut)}</TableCell>
                     <TableCell>
                       <ReservationStatusBadge status={r.status as ReservationStatus} />
@@ -239,7 +239,7 @@ export function DashboardPage() {
             <h2 className="text-lg font-semibold">Manutenções Atrasadas</h2>
           </div>
           <div className="rounded-lg border">
-            <Table>
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
                   <TableHead>Serviço</TableHead>
@@ -255,9 +255,9 @@ export function DashboardPage() {
                     className="cursor-pointer"
                     onClick={() => navigate(`/propriedades/${c.propriedadeId}`)}
                   >
-                    <TableCell className="font-medium">{c.nome}</TableCell>
-                    <TableCell>{propertyMap.get(c.propriedadeId)?.nome}</TableCell>
-                    <TableCell>{c.prestador || "—"}</TableCell>
+                    <TableCell className="font-medium max-w-[140px] truncate">{c.nome}</TableCell>
+                    <TableCell className="max-w-[140px] truncate">{propertyMap.get(c.propriedadeId)?.nome}</TableCell>
+                    <TableCell className="max-w-[100px] truncate">{c.prestador || "—"}</TableCell>
                     <TableCell className="text-red-600">
                       {formatDate(c.proximaManutencao)}
                     </TableCell>
@@ -278,7 +278,7 @@ export function DashboardPage() {
             <span className="text-sm text-muted-foreground">(Próximos 7 dias)</span>
           </div>
           <div className="rounded-lg border">
-            <Table>
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
                   <TableHead>Serviço</TableHead>
@@ -294,9 +294,9 @@ export function DashboardPage() {
                     className="cursor-pointer"
                     onClick={() => navigate(`/propriedades/${sm.propriedadeId}`)}
                   >
-                    <TableCell className="font-medium">{sm.nome}</TableCell>
-                    <TableCell>{propertyMap.get(sm.propriedadeId)?.nome}</TableCell>
-                    <TableCell>{sm.prestador || "—"}</TableCell>
+                    <TableCell className="font-medium max-w-[140px] truncate">{sm.nome}</TableCell>
+                    <TableCell className="max-w-[140px] truncate">{propertyMap.get(sm.propriedadeId)?.nome}</TableCell>
+                    <TableCell className="max-w-[100px] truncate">{sm.prestador || "—"}</TableCell>
                     <TableCell>{formatDate(sm.dataPrevista)}</TableCell>
                   </TableRow>
                 ))}

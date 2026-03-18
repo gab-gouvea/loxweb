@@ -138,13 +138,13 @@ export function ReservationsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Hospede</TableHead>
-                <TableHead>Propriedade</TableHead>
-                <TableHead>Check-in</TableHead>
-                <TableHead>Check-out</TableHead>
+                <TableHead className="max-w-[150px]">Hospede</TableHead>
+                <TableHead className="max-w-[130px]">Propriedade</TableHead>
+                <TableHead className="whitespace-nowrap">Check-in</TableHead>
+                <TableHead className="whitespace-nowrap">Check-out</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Fonte</TableHead>
-                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Total</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -164,8 +164,8 @@ export function ReservationsPage() {
                       className="cursor-pointer"
                       onClick={() => navigate(`/reservas/${reservation.id}`)}
                     >
-                      <TableCell className="font-medium">{reservation.nomeHospede}</TableCell>
-                      <TableCell>{property?.nome}</TableCell>
+                      <TableCell className="font-medium max-w-[150px] truncate">{reservation.nomeHospede}</TableCell>
+                      <TableCell className="max-w-[130px] truncate">{property?.nome}</TableCell>
                       <TableCell>{formatDate(reservation.checkIn)}</TableCell>
                       <TableCell>{formatDate(reservation.checkOut)}</TableCell>
                       <TableCell>

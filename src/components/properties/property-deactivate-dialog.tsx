@@ -1,7 +1,7 @@
-import { useState } from "react"
-import { format, addDays } from "date-fns"
+import { useState, useMemo } from "react"
+import { format, addDays, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, AlertTriangle } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -18,7 +18,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useUpdateProperty } from "@/hooks/use-properties"
+import { useReservations } from "@/hooks/use-reservations"
 import type { Property } from "@/types/property"
+import { toLocalDateStr, getTodayStr } from "@/lib/date-utils"
 import { toast } from "sonner"
 
 interface PropertyDeactivateDialogProps {
@@ -36,6 +38,17 @@ export function PropertyDeactivateDialog({
   const [observacao, setObservacao] = useState("")
   const [calendarOpen, setCalendarOpen] = useState(false)
   const updateProperty = useUpdateProperty()
+  const { data: reservations = [] } = useReservations()
+
+  const today = getTodayStr()
+  const reservasFuturas = useMemo(() =>
+    reservations.filter((r) =>
+      r.propriedadeId === property.id &&
+      (r.status === "confirmada" || r.status === "em andamento") &&
+      toLocalDateStr(r.checkOut) > today
+    ), [reservations, property.id, today])
+
+  const temReservaFutura = reservasFuturas.length > 0
 
   const tomorrow = addDays(new Date(), 1)
   tomorrow.setHours(0, 0, 0, 0)
@@ -133,6 +146,21 @@ export function PropertyDeactivateDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
+        {temReservaFutura && (
+          <div className="flex items-start gap-2 rounded-md bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-800">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <div>
+              <strong>Não é possível inativar.</strong> Existem {reservasFuturas.length} reserva{reservasFuturas.length > 1 ? "s" : ""} futura{reservasFuturas.length > 1 ? "s" : ""} (confirmada{reservasFuturas.length > 1 ? "s" : ""} ou em andamento):
+              <ul className="mt-1 list-disc pl-4">
+                {reservasFuturas.slice(0, 3).map((r) => (
+                  <li key={r.id}>{r.nomeHospede} — {format(new Date(r.checkIn), "dd/MM/yyyy", { locale: ptBR })} a {format(new Date(r.checkOut), "dd/MM/yyyy", { locale: ptBR })}</li>
+                ))}
+                {reservasFuturas.length > 3 && <li>e mais {reservasFuturas.length - 3}...</li>}
+              </ul>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label>Inativo até *</Label>
@@ -181,7 +209,7 @@ export function PropertyDeactivateDialog({
           <Button
             variant="destructive"
             onClick={handleSubmit}
-            disabled={updateProperty.isPending || !date}
+            disabled={updateProperty.isPending || !date || temReservaFutura}
           >
             Inativar
           </Button>

@@ -196,7 +196,7 @@ export function PropertyDeactivateDialog({
           <div className="space-y-2">
             <Label>Observação (opcional)</Label>
             <Textarea
-              placeholder="Ex: locação anual, manutenções, pintura..."
+              placeholder="Ex: manutenções, pintura, reforma..."
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
               rows={3}

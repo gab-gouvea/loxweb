@@ -5,7 +5,6 @@ import { useProperties } from "@/hooks/use-properties"
 import { useProprietarioMap } from "@/hooks/use-proprietario-map"
 import { PropertyCard } from "@/components/properties/property-card"
 import { PropertyDialog } from "@/components/properties/property-dialog"
-import { PropertyDeleteDialog } from "@/components/properties/property-delete-dialog"
 import type { Property } from "@/types/property"
 
 export function PropertiesPage() {
@@ -18,8 +17,6 @@ export function PropertiesPage() {
   }) : undefined, [rawProperties])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingProperty, setEditingProperty] = useState<Property | undefined>()
-  const [deletingProperty, setDeletingProperty] = useState<Property | null>(null)
-
   function handleEdit(property: Property) {
     setEditingProperty(property)
     setDialogOpen(true)
@@ -54,7 +51,6 @@ export function PropertiesPage() {
               property={property}
               ownerName={property.proprietarioId ? proprietarioMap.get(property.proprietarioId)?.nomeCompleto : undefined}
               onEdit={handleEdit}
-              onDelete={setDeletingProperty}
             />
           ))}
         </div>
@@ -66,11 +62,6 @@ export function PropertiesPage() {
         property={editingProperty}
       />
 
-      <PropertyDeleteDialog
-        open={!!deletingProperty}
-        onOpenChange={(open) => !open && setDeletingProperty(null)}
-        property={deletingProperty}
-      />
     </div>
   )
 }

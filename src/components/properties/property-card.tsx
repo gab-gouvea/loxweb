@@ -1,4 +1,4 @@
-import { Building2, BedDouble, MapPin, Pencil, Trash2, User } from "lucide-react"
+import { Building2, BedDouble, MapPin, Pencil, User } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -10,10 +10,9 @@ interface PropertyCardProps {
   property: Property
   ownerName?: string
   onEdit: (property: Property) => void
-  onDelete: (property: Property) => void
 }
 
-export function PropertyCard({ property, ownerName, onEdit, onDelete }: PropertyCardProps) {
+export function PropertyCard({ property, ownerName, onEdit }: PropertyCardProps) {
   const navigate = useNavigate()
 
   return (
@@ -36,9 +35,6 @@ export function PropertyCard({ property, ownerName, onEdit, onDelete }: Property
           <div className="flex gap-1">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(property) }}>
               <Pencil className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); onDelete(property) }}>
-              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>

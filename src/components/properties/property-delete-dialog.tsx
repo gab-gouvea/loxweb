@@ -1,6 +1,6 @@
+import { useState, useMemo } from "react"
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -8,12 +8,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { AlertTriangle } from "lucide-react"
 import { useDeleteProperty } from "@/hooks/use-properties"
 import { useReservations } from "@/hooks/use-reservations"
 import type { Property } from "@/types/property"
 import { toast } from "sonner"
-import { useMemo } from "react"
+import { useNavigate } from "react-router-dom"
 
 interface PropertyDeleteDialogProps {
   open: boolean
@@ -23,7 +25,9 @@ interface PropertyDeleteDialogProps {
 
 export function PropertyDeleteDialog({ open, onOpenChange, property }: PropertyDeleteDialogProps) {
   const deleteMutation = useDeleteProperty()
+  const navigate = useNavigate()
   const { data: reservations = [] } = useReservations()
+  const [confirmText, setConfirmText] = useState("")
 
   const reservasAssociadas = useMemo(() =>
     reservations.filter((r) => r.propriedadeId === property?.id && r.status !== "cancelada"),
@@ -31,18 +35,25 @@ export function PropertyDeleteDialog({ open, onOpenChange, property }: PropertyD
   )
 
   function handleDelete() {
-    if (!property) return
+    if (!property || confirmText !== "EXCLUIR") return
     deleteMutation.mutate(property.id, {
       onSuccess: () => {
         toast.success("Propriedade excluída")
         onOpenChange(false)
+        setConfirmText("")
+        navigate("/propriedades")
       },
       onError: () => toast.error("Erro ao excluir propriedade"),
     })
   }
 
+  function handleOpenChange(value: boolean) {
+    onOpenChange(value)
+    if (!value) setConfirmText("")
+  }
+
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Excluir propriedade?</AlertDialogTitle>
@@ -57,15 +68,26 @@ export function PropertyDeleteDialog({ open, onOpenChange, property }: PropertyD
               </span>
             </div>
           )}
+          <div className="mt-4 space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Digite <strong>EXCLUIR</strong> para confirmar:
+            </p>
+            <Input
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="EXCLUIR"
+            />
+          </div>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
+          <Button
             onClick={handleDelete}
-            className="bg-destructive text-white hover:bg-destructive/90"
+            disabled={confirmText !== "EXCLUIR" || deleteMutation.isPending}
+            variant="destructive"
           >
-            Excluir
-          </AlertDialogAction>
+            {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

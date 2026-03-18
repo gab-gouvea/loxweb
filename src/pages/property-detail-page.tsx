@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
-import { ArrowLeft, Building2, BedDouble, MapPin, User, Package, DoorOpen, Pencil, PowerOff, Power } from "lucide-react"
+import { ArrowLeft, Building2, BedDouble, MapPin, User, Package, DoorOpen, Pencil, PowerOff, Power, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -11,6 +11,7 @@ import { ScheduledMaintenanceTable } from "@/components/property-detail/schedule
 import { InventoryTable } from "@/components/property-detail/inventory-table"
 import { PropertyDialog } from "@/components/properties/property-dialog"
 import { PropertyDeactivateDialog } from "@/components/properties/property-deactivate-dialog"
+import { PropertyDeleteDialog } from "@/components/properties/property-delete-dialog"
 import { tipoLabels } from "@/lib/constants"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -22,6 +23,7 @@ export function PropertyDetailPage() {
   const { data: proprietario } = useProprietario(property?.proprietarioId ?? "")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   if (isLoading) {
     return (
@@ -190,6 +192,24 @@ export function PropertyDetailPage() {
       <PropertyDeactivateDialog
         open={deactivateDialogOpen}
         onOpenChange={setDeactivateDialogOpen}
+        property={property}
+      />
+
+      {/* Zona de perigo */}
+      <Separator className="print:hidden" />
+      <div className="print:hidden">
+        <Button
+          variant="destructive"
+          onClick={() => setDeleteDialogOpen(true)}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Excluir Propriedade
+        </Button>
+      </div>
+
+      <PropertyDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
         property={property}
       />
     </div>

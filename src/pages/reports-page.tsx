@@ -39,9 +39,11 @@ export function ReportsPage() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
 
-  // Dialog state for cancelled reservation values
-  const [editingCancelada, setEditingCancelada] = useState<Reservation | null>(null)
+  // Dialog state for cancelled reservation - recebido
+  const [editingRecebido, setEditingRecebido] = useState<Reservation | null>(null)
   const [canceladaValor, setCanceladaValor] = useState<number | "">(0)
+  // Dialog state for cancelled reservation - líquido
+  const [editingLiquido, setEditingLiquido] = useState<Reservation | null>(null)
   const [canceladaLiquido, setCanceladaLiquido] = useState<number | "">(0)
 
   const { data: allReservations = [], isLoading: loadingReservations } = useReservations()
@@ -104,24 +106,33 @@ export function ReportsPage() {
 
 
 
-  function handleOpenCanceladaDialog(reservation: Reservation) {
-    setEditingCancelada(reservation)
+  function handleOpenRecebidoDialog(reservation: Reservation) {
+    setEditingRecebido(reservation)
     setCanceladaValor(reservation.valorRecebidoCancelamento ?? 0)
+  }
+
+  function handleSaveRecebido() {
+    if (!editingRecebido) return
+    updateReservation.mutate(
+      { id: editingRecebido.id, data: { valorRecebidoCancelamento: canceladaValor || 0 } },
+      {
+        onSuccess: () => setEditingRecebido(null),
+        onError: (err) => toast.error(getErrorMessage(err)),
+      },
+    )
+  }
+
+  function handleOpenLiquidoDialog(reservation: Reservation) {
+    setEditingLiquido(reservation)
     setCanceladaLiquido(reservation.valorLiquidoCancelamento ?? 0)
   }
 
-  function handleSaveCancelada() {
-    if (!editingCancelada) return
+  function handleSaveLiquido() {
+    if (!editingLiquido) return
     updateReservation.mutate(
+      { id: editingLiquido.id, data: { valorLiquidoCancelamento: canceladaLiquido || 0 } },
       {
-        id: editingCancelada.id,
-        data: {
-          valorRecebidoCancelamento: canceladaValor || 0,
-          valorLiquidoCancelamento: canceladaLiquido || 0,
-        },
-      },
-      {
-        onSuccess: () => setEditingCancelada(null),
+        onSuccess: () => setEditingLiquido(null),
         onError: (err) => toast.error(getErrorMessage(err)),
       },
     )
@@ -235,7 +246,7 @@ export function ReportsPage() {
                             <button
                               type="button"
                               className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
-                              onClick={(e) => { e.stopPropagation(); handleOpenCanceladaDialog(reservation) }}
+                              onClick={(e) => { e.stopPropagation(); handleOpenLiquidoDialog(reservation) }}
                             >
                               {cancelamentoLiquido > 0 ? formatCurrency(cancelamentoLiquido) : formatCurrency(0)}
                               <Pencil className="h-3 w-3" />
@@ -269,7 +280,7 @@ export function ReportsPage() {
                             <button
                               type="button"
                               className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
-                              onClick={(e) => { e.stopPropagation(); handleOpenCanceladaDialog(reservation) }}
+                              onClick={(e) => { e.stopPropagation(); handleOpenRecebidoDialog(reservation) }}
                             >
                               {totalRecebido > 0
                                 ? formatCurrency(totalRecebido)
@@ -305,13 +316,13 @@ export function ReportsPage() {
         </div>
       )}
 
-      {/* Dialog for cancelled reservation value */}
-      <Dialog open={!!editingCancelada} onOpenChange={(open) => !open && setEditingCancelada(null)}>
+      {/* Dialog - valor recebido cancelamento */}
+      <Dialog open={!!editingRecebido} onOpenChange={(open) => !open && setEditingRecebido(null)}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Valores do cancelamento</DialogTitle>
+            <DialogTitle>Valor recebido (cancelamento)</DialogTitle>
             <DialogDescription>
-              {editingCancelada?.nomeHospede}
+              {editingRecebido?.nomeHospede}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
@@ -325,8 +336,30 @@ export function ReportsPage() {
                 onChange={(e) => setCanceladaValor(e.target.value === "" ? "" : Number(e.target.value))}
               />
             </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingRecebido(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveRecebido} disabled={updateReservation.isPending}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog - valor líquido cancelamento */}
+      <Dialog open={!!editingLiquido} onOpenChange={(open) => !open && setEditingLiquido(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Valor líquido do proprietário (cancelamento)</DialogTitle>
+            <DialogDescription>
+              {editingLiquido?.nomeHospede}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
             <div>
-              <label className="text-sm text-muted-foreground mb-1 block">Valor líquido do proprietário (R$)</label>
+              <label className="text-sm text-muted-foreground mb-1 block">Valor líquido (R$)</label>
               <Input
                 type="number"
                 min={0}
@@ -337,10 +370,10 @@ export function ReportsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingCancelada(null)}>
+            <Button variant="outline" onClick={() => setEditingLiquido(null)}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveCancelada} disabled={updateReservation.isPending}>
+            <Button onClick={handleSaveLiquido} disabled={updateReservation.isPending}>
               Salvar
             </Button>
           </DialogFooter>

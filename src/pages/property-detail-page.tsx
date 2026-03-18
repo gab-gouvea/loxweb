@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
-import { ArrowLeft, Building2, BedDouble, MapPin, User, Package, DoorOpen, Pencil } from "lucide-react"
+import { ArrowLeft, Building2, BedDouble, MapPin, User, Package, DoorOpen, Pencil, PowerOff, Power } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -10,7 +10,10 @@ import { ComponentTable } from "@/components/property-detail/component-table"
 import { ScheduledMaintenanceTable } from "@/components/property-detail/scheduled-maintenance-table"
 import { InventoryTable } from "@/components/property-detail/inventory-table"
 import { PropertyDialog } from "@/components/properties/property-dialog"
+import { PropertyDeactivateDialog } from "@/components/properties/property-deactivate-dialog"
 import { tipoLabels } from "@/lib/constants"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 
 export function PropertyDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -18,6 +21,7 @@ export function PropertyDetailPage() {
   const { data: property, isLoading } = useProperty(id!)
   const { data: proprietario } = useProprietario(property?.proprietarioId ?? "")
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false)
 
   if (isLoading) {
     return (
@@ -63,12 +67,47 @@ export function PropertyDetailPage() {
         )}
         <div className="p-4 space-y-2">
           <div className="flex items-start justify-between">
-            <h1 className="text-2xl font-bold">{property.nome}</h1>
-            <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)} className="print:hidden">
-              <Pencil className="mr-2 h-4 w-4" />
-              Editar
-            </Button>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">{property.nome}</h1>
+              {!property.ativo && (
+                <Badge variant="destructive">Inativa</Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2 print:hidden">
+              <Button
+                variant={property.ativo ? "outline" : "default"}
+                size="sm"
+                onClick={() => setDeactivateDialogOpen(true)}
+              >
+                {property.ativo ? (
+                  <>
+                    <PowerOff className="mr-2 h-4 w-4" />
+                    Inativar
+                  </>
+                ) : (
+                  <>
+                    <Power className="mr-2 h-4 w-4" />
+                    Reativar
+                  </>
+                )}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </Button>
+            </div>
           </div>
+          {!property.ativo && (
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              <strong>Propriedade inativa</strong>
+              {property.inativoAte && (
+                <> até {format(new Date(property.inativoAte), "dd/MM/yyyy", { locale: ptBR })}</>
+              )}
+              {property.observacaoInatividade && (
+                <> — {property.observacaoInatividade}</>
+              )}
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <Building2 className="h-4 w-4" />
@@ -145,6 +184,12 @@ export function PropertyDetailPage() {
       <PropertyDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        property={property}
+      />
+
+      <PropertyDeactivateDialog
+        open={deactivateDialogOpen}
+        onOpenChange={setDeactivateDialogOpen}
         property={property}
       />
     </div>

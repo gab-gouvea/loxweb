@@ -3,8 +3,11 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "./app-sidebar"
 import { Separator } from "@/components/ui/separator"
 import { AlertsDropdown } from "./alerts-dropdown"
+import { useAutoReactivateProperties } from "@/hooks/use-properties"
 
 export function AppLayout() {
+  useAutoReactivateProperties()
+
   return (
     <SidebarProvider>
       <AppSidebar />

@@ -99,7 +99,7 @@ export function ReservationForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {properties?.map((p) => (
+                  {properties?.filter((p) => p.ativo).map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.nome}
                     </SelectItem>

@@ -33,9 +33,10 @@ export function CalendarPage() {
   }, [allReservations])
 
   const filteredProperties = useMemo(() => {
+    const active = properties.filter((p) => p.ativo)
     const list = !selectedPropertyIds
-      ? [...properties]
-      : properties.filter((p) => selectedPropertyIds.includes(p.id))
+      ? [...active]
+      : active.filter((p) => selectedPropertyIds.includes(p.id))
     // Sort by owner name
     return list.sort((a, b) => {
       const ownerA = proprietarioMap.get(a.proprietarioId ?? "")?.nomeCompleto ?? ""

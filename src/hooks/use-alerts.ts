@@ -13,6 +13,7 @@ export type AlertType =
   | "manutencao_atrasada"
   | "manutencao_agendada_hoje"
   | "manutencao_agendada_7dias"
+  | "propriedade_inativa"
 
 export interface Alert {
   id: string
@@ -31,6 +32,7 @@ const alertLabels: Record<AlertType, string> = {
   manutencao_atrasada: "Manutenção Atrasada",
   manutencao_agendada_hoje: "Manutenção Agendada Hoje",
   manutencao_agendada_7dias: "Manutenção em 7 Dias",
+  propriedade_inativa: "Propriedade Inativa",
 }
 
 export function useAlerts() {
@@ -161,6 +163,25 @@ export function useAlerts() {
           description: `${sm.nome} — ${propNome}`,
           link: `/propriedades/${sm.propriedadeId}`,
         })
+      }
+    }
+
+    // Propriedades inativas com data se aproximando (7 dias)
+    for (const [, prop] of propertyMap) {
+      if (!prop.ativo && prop.inativoAte) {
+        const inativoAteDate = toLocalDateStr(prop.inativoAte)
+        const diasRestantes = differenceInDays(parseISO(inativoAteDate), new Date())
+        if (diasRestantes >= 0 && diasRestantes <= 7) {
+          result.push({
+            id: `prop-inativa-${prop.id}`,
+            type: "propriedade_inativa",
+            title: diasRestantes === 0
+              ? `${prop.nome} ficará inativa até hoje!`
+              : `${prop.nome} ficará inativa por mais ${diasRestantes} dia${diasRestantes > 1 ? "s" : ""}`,
+            description: prop.observacaoInatividade || "Continua inativa?",
+            link: `/propriedades/${prop.id}`,
+          })
+        }
       }
     }
 

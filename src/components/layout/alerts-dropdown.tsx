@@ -7,6 +7,7 @@ import {
   Wrench,
   CircleDollarSign,
   CalendarClock,
+  PowerOff,
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -27,6 +28,7 @@ const alertIcons: Record<AlertType, typeof Bell> = {
   manutencao_atrasada: Wrench,
   manutencao_agendada_hoje: CalendarClock,
   manutencao_agendada_7dias: CalendarClock,
+  propriedade_inativa: PowerOff,
 }
 
 const alertColors: Record<AlertType, string> = {
@@ -37,6 +39,7 @@ const alertColors: Record<AlertType, string> = {
   manutencao_atrasada: "text-red-600",
   manutencao_agendada_hoje: "text-yellow-600",
   manutencao_agendada_7dias: "text-blue-600",
+  propriedade_inativa: "text-purple-600",
 }
 
 export function AlertsDropdown() {
@@ -55,6 +58,7 @@ export function AlertsDropdown() {
     if (a.type === "manutencao_atrasada") return elapsed >= SNOOZE_2_DIAS
     if (a.type === "faxina_nao_paga") return elapsed >= SNOOZE_1_DIA
     if (a.type === "manutencao_agendada_7dias") return elapsed >= SNOOZE_1_DIA
+    if (a.type === "propriedade_inativa") return elapsed >= SNOOZE_1_DIA
     return false
   })
   const visibleCount = visibleAlerts.length

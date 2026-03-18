@@ -17,7 +17,7 @@ export function PropertyCard({ property, ownerName, onEdit, onDelete }: Property
   const navigate = useNavigate()
 
   return (
-    <Card className="overflow-hidden cursor-pointer" onClick={() => navigate(`/propriedades/${property.id}`)}>
+    <Card className={`overflow-hidden cursor-pointer ${!property.ativo ? "opacity-50" : ""}`} onClick={() => navigate(`/propriedades/${property.id}`)}>
       {property.fotoCapa && (
         <div className="h-40 w-full overflow-hidden">
           <img
@@ -29,7 +29,10 @@ export function PropertyCard({ property, ownerName, onEdit, onDelete }: Property
       )}
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <CardTitle className="text-base">{property.nome}</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-base">{property.nome}</CardTitle>
+            {!property.ativo && <Badge variant="destructive" className="text-xs">Inativa</Badge>}
+          </div>
           <div className="flex gap-1">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(property) }}>
               <Pencil className="h-4 w-4" />

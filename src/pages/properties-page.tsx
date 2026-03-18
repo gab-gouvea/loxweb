@@ -11,7 +11,11 @@ import type { Property } from "@/types/property"
 export function PropertiesPage() {
   const { data: rawProperties, isLoading } = useProperties()
   const { proprietarioMap } = useProprietarioMap()
-  const properties = useMemo(() => rawProperties ? [...rawProperties].sort((a, b) => a.nome.localeCompare(b.nome)) : undefined, [rawProperties])
+  const properties = useMemo(() => rawProperties ? [...rawProperties].sort((a, b) => {
+    // Inativas vão para o fundo
+    if (a.ativo !== b.ativo) return a.ativo ? -1 : 1
+    return a.nome.localeCompare(b.nome)
+  }) : undefined, [rawProperties])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingProperty, setEditingProperty] = useState<Property | undefined>()
   const [deletingProperty, setDeletingProperty] = useState<Property | null>(null)

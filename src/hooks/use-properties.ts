@@ -1,6 +1,8 @@
+import { useEffect, useRef } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { propertyService } from "@/services/property-service"
 import type { PropertyFormData } from "@/types/property"
+import { toLocalDateStr, getTodayStr } from "@/lib/date-utils"
 
 export function useProperties() {
   return useQuery({
@@ -36,6 +38,35 @@ export function useUpdateProperty() {
       queryClient.invalidateQueries({ queryKey: ["properties"] })
     },
   })
+}
+
+/** Reativa automaticamente propriedades cuja data inativoAte já passou */
+export function useAutoReactivateProperties() {
+  const { data: properties } = useProperties()
+  const updateProperty = useUpdateProperty()
+  const processed = useRef(new Set<string>())
+
+  useEffect(() => {
+    if (!properties) return
+    const today = getTodayStr()
+
+    for (const prop of properties) {
+      if (!prop.ativo && prop.inativoAte && !processed.current.has(prop.id)) {
+        const inativoAte = toLocalDateStr(prop.inativoAte)
+        if (inativoAte < today) {
+          processed.current.add(prop.id)
+          updateProperty.mutate({
+            id: prop.id,
+            data: {
+              ativo: true,
+              inativoAte: undefined,
+              observacaoInatividade: undefined,
+            },
+          })
+        }
+      }
+    }
+  }, [properties])
 }
 
 export function useDeleteProperty() {

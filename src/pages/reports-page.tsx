@@ -39,9 +39,10 @@ export function ReportsPage() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
 
-  // Dialog state for cancelled reservation value
+  // Dialog state for cancelled reservation values
   const [editingCancelada, setEditingCancelada] = useState<Reservation | null>(null)
   const [canceladaValor, setCanceladaValor] = useState<number | "">(0)
+  const [canceladaLiquido, setCanceladaLiquido] = useState<number | "">(0)
 
   const { data: allReservations = [], isLoading: loadingReservations } = useReservations()
   const { properties, propertyMap } = usePropertyMap()
@@ -81,7 +82,9 @@ export function ReportsPage() {
     for (const r of filteredReservations) {
       const property = propertyMap.get(r.propriedadeId)
       totalRecebido += calcTotalRecebido(r, property)
-      if (r.status !== "cancelada") {
+      if (r.status === "cancelada") {
+        totalLiquido += r.valorLiquidoCancelamento ?? 0
+      } else {
         const taxaLimpeza = property?.taxaLimpeza ?? 0
         const valorReserva = (r.precoTotal ?? 0) - taxaLimpeza
         const comissao = r.percentualComissao ?? property?.percentualComissao ?? 0
@@ -104,6 +107,7 @@ export function ReportsPage() {
   function handleOpenCanceladaDialog(reservation: Reservation) {
     setEditingCancelada(reservation)
     setCanceladaValor(reservation.valorRecebidoCancelamento ?? 0)
+    setCanceladaLiquido(reservation.valorLiquidoCancelamento ?? 0)
   }
 
   function handleSaveCancelada() {
@@ -111,7 +115,10 @@ export function ReportsPage() {
     updateReservation.mutate(
       {
         id: editingCancelada.id,
-        data: { valorRecebidoCancelamento: canceladaValor || 0 },
+        data: {
+          valorRecebidoCancelamento: canceladaValor || 0,
+          valorLiquidoCancelamento: canceladaLiquido || 0,
+        },
       },
       {
         onSuccess: () => setEditingCancelada(null),
@@ -153,9 +160,10 @@ export function ReportsPage() {
           (sum, r) => sum + calcTotalRecebido(r, property),
           0,
         )
-        const subtotalLiquido = propReservations
-          .filter((r) => r.status !== "cancelada")
-          .reduce((sum, r) => {
+        const subtotalLiquido = propReservations.reduce((sum, r) => {
+            if (r.status === "cancelada") {
+              return sum + (r.valorLiquidoCancelamento ?? 0)
+            }
             const taxaLimpeza = property.taxaLimpeza ?? 0
             const valorReserva = (r.precoTotal ?? 0) - taxaLimpeza
             const comissao = r.percentualComissao ?? property.percentualComissao ?? 0
@@ -200,7 +208,8 @@ export function ReportsPage() {
                       ? 0
                       : (valorSemLimpeza * comissaoPercent) / 100
                     const { reembolsavel: despReembolsavel } = calcDespesas(reservation)
-                    const valorLiquido = isCancelada ? 0 : valorSemLimpeza - valorComissao - despReembolsavel
+                    const cancelamentoLiquido = reservation.valorLiquidoCancelamento ?? 0
+                    const valorLiquido = isCancelada ? cancelamentoLiquido : valorSemLimpeza - valorComissao - despReembolsavel
                     const faxStatus = reservation.faxinaStatus ?? "nao_agendada"
                     const receitaFaxina = calcFaxinaReceita(reservation, property)
                     const despesas = calcDespesas(reservation)
@@ -222,7 +231,16 @@ export function ReportsPage() {
                             : "—"}
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
-                          {isCancelada ? "—" : formatCurrency(valorLiquido)}
+                          {isCancelada ? (
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
+                              onClick={(e) => { e.stopPropagation(); handleOpenCanceladaDialog(reservation) }}
+                            >
+                              {cancelamentoLiquido > 0 ? formatCurrency(cancelamentoLiquido) : formatCurrency(0)}
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          ) : formatCurrency(valorLiquido)}
                         </TableCell>
                         <TableCell className="text-right">
                           {isCancelada ? "—" : `${comissaoPercent}%`}
@@ -291,7 +309,7 @@ export function ReportsPage() {
       <Dialog open={!!editingCancelada} onOpenChange={(open) => !open && setEditingCancelada(null)}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Valor recebido (cancelamento)</DialogTitle>
+            <DialogTitle>Valores do cancelamento</DialogTitle>
             <DialogDescription>
               {editingCancelada?.nomeHospede}
             </DialogDescription>
@@ -305,6 +323,16 @@ export function ReportsPage() {
                 step={0.01}
                 value={canceladaValor ?? ""}
                 onChange={(e) => setCanceladaValor(e.target.value === "" ? "" : Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Valor líquido do proprietário (R$)</label>
+              <Input
+                type="number"
+                min={0}
+                step={0.01}
+                value={canceladaLiquido ?? ""}
+                onChange={(e) => setCanceladaLiquido(e.target.value === "" ? "" : Number(e.target.value))}
               />
             </div>
           </div>

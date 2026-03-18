@@ -22,7 +22,7 @@ export function PropertyCard({ property, ownerName, onEdit }: PropertyCardProps)
           <img
             src={property.fotoCapa}
             alt={property.nome}
-            className="h-full w-full object-cover"
+            className={`h-full w-full object-cover ${!property.ativo ? "grayscale" : ""}`}
           />
         </div>
       )}

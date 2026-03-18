@@ -34,9 +34,10 @@ import { calcFaxinaReceita, calcDespesas, calcTotalRecebido } from "@/lib/reserv
 import { groupByProperty } from "@/lib/collection-utils"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
 import type { Reservation } from "@/types/reservation"
+import { useReportsMonthStore } from "@/hooks/use-month-store"
 
 export function ReportsPage() {
-  const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
+  const { currentMonth, setCurrentMonth } = useReportsMonthStore()
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
 
   // Dialog state for cancelled reservation - recebido

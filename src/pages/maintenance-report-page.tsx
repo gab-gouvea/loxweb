@@ -38,9 +38,10 @@ import { useMaintenanceRecords, useUpdateMaintenanceRecord, useDeleteMaintenance
 import { formatDate } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
 import { groupByProperty } from "@/lib/collection-utils"
+import { useMaintenanceReportMonthStore } from "@/hooks/use-month-store"
 
 export function MaintenanceReportPage() {
-  const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
+  const { currentMonth, setCurrentMonth } = useMaintenanceReportMonthStore()
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
   const [pagoFilter, setPagoFilter] = useState<string>("todos")
   const [tipoFilter, setTipoFilter] = useState<string>("todos")

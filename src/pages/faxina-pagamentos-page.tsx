@@ -25,9 +25,10 @@ import {
 import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { formatCurrency } from "@/lib/constants"
+import { useFaxinaPagamentosMonthStore } from "@/hooks/use-month-store"
 
 export function FaxinaPagamentosPage() {
-  const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
+  const { currentMonth, setCurrentMonth } = useFaxinaPagamentosMonthStore()
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
   const [pagoFilter, setPagoFilter] = useState<string>("todos")
 

@@ -25,9 +25,10 @@ import { usePropertyMap } from "@/hooks/use-property-map"
 import { useProprietarioMap } from "@/hooks/use-proprietario-map"
 import { formatCurrency } from "@/lib/constants"
 import type { Reservation } from "@/types/reservation"
+import { useFaxinaMonthStore } from "@/hooks/use-month-store"
 
 export function FaxinaTerceirizadaPage() {
-  const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
+  const { currentMonth, setCurrentMonth } = useFaxinaMonthStore()
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
   const [statusFilter, setStatusFilter] = useState<string>("agendadas")
 

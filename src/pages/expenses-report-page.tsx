@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react"
-import { startOfMonth } from "date-fns"
 import { useNavigate } from "react-router-dom"
 import { MonthNavigation } from "@/components/shared/month-navigation"
 import { TabNavigation } from "@/components/shared/tab-navigation"
@@ -26,9 +25,10 @@ import { usePropertyMap } from "@/hooks/use-property-map"
 import { formatDate } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
 import { groupByProperty } from "@/lib/collection-utils"
+import { useExpensesReportMonthStore } from "@/hooks/use-month-store"
 
 export function ExpensesReportPage() {
-  const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
+  const { currentMonth, setCurrentMonth } = useExpensesReportMonthStore()
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
   const [tipoFilter, setTipoFilter] = useState<string>("todos")
 

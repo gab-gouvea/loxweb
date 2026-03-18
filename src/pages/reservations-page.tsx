@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
-import { Plus, Trash2, Search } from "lucide-react"
+import { Plus, Trash2, Search, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -27,6 +27,8 @@ import { formatDate } from "@/lib/date-utils"
 import { sourceLabels, formatCurrency } from "@/lib/constants"
 import type { Reservation, ReservationStatus } from "@/types/reservation"
 
+const PAGE_SIZE = 20
+
 export function ReservationsPage() {
   const navigate = useNavigate()
   const { data: reservations = [], isLoading } = useReservations()
@@ -37,6 +39,7 @@ export function ReservationsPage() {
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
   const [sortBy, setSortBy] = useState<string>("recente")
   const [searchName, setSearchName] = useState("")
+  const [page, setPage] = useState(1)
 
   const filtered = useMemo(() => {
     let result = reservations
@@ -65,6 +68,16 @@ export function ReservationsPage() {
     }
   }, [reservations, statusFilter, propertyFilter, sortBy, searchName])
 
+  // Reset page when filters change
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginatedReservations = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  // Reset page to 1 when filters change
+  const handleStatusFilter = (v: string) => { setStatusFilter(v); setPage(1) }
+  const handlePropertyFilter = (v: string) => { setPropertyFilter(v); setPage(1) }
+  const handleSortBy = (v: string) => { setSortBy(v); setPage(1) }
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => { setSearchName(e.target.value); setPage(1) }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -81,12 +94,12 @@ export function ReservationsPage() {
           <Input
             placeholder="Buscar por hospede..."
             value={searchName}
-            onChange={(e) => setSearchName(e.target.value)}
+            onChange={handleSearch}
             className="w-[200px] pl-8"
           />
         </div>
 
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={handleStatusFilter}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -100,7 +113,7 @@ export function ReservationsPage() {
           </SelectContent>
         </Select>
 
-        <Select value={propertyFilter} onValueChange={setPropertyFilter}>
+        <Select value={propertyFilter} onValueChange={handlePropertyFilter}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Propriedade" />
           </SelectTrigger>
@@ -114,7 +127,7 @@ export function ReservationsPage() {
           </SelectContent>
         </Select>
 
-        <Select value={sortBy} onValueChange={setSortBy}>
+        <Select value={sortBy} onValueChange={handleSortBy}>
           <SelectTrigger className="w-[190px]">
             <SelectValue />
           </SelectTrigger>
@@ -149,14 +162,14 @@ export function ReservationsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {paginatedReservations.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     Nenhuma reserva encontrada
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((reservation) => {
+                paginatedReservations.map((reservation) => {
                   const property = propertyMap.get(reservation.propriedadeId)
                   return (
                     <TableRow
@@ -196,6 +209,34 @@ export function ReservationsPage() {
               )}
             </TableBody>
           </Table>
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            {filtered.length} reserva{filtered.length !== 1 ? "s" : ""} — Página {page} de {totalPages}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page <= 1}
+              onClick={() => setPage(page - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={page >= totalPages}
+              onClick={() => setPage(page + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
 

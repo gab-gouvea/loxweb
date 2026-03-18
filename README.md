@@ -63,17 +63,3 @@ npm run dev
 ```
 
 O backend precisa estar rodando para a aplicacao funcionar.
-
-## Deploy
-
-**Frontend (Vercel):**
-- Conectado ao GitHub — push na main dispara deploy automatico
-- Variavel de ambiente: `VITE_API_URL=https://lox.fly.dev/api`
-
-**Backend (Fly.io):**
-- Deploy manual via `fly deploy` (builda dos arquivos locais)
-- Secrets configurados via `fly secrets set`
-
-**Banco de dados:**
-- Supabase com backups automaticos diarios (retencao 7 dias)
-- Acesso via JDBC (Data API e RLS desabilitados)

@@ -77,13 +77,23 @@ export function ReportsPage() {
 
   const summaryTotals = useMemo(() => {
     let totalRecebido = 0
+    let totalLiquido = 0
     for (const r of filteredReservations) {
       const property = propertyMap.get(r.propriedadeId)
       totalRecebido += calcTotalRecebido(r, property)
+      if (r.status !== "cancelada") {
+        const taxaLimpeza = property?.taxaLimpeza ?? 0
+        const valorReserva = (r.precoTotal ?? 0) - taxaLimpeza
+        const comissao = r.percentualComissao ?? property?.percentualComissao ?? 0
+        const valorComissao = (valorReserva * comissao) / 100
+        const { reembolsavel } = calcDespesas(r)
+        totalLiquido += valorReserva - valorComissao - reembolsavel
+      }
     }
     const canceladas = filteredReservations.filter((r) => r.status === "cancelada").length
     return {
       totalRecebido,
+      totalLiquido,
       numReservas: filteredReservations.length - canceladas,
       canceladas,
     }
@@ -126,7 +136,8 @@ export function ReportsPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <SummaryCard title={propertyFilter === "todos" ? "Total Líquido Proprietários" : "Total Líquido Proprietário"} value={formatCurrency(summaryTotals.totalLiquido)} />
         <SummaryCard title="Total Recebido" value={formatCurrency(summaryTotals.totalRecebido)} />
         <SummaryCard title="Reservas no Período" value={summaryTotals.numReservas} />
         <SummaryCard title="Reservas Canceladas" value={summaryTotals.canceladas} valueClassName={summaryTotals.canceladas > 0 ? "text-red-600" : "text-muted-foreground"} />
@@ -142,6 +153,16 @@ export function ReportsPage() {
           (sum, r) => sum + calcTotalRecebido(r, property),
           0,
         )
+        const subtotalLiquido = propReservations
+          .filter((r) => r.status !== "cancelada")
+          .reduce((sum, r) => {
+            const taxaLimpeza = property.taxaLimpeza ?? 0
+            const valorReserva = (r.precoTotal ?? 0) - taxaLimpeza
+            const comissao = r.percentualComissao ?? property.percentualComissao ?? 0
+            const valorComissao = (valorReserva * comissao) / 100
+            const { reembolsavel } = calcDespesas(r)
+            return sum + (valorReserva - valorComissao - reembolsavel)
+          }, 0)
         const comissaoHeader = propReservations.find((r) => r.status !== "cancelada")?.percentualComissao ?? property.percentualComissao ?? 0
 
         return (
@@ -153,28 +174,33 @@ export function ReportsPage() {
               </span>
             </div>
 
-            <div className="rounded-lg border">
-              <Table>
+            <div className="rounded-lg border overflow-x-auto">
+              <Table className="min-w-[900px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Hóspede</TableHead>
-                    <TableHead>Check-in</TableHead>
-                    <TableHead>Check-out</TableHead>
-                    <TableHead className="text-right">Valor Total</TableHead>
-                    <TableHead className="text-right">Comissão (%)</TableHead>
-                    <TableHead className="text-right">Valor Comissão</TableHead>
-                    <TableHead className="text-right">Faxina</TableHead>
-                    <TableHead className="text-right">Despesas</TableHead>
-                    <TableHead className="text-right">Total Recebido</TableHead>
+                    <TableHead className="w-[130px]">Hóspede</TableHead>
+                    <TableHead className="whitespace-nowrap">Check-in</TableHead>
+                    <TableHead className="whitespace-nowrap">Check-out</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Bruto</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Líquido</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Com. (%)</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Comissão</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Saldo Faxina</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Despesas</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Recebido</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {propReservations.map((reservation) => {
                     const isCancelada = reservation.status === "cancelada"
                     const comissaoPercent = reservation.percentualComissao ?? property.percentualComissao ?? 0
+                    const taxaLimpeza = property.taxaLimpeza ?? 0
+                    const valorSemLimpeza = (reservation.precoTotal ?? 0) - taxaLimpeza
                     const valorComissao = isCancelada
                       ? 0
-                      : ((reservation.precoTotal ?? 0) * comissaoPercent) / 100
+                      : (valorSemLimpeza * comissaoPercent) / 100
+                    const { reembolsavel: despReembolsavel } = calcDespesas(reservation)
+                    const valorLiquido = isCancelada ? 0 : valorSemLimpeza - valorComissao - despReembolsavel
                     const faxStatus = reservation.faxinaStatus ?? "nao_agendada"
                     const receitaFaxina = calcFaxinaReceita(reservation, property)
                     const despesas = calcDespesas(reservation)
@@ -182,18 +208,21 @@ export function ReportsPage() {
 
                     return (
                       <TableRow key={reservation.id} className={`cursor-pointer hover:bg-muted/50 ${isCancelada ? "opacity-60" : ""}`} onClick={() => navigate(`/reservas/${reservation.id}`)}>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium w-[130px]">
                           <div className="flex items-center gap-2">
-                            {reservation.nomeHospede}
+                            <span className="truncate block max-w-[100px]">{reservation.nomeHospede}</span>
                             {isCancelada && <ReservationStatusBadge status="cancelada" />}
                           </div>
                         </TableCell>
-                        <TableCell>{formatDate(reservation.checkIn)}</TableCell>
-                        <TableCell>{formatDate(reservation.checkOut)}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="whitespace-nowrap">{formatDate(reservation.checkIn)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(reservation.checkOut)}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">
                           {reservation.precoTotal
                             ? formatCurrency(reservation.precoTotal)
                             : "—"}
+                        </TableCell>
+                        <TableCell className="text-right whitespace-nowrap">
+                          {isCancelada ? "—" : formatCurrency(valorLiquido)}
                         </TableCell>
                         <TableCell className="text-right">
                           {isCancelada ? "—" : `${comissaoPercent}%`}
@@ -240,7 +269,10 @@ export function ReportsPage() {
               </Table>
             </div>
 
-            <div className="flex justify-end pr-4">
+            <div className="flex justify-end gap-6 pr-4">
+              <p className="text-sm text-muted-foreground">
+                Total Líquido: {formatCurrency(subtotalLiquido)}
+              </p>
               <p className="text-sm font-bold">
                 Subtotal: {formatCurrency(subtotalReservas)}
               </p>

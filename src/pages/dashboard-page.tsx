@@ -1,14 +1,16 @@
 import { useMemo } from "react"
 import { useNavigate } from "react-router-dom"
+import { startOfMonth } from "date-fns"
 import {
   Building2,
   CalendarDays,
   SprayCan,
   Wrench,
-  CircleDollarSign,
   CalendarClock,
   LogIn,
   LogOut,
+  BarChart3,
+  CircleDollarSign,
 } from "lucide-react"
 import { SummaryCard } from "@/components/shared/summary-card"
 import {
@@ -22,9 +24,11 @@ import {
 import { getUserName } from "@/lib/auth"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { useReservations } from "@/hooks/use-reservations"
+import { useOccupancy } from "@/hooks/use-occupancy"
 import { useAllPropertyComponents, useAllPendingScheduledMaintenances } from "@/hooks/use-property-details"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
 import { formatDate, toLocalDateStr, getTodayStr } from "@/lib/date-utils"
+import { calcValorPagamento } from "@/lib/reservation-calculations"
 import type { ReservationStatus } from "@/types/reservation"
 
 function addDays(dateStr: string, days: number): string {
@@ -40,7 +44,7 @@ export function DashboardPage() {
   const { data: reservations = [] } = useReservations()
   const { data: components = [] } = useAllPropertyComponents()
   const { data: pendingMaintenances = [] } = useAllPendingScheduledMaintenances()
-
+  const { avgOccupancy } = useOccupancy(startOfMonth(new Date()))
   const stats = useMemo(() => {
     const today = getTodayStr()
     const in7days = addDays(today, 7)
@@ -59,14 +63,14 @@ export function DashboardPage() {
       (c) => toLocalDateStr(c.proximaManutencao) < today
     )
 
-    // Faxinas não pagas (empresa parceira)
-    const faxinasNaoPagas = reservations.filter(
-      (r) =>
-        !r.faxinaPorMim &&
-        r.faxinaPaga === false &&
-        r.faxinaStatus &&
-        r.faxinaStatus !== "nao_agendada"
-    )
+    // Pagamentos não recebidos (checkIn + 1 <= hoje e não recebido)
+    const pagamentosNaoRecebidos = naoCanceladas
+      .filter((r) => {
+        if (r.pagamentoRecebido) return false
+        const paymentDate = addDays(toLocalDateStr(r.checkIn), 1)
+        return paymentDate <= today
+      })
+      .sort((a, b) => b.checkIn.localeCompare(a.checkIn))
 
     // Próximos check-ins (hoje + 7 dias)
     const proximosCheckins = naoCanceladas
@@ -94,9 +98,9 @@ export function DashboardPage() {
     return {
       imoveis,
       reservasAtivas: naoCanceladas.length,
+      pagamentosNaoRecebidos,
       faxinasPendentes,
       manutencoesAtrasadas,
-      faxinasNaoPagas,
       proximosCheckins,
       proximosCheckouts,
       proximasManutencoes,
@@ -110,12 +114,10 @@ export function DashboardPage() {
       </h1>
 
       {/* Cards de métricas */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-3 gap-4">
         <SummaryCard title="Imóveis" value={stats.imoveis} icon={Building2} onClick={() => navigate("/propriedades")} />
         <SummaryCard title="Total de Reservas" value={stats.reservasAtivas} icon={CalendarDays} onClick={() => navigate("/reservas")} />
-        <SummaryCard title="Agend. Faxina Pendentes" value={stats.faxinasPendentes.length} icon={SprayCan} valueClassName={stats.faxinasPendentes.length > 0 ? "text-yellow-600" : "text-green-600"} />
-        <SummaryCard title="Faxinas Não Pagas" value={stats.faxinasNaoPagas.length} icon={CircleDollarSign} onClick={() => navigate("/faxina-terceirizada/pagamentos")} valueClassName={stats.faxinasNaoPagas.length > 0 ? "text-orange-600" : "text-green-600"} />
-        <SummaryCard title="Manut. Atrasadas" value={stats.manutencoesAtrasadas.length} icon={Wrench} valueClassName={stats.manutencoesAtrasadas.length > 0 ? "text-red-600" : "text-green-600"} />
+        <SummaryCard title="Ver % de Ocupação" value={`${avgOccupancy}%`} icon={BarChart3} onClick={() => navigate("/ocupacao")} valueClassName={avgOccupancy >= 70 ? "text-green-600" : avgOccupancy >= 40 ? "text-yellow-600" : "text-red-500"} />
       </div>
 
       {/* Seções lado a lado: Check-ins e Checkouts */}
@@ -194,6 +196,50 @@ export function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Pagamentos Não Recebidos */}
+      {stats.pagamentosNaoRecebidos.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <CircleDollarSign className="h-4 w-4 text-blue-600" />
+            <h2 className="text-lg font-semibold">Pagamentos Não Recebidos</h2>
+            <span className="text-sm text-muted-foreground">({stats.pagamentosNaoRecebidos.length})</span>
+          </div>
+          <div className="rounded-lg border">
+            <Table className="table-fixed">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Hóspede</TableHead>
+                  <TableHead>Propriedade</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead>Vencimento</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stats.pagamentosNaoRecebidos.map((r) => {
+                  const prop = propertyMap.get(r.propriedadeId)
+                  const valorPagamento = calcValorPagamento(r, prop)
+                  const paymentDate = addDays(toLocalDateStr(r.checkIn), 1)
+                  return (
+                    <TableRow
+                      key={r.id}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/reservas/${r.id}`)}
+                    >
+                      <TableCell className="font-medium max-w-[140px] truncate">{r.nomeHospede}</TableCell>
+                      <TableCell className="max-w-[140px] truncate">{prop?.nome}</TableCell>
+                      <TableCell className="font-medium">
+                        {valorPagamento.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </TableCell>
+                      <TableCell>{formatDate(paymentDate)}</TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
 
       {/* Faxinas Pendentes */}
       {stats.faxinasPendentes.length > 0 && (

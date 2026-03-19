@@ -9,6 +9,7 @@ import type { Property } from "@/types/property"
 import type { Proprietario } from "@/types/proprietario"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { formatCurrency } from "@/lib/constants"
+import { calcValorPagamento } from "@/lib/reservation-calculations"
 
 const COL_WIDTH = 80
 const ROW_HEIGHT = 56
@@ -124,11 +125,7 @@ export function CalendarGrid({
           const key = `${r.propriedadeId}-${paymentDay}`
           const existing = getCell(key)
           const prop = propertyMap.get(r.propriedadeId)
-          const taxaLimpeza = prop?.taxaLimpeza ?? 0
-          const comissaoPercent = r.percentualComissao ?? prop?.percentualComissao ?? 0
-          const baseComissao = (r.precoTotal ?? 0) - taxaLimpeza
-          const valorComissao = baseComissao * comissaoPercent / 100
-          const valorPagamento = valorComissao + taxaLimpeza
+          const valorPagamento = calcValorPagamento(r, prop)
           existing.pagamentos.push({ nomeHospede: r.nomeHospede, precoTotal: valorPagamento })
           map.set(key, existing)
         }

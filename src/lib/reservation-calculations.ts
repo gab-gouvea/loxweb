@@ -21,6 +21,16 @@ export function calcDespesas(reservation: Reservation): { reembolsavel: number; 
   return { reembolsavel, naoReembolsavel }
 }
 
+/** Valor que o proprietário paga ao gestor = comissão + taxaLimpeza */
+export function calcValorPagamento(reservation: Reservation, property: Property | undefined): number {
+  const precoTotal = reservation.precoTotal ?? 0
+  const taxaLimpeza = property?.taxaLimpeza ?? 0
+  const baseComissao = precoTotal - taxaLimpeza
+  const comissaoPercent = reservation.percentualComissao ?? property?.percentualComissao ?? 0
+  const valorComissao = (baseComissao * comissaoPercent) / 100
+  return valorComissao + taxaLimpeza
+}
+
 export function calcTotalRecebido(reservation: Reservation, property: Property | undefined): number {
   if (reservation.status === "cancelada") {
     return reservation.valorRecebidoCancelamento ?? 0

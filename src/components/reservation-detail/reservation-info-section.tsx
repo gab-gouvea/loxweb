@@ -26,6 +26,7 @@ import { formatCurrency, sourceLabels } from "@/lib/constants"
 import type { Reservation, ReservationSource } from "@/types/reservation"
 import { reservationSources } from "@/types/reservation"
 import type { Property } from "@/types/property"
+import { calcValorPagamento } from "@/lib/reservation-calculations"
 
 interface ReservationInfoSectionProps {
   reservation: Reservation
@@ -155,13 +156,7 @@ export function ReservationInfoSection({
                 <div>
                   <p className="text-xs text-muted-foreground">{reservation.pagamentoRecebido ? "Recebido" : "A Receber"}</p>
                   <p className="text-sm font-medium">
-                    {(() => {
-                      const taxaLimpeza = property.taxaLimpeza ?? 0
-                      const comissaoPercent = reservation.percentualComissao ?? property.percentualComissao ?? 0
-                      const baseComissao = (reservation.precoTotal ?? 0) - taxaLimpeza
-                      const valorComissao = baseComissao * comissaoPercent / 100
-                      return formatCurrency(valorComissao + taxaLimpeza)
-                    })()}
+                    {formatCurrency(calcValorPagamento(reservation, property))}
                   </p>
                 </div>
               </CardContent>

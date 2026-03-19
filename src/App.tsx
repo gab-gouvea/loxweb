@@ -15,6 +15,7 @@ import { ProprietarioDetailPage } from "@/pages/proprietario-detail-page"
 import { FaxinaTerceirizadaPage } from "@/pages/faxina-terceirizada-page"
 import { FaxinaPagamentosPage } from "@/pages/faxina-pagamentos-page"
 import { DashboardPage } from "@/pages/dashboard-page"
+import { OccupancyPage } from "@/pages/occupancy-page"
 
 const router = createBrowserRouter([
   {
@@ -29,6 +30,7 @@ const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { index: true, element: <DashboardPage /> },
+          { path: "ocupacao", element: <OccupancyPage /> },
           { path: "calendario", element: <CalendarPage /> },
           { path: "reservas", element: <ReservationsPage /> },
           { path: "reservas/:id", element: <ReservationDetailPage /> },

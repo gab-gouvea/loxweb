@@ -43,7 +43,7 @@ const alertIcons: Record<AlertType, typeof Bell> = {
   checkout_hoje: LogOut,
   faxina_hoje: SprayCan,
   faxina_nao_paga: CircleDollarSign,
-  pagamento_hoje: CircleDollarSign,
+  pagamento_pendente: CircleDollarSign,
   manutencao_atrasada: Wrench,
   manutencao_agendada_hoje: CalendarClock,
   manutencao_agendada_7dias: CalendarClock,
@@ -55,7 +55,7 @@ const alertColors: Record<AlertType, string> = {
   checkout_hoje: "text-red-600",
   faxina_hoje: "text-yellow-600",
   faxina_nao_paga: "text-orange-600",
-  pagamento_hoje: "text-blue-500",
+  pagamento_pendente: "text-blue-500",
   manutencao_atrasada: "text-red-600",
   manutencao_agendada_hoje: "text-yellow-600",
   manutencao_agendada_7dias: "text-blue-600",
@@ -80,6 +80,7 @@ export function AlertsDropdown() {
     if (a.type === "faxina_nao_paga") return elapsed >= SNOOZE_1_DIA
     if (a.type === "manutencao_agendada_7dias") return elapsed >= SNOOZE_1_DIA
     if (a.type === "propriedade_inativa") return elapsed >= SNOOZE_1_DIA
+    if (a.type === "pagamento_pendente") return elapsed >= SNOOZE_1_DIA
     return false
   })
   const visibleCount = visibleAlerts.length

@@ -117,7 +117,7 @@ export function DashboardPage() {
       <div className="grid grid-cols-3 gap-4">
         <SummaryCard title="Imóveis" value={stats.imoveis} icon={Building2} onClick={() => navigate("/propriedades")} />
         <SummaryCard title="Total de Reservas" value={stats.reservasAtivas} icon={CalendarDays} onClick={() => navigate("/reservas")} />
-        <SummaryCard title="Ver % de Ocupação" value={`${avgOccupancy}%`} icon={BarChart3} onClick={() => navigate("/ocupacao")} valueClassName={avgOccupancy >= 70 ? "text-green-600" : avgOccupancy >= 40 ? "text-yellow-600" : "text-red-500"} />
+        <SummaryCard title="Ver % de Ocupação" value={`${avgOccupancy}%`} icon={BarChart3} onClick={() => navigate("/ocupacao")} valueClassName={avgOccupancy >= 70 ? "text-green-600" : ""} />
       </div>
 
       {/* Seções lado a lado: Check-ins e Checkouts */}

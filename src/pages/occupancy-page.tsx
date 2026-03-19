@@ -20,14 +20,12 @@ export function OccupancyPage() {
 
   function getBarColor(pct: number) {
     if (pct >= 70) return "bg-green-500"
-    if (pct >= 40) return "bg-yellow-500"
-    return "bg-red-400"
+    return "bg-black"
   }
 
   function getTextColor(pct: number) {
     if (pct >= 70) return "text-green-600"
-    if (pct >= 40) return "text-yellow-600"
-    return "text-red-500"
+    return ""
   }
 
   return (
@@ -38,12 +36,12 @@ export function OccupancyPage() {
           Voltar
         </Button>
       </div>
-      <div className="flex items-center justify-between">
+      <div className="space-y-2">
+        <MonthNavigation currentMonth={occupancyMonth} onMonthChange={setOccupancyMonth} />
         <div className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-blue-600" />
+          <BarChart3 className="h-5 w-5" />
           <h1 className="text-2xl font-bold">Ocupação por Propriedade</h1>
         </div>
-        <MonthNavigation currentMonth={occupancyMonth} onMonthChange={setOccupancyMonth} />
       </div>
 
       <div className="rounded-lg border p-4 flex items-center gap-4">

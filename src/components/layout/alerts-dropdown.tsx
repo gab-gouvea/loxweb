@@ -20,7 +20,23 @@ import {
 import { useAlerts, type AlertType } from "@/hooks/use-alerts"
 import { useUpdateReservation } from "@/hooks/use-reservations"
 import { cn } from "@/lib/utils"
-import { useState } from "react"
+import { useState, useCallback } from "react"
+
+const STORAGE_KEY = "lox_dismissed_alerts"
+
+function loadDismissed(): Map<string, number> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return new Map()
+    return new Map(JSON.parse(raw))
+  } catch {
+    return new Map()
+  }
+}
+
+function saveDismissed(map: Map<string, number>) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...map]))
+}
 
 const alertIcons: Record<AlertType, typeof Bell> = {
   checkin_hoje: LogIn,
@@ -51,7 +67,7 @@ export function AlertsDropdown() {
   const { alerts } = useAlerts()
   const updateReservation = useUpdateReservation()
   const [open, setOpen] = useState(false)
-  const [dismissed, setDismissed] = useState<Map<string, number>>(new Map())
+  const [dismissed, setDismissed] = useState<Map<string, number>>(loadDismissed)
 
   const SNOOZE_2_DIAS = 2 * 24 * 60 * 60 * 1000
   const SNOOZE_1_DIA = 1 * 24 * 60 * 60 * 1000
@@ -68,10 +84,14 @@ export function AlertsDropdown() {
   })
   const visibleCount = visibleAlerts.length
 
-  function handleDismiss(e: React.MouseEvent, alertId: string) {
+  const handleDismiss = useCallback((e: React.MouseEvent, alertId: string) => {
     e.stopPropagation()
-    setDismissed((prev) => new Map(prev).set(alertId, Date.now()))
-  }
+    setDismissed((prev) => {
+      const next = new Map(prev).set(alertId, Date.now())
+      saveDismissed(next)
+      return next
+    })
+  }, [])
 
   function handleConfirmCheckinCheckout(e: React.MouseEvent, alert: { id: string; type: AlertType }) {
     e.stopPropagation()

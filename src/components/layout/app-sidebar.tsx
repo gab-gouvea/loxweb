@@ -1,4 +1,4 @@
-import { CalendarDays, Building2, List, FileText, Users, SprayCan, LayoutDashboard } from "lucide-react"
+import { CalendarDays, Building2, List, FileText, Users, SprayCan, LayoutDashboard, Receipt } from "lucide-react"
 import { NavLink, Link } from "react-router-dom"
 import {
   Sidebar,
@@ -21,6 +21,7 @@ const navItems = [
   { title: "Proprietários", url: "/proprietarios", icon: Users },
   { title: "Faxina Terceirizada", url: "/faxina-terceirizada", icon: SprayCan },
   { title: "Relatórios", url: "/relatorios", icon: FileText },
+  { title: "Recibos", url: "/recibos", icon: Receipt },
 ]
 
 export function AppSidebar() {

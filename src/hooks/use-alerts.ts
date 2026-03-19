@@ -105,12 +105,13 @@ export function useAlerts() {
         const comissaoPercent = r.percentualComissao ?? prop?.percentualComissao ?? 0
         const baseComissao = (r.precoTotal ?? 0) - taxaLimpeza
         const valorComissao = baseComissao * comissaoPercent / 100
-        const valorFormatado = valorComissao.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+        const valorPagamento = valorComissao + taxaLimpeza
+        const valorFormatado = valorPagamento.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
         result.push({
           id: `pagamento-${r.id}`,
           type: "pagamento_hoje",
           title: alertLabels.pagamento_hoje,
-          description: `${r.nomeHospede} — ${propNome} — ${valorFormatado}`,
+          description: `${valorFormatado} — ${r.nomeHospede} — ${propNome}`,
           link: `/reservas/${r.id}`,
         })
       }

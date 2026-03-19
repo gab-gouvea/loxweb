@@ -215,7 +215,7 @@ export function ReservationForm({
           <FormNumberField<ReservationFormData>
             control={form.control}
             name="precoTotal"
-            label="Valor Total (R$)"
+            label="Valor Bruto (R$)"
             min={0}
             step={0.01}
             placeholder="0,00"

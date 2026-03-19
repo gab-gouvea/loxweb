@@ -128,7 +128,8 @@ export function CalendarGrid({
           const comissaoPercent = r.percentualComissao ?? prop?.percentualComissao ?? 0
           const baseComissao = (r.precoTotal ?? 0) - taxaLimpeza
           const valorComissao = baseComissao * comissaoPercent / 100
-          existing.pagamentos.push({ nomeHospede: r.nomeHospede, precoTotal: valorComissao })
+          const valorPagamento = valorComissao + taxaLimpeza
+          existing.pagamentos.push({ nomeHospede: r.nomeHospede, precoTotal: valorPagamento })
           map.set(key, existing)
         }
       }

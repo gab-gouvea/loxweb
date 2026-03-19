@@ -38,7 +38,7 @@ export function PropertyDetailPage() {
   if (!property) {
     return (
       <div className="space-y-4">
-        <Button variant="ghost" onClick={() => navigate("/propriedades")}>
+        <Button variant="ghost" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
@@ -50,7 +50,7 @@ export function PropertyDetailPage() {
   return (
     <div className="space-y-6 print:space-y-4">
       <div className="flex items-center gap-2 print:hidden">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/propriedades")}>
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>

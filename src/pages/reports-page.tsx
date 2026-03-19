@@ -82,9 +82,12 @@ export function ReportsPage() {
   const summaryTotals = useMemo(() => {
     let totalRecebido = 0
     let totalLiquido = 0
+    let totalPago = 0
+    let totalAReceber = 0
     for (const r of filteredReservations) {
       const property = propertyMap.get(r.propriedadeId)
-      totalRecebido += calcTotalRecebido(r, property)
+      const recebido = calcTotalRecebido(r, property)
+      totalRecebido += recebido
       if (r.status === "cancelada") {
         totalLiquido += r.valorLiquidoCancelamento ?? 0
       } else {
@@ -94,12 +97,19 @@ export function ReportsPage() {
         const valorComissao = (valorReserva * comissao) / 100
         const { reembolsavel } = calcDespesas(r)
         totalLiquido += valorReserva - valorComissao - reembolsavel
+        if (r.pagamentoRecebido) {
+          totalPago += recebido
+        } else {
+          totalAReceber += recebido
+        }
       }
     }
     const canceladas = filteredReservations.filter((r) => r.status === "cancelada").length
     return {
       totalRecebido,
       totalLiquido,
+      totalPago,
+      totalAReceber,
       numReservas: filteredReservations.length - canceladas,
       canceladas,
     }
@@ -155,10 +165,12 @@ export function ReportsPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <SummaryCard title={propertyFilter === "todos" ? "Total Líquido Proprietários" : "Total Líquido Proprietário"} value={formatCurrency(summaryTotals.totalLiquido)} />
-        <SummaryCard title="Total Recebido" value={formatCurrency(summaryTotals.totalRecebido)} />
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <SummaryCard title="Recebido" value={formatCurrency(summaryTotals.totalPago)} valueClassName="text-green-600" />
+        <SummaryCard title="Meu Subtotal" value={formatCurrency(summaryTotals.totalRecebido)} />
         <SummaryCard title="Reservas no Período" value={summaryTotals.numReservas} />
+        <SummaryCard title="A Receber" value={formatCurrency(summaryTotals.totalAReceber)} valueClassName={summaryTotals.totalAReceber > 0 ? "text-orange-600" : "text-muted-foreground"} />
+        <SummaryCard title={propertyFilter === "todos" ? "Total Líquido Proprietários" : "Total Líquido Proprietário"} value={formatCurrency(summaryTotals.totalLiquido)} />
         <SummaryCard title="Reservas Canceladas" value={summaryTotals.canceladas} valueClassName={summaryTotals.canceladas > 0 ? "text-red-600" : "text-muted-foreground"} />
       </div>
 
@@ -228,11 +240,12 @@ export function ReportsPage() {
                     const totalRecebido = calcTotalRecebido(reservation, property)
 
                     return (
-                      <TableRow key={reservation.id} className={`cursor-pointer hover:bg-muted/50 ${isCancelada ? "opacity-60" : ""}`} onClick={() => navigate(`/reservas/${reservation.id}`)}>
+                      <TableRow key={reservation.id} className={`cursor-pointer hover:bg-muted/50 ${isCancelada ? "opacity-60" : ""} `} onClick={() => navigate(`/reservas/${reservation.id}`)}>
                         <TableCell className="font-medium w-[130px]">
                           <div className="flex items-center gap-2">
                             <span className="truncate block max-w-[100px]">{reservation.nomeHospede}</span>
                             {isCancelada && <ReservationStatusBadge status="cancelada" />}
+                            {!isCancelada && reservation.pagamentoRecebido && <span className="text-green-600 text-xs">✓</span>}
                           </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(reservation.checkIn)}</TableCell>

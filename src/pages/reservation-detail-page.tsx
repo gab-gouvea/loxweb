@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { ArrowLeft, CircleDollarSign } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -52,7 +52,7 @@ export function ReservationDetailPage() {
   if (!reservation) {
     return (
       <div className="space-y-4">
-        <Button variant="ghost" onClick={() => navigate("/reservas")}>
+        <Button variant="ghost" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
@@ -95,7 +95,7 @@ export function ReservationDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/reservas")}>
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
@@ -154,27 +154,6 @@ export function ReservationDetailPage() {
         onMutate={handleMutate}
         isPending={updateMutation.isPending}
       />
-
-      <Separator />
-
-      {/* Pagamento Recebido */}
-      {reservation.status !== "cancelada" && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CircleDollarSign className="h-5 w-5 text-green-600" />
-            <span className="font-medium">Pagamento do proprietário</span>
-          </div>
-          <Button
-            variant={reservation.pagamentoRecebido ? "default" : "outline"}
-            size="sm"
-            className={reservation.pagamentoRecebido ? "bg-green-600 hover:bg-green-700" : ""}
-            onClick={() => handleMutate({ pagamentoRecebido: !reservation.pagamentoRecebido })}
-            disabled={updateMutation.isPending}
-          >
-            {reservation.pagamentoRecebido ? "✓ Recebido" : "Marcar como recebido"}
-          </Button>
-        </div>
-      )}
 
       <Separator />
 

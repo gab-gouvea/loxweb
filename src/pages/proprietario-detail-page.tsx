@@ -35,7 +35,7 @@ export function ProprietarioDetailPage() {
   if (!proprietario) {
     return (
       <div className="space-y-4">
-        <Button variant="ghost" onClick={() => navigate("/proprietarios")}>
+        <Button variant="ghost" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
@@ -47,7 +47,7 @@ export function ProprietarioDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/proprietarios")}>
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>

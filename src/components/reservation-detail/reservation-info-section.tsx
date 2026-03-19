@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   CalendarDays,
   Users,
@@ -6,6 +7,7 @@ import {
   DollarSign,
   Pencil,
   Save,
+  Wallet,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -18,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Check, X } from "lucide-react"
 import { formatDate, localDateToISO } from "@/lib/date-utils"
 import { formatCurrency, sourceLabels } from "@/lib/constants"
 import type { Reservation, ReservationSource } from "@/types/reservation"
@@ -37,6 +40,7 @@ export function ReservationInfoSection({
   onMutate,
   isPending,
 }: ReservationInfoSectionProps) {
+  const navigate = useNavigate()
   const [editingInfo, setEditingInfo] = useState(false)
   const [editNomeHospede, setEditNomeHospede] = useState<string | null>(null)
   const [editFonte, setEditFonte] = useState<ReservationSource | null>(null)
@@ -83,18 +87,18 @@ export function ReservationInfoSection({
       </div>
 
       {!editingInfo ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          <Card>
-            <CardContent className="flex items-center gap-2 pt-4 pb-4">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <div>
+        <div className={`grid gap-3 ${reservation.status === "cancelada" || !property ? "grid-cols-3 lg:grid-cols-5" : "grid-cols-3 lg:grid-cols-6"}`}>
+          <Card className="overflow-hidden cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => property && navigate(`/propriedades/${property.id}`)}>
+            <CardContent className="flex items-center gap-2 pt-3 pb-3">
+              <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">Propriedade</p>
-                <p className="text-sm font-medium">{property?.nome ?? "\u2014"}</p>
+                <p className="text-sm font-medium truncate">{property?.nome ?? "\u2014"}</p>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="flex items-center gap-2 pt-4 pb-4">
+            <CardContent className="flex items-center gap-2 pt-3 pb-3">
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">Check-in</p>
@@ -103,7 +107,7 @@ export function ReservationInfoSection({
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="flex items-center gap-2 pt-4 pb-4">
+            <CardContent className="flex items-center gap-2 pt-3 pb-3">
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">Check-out</p>
@@ -112,7 +116,7 @@ export function ReservationInfoSection({
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="flex items-center gap-2 pt-4 pb-4">
+            <CardContent className="flex items-center gap-2 pt-3 pb-3">
               <Users className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">Hóspedes</p>
@@ -121,10 +125,10 @@ export function ReservationInfoSection({
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="flex items-center gap-2 pt-4 pb-4">
+            <CardContent className="flex items-center gap-2 pt-3 pb-3">
               <DollarSign className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-muted-foreground">Valor Total</p>
+                <p className="text-xs text-muted-foreground">Valor Bruto</p>
                 <p className="text-sm font-medium">
                   {reservation.precoTotal
                     ? formatCurrency(reservation.precoTotal)
@@ -133,7 +137,38 @@ export function ReservationInfoSection({
               </div>
             </CardContent>
           </Card>
+          {reservation.status !== "cancelada" && property && (
+            <Card
+              className={`relative transition-colors ${reservation.pagamentoRecebido ? "border-green-300 bg-green-50" : ""}`}
+            >
+              <Button
+                variant={reservation.pagamentoRecebido ? "default" : "outline"}
+                size="icon"
+                className={`absolute top-1.5 right-1.5 h-6 w-6 ${reservation.pagamentoRecebido ? "bg-green-600 hover:bg-green-700" : ""}`}
+                onClick={(e) => { e.stopPropagation(); onMutate({ pagamentoRecebido: !reservation.pagamentoRecebido }) }}
+                disabled={isPending}
+              >
+                {reservation.pagamentoRecebido ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+              </Button>
+              <CardContent className="flex items-center gap-2 pt-3 pb-3">
+                <Wallet className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">{reservation.pagamentoRecebido ? "Recebido" : "A Receber"}</p>
+                  <p className="text-sm font-medium">
+                    {(() => {
+                      const taxaLimpeza = property.taxaLimpeza ?? 0
+                      const comissaoPercent = reservation.percentualComissao ?? property.percentualComissao ?? 0
+                      const baseComissao = (reservation.precoTotal ?? 0) - taxaLimpeza
+                      const valorComissao = baseComissao * comissaoPercent / 100
+                      return formatCurrency(valorComissao + taxaLimpeza)
+                    })()}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
+
       ) : (
         <div className="space-y-4 rounded-lg border p-4">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -194,7 +229,7 @@ export function ReservationInfoSection({
               />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Valor Total (R$)</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Valor Bruto (R$)</label>
               <Input
                 type="number"
                 min={0}
@@ -216,6 +251,7 @@ export function ReservationInfoSection({
           </div>
         </div>
       )}
+
     </div>
   )
 }

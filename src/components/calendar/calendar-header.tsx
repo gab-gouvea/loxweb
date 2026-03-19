@@ -44,6 +44,7 @@ export function CalendarHeader({ onNewReservation }: CalendarHeaderProps) {
       </Button>
       <Button
         variant={showCheckoutsFaxinas ? "default" : "outline"}
+        size="sm"
         onClick={toggleCheckoutsFaxinas}
       >
         Calendário Manutenção

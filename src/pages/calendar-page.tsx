@@ -25,7 +25,7 @@ export function CalendarPage() {
   }, [startDate, visibleDays])
 
   const { data: allReservations = [] } = useReservationsByDateRange(dateRange.start, dateRange.end)
-  const { data: properties = [] } = useProperties()
+const { data: properties = [] } = useProperties()
   const { proprietarioMap } = useProprietarioMap()
 
   const reservations = useMemo(() => {

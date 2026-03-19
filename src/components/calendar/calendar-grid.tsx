@@ -7,6 +7,8 @@ import { CalendarReservationBar } from "./calendar-reservation-bar"
 import type { Reservation } from "@/types/reservation"
 import type { Property } from "@/types/property"
 import type { Proprietario } from "@/types/proprietario"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { formatCurrency } from "@/lib/constants"
 
 const COL_WIDTH = 80
 const ROW_HEIGHT = 56
@@ -27,6 +29,7 @@ interface CellLabels {
   checkins: string[]
   checkouts: string[]
   faxinas: string[]
+  pagamentos: { nomeHospede: string; precoTotal: number }[]
 }
 
 export function CalendarGrid({
@@ -74,19 +77,20 @@ export function CalendarGrid({
     return map
   }, [properties])
 
-  // Compute checkout/faxina labels per cell: key = "propertyId-dayIndex"
+  // Compute checkout/faxina/payment labels per cell: key = "propertyId-dayIndex"
   const cellLabelsMap = useMemo(() => {
     if (!showCheckoutsFaxinas) return new Map<string, CellLabels>()
 
     const map = new Map<string, CellLabels>()
     const sd = startOfDay(startDate)
+    const getCell = (key: string) => map.get(key) ?? { checkins: [], checkouts: [], faxinas: [], pagamentos: [] }
 
     for (const r of reservations) {
       // Check-in label
       const checkInDay = differenceInCalendarDays(startOfDay(parseISO(r.checkIn)), sd)
       if (checkInDay >= 0 && checkInDay < visibleDays) {
         const key = `${r.propriedadeId}-${checkInDay}`
-        const existing = map.get(key) ?? { checkins: [], checkouts: [], faxinas: [] }
+        const existing = getCell(key)
         existing.checkins.push(r.nomeHospede)
         map.set(key, existing)
       }
@@ -95,7 +99,7 @@ export function CalendarGrid({
       const checkOutDay = differenceInCalendarDays(startOfDay(parseISO(r.checkOut)), sd)
       if (checkOutDay >= 0 && checkOutDay < visibleDays) {
         const key = `${r.propriedadeId}-${checkOutDay}`
-        const existing = map.get(key) ?? { checkins: [], checkouts: [], faxinas: [] }
+        const existing = getCell(key)
         existing.checkouts.push(r.nomeHospede)
         map.set(key, existing)
       }
@@ -106,15 +110,34 @@ export function CalendarGrid({
         const faxinaDay = differenceInCalendarDays(startOfDay(parseISO(faxinaDateStr)), sd)
         if (faxinaDay >= 0 && faxinaDay < visibleDays) {
           const key = `${r.propriedadeId}-${faxinaDay}`
-          const existing = map.get(key) ?? { checkins: [], checkouts: [], faxinas: [] }
+          const existing = getCell(key)
           existing.faxinas.push(r.nomeHospede)
+          map.set(key, existing)
+        }
+      }
+
+      // Payment label (checkIn + 1 day) — shows commission value
+      if (r.status !== "cancelada") {
+        const paymentDate = addDays(startOfDay(parseISO(r.checkIn)), 1)
+        const paymentDay = differenceInCalendarDays(paymentDate, sd)
+        if (paymentDay >= 0 && paymentDay < visibleDays) {
+          const key = `${r.propriedadeId}-${paymentDay}`
+          const existing = getCell(key)
+          const prop = propertyMap.get(r.propriedadeId)
+          const taxaLimpeza = prop?.taxaLimpeza ?? 0
+          const comissaoPercent = r.percentualComissao ?? prop?.percentualComissao ?? 0
+          const baseComissao = (r.precoTotal ?? 0) - taxaLimpeza
+          const valorComissao = baseComissao * comissaoPercent / 100
+          existing.pagamentos.push({ nomeHospede: r.nomeHospede, precoTotal: valorComissao })
           map.set(key, existing)
         }
       }
     }
 
     return map
-  }, [showCheckoutsFaxinas, reservations, startDate, visibleDays])
+  }, [showCheckoutsFaxinas, reservations, startDate, visibleDays, propertyMap])
+
+
 
   return (
     <div className="rounded-lg border overflow-hidden flex">
@@ -208,7 +231,7 @@ export function CalendarGrid({
                       type="button"
                       onClick={() => onDayClick(day, prop.id)}
                       className={cn(
-                        "shrink-0 border-r last:border-r-0 h-full hover:bg-accent/50 transition-colors",
+                        "shrink-0 border-r last:border-r-0 h-full hover:bg-accent/50 transition-colors relative",
                         today && "bg-primary/5",
                         showCheckoutsFaxinas && "flex flex-col items-center justify-center gap-0.5",
                       )}
@@ -218,6 +241,7 @@ export function CalendarGrid({
                         const hasCheckIn = labels.checkins.length > 0
                         const hasCheckOut = labels.checkouts.length > 0
                         const hasFaxina = labels.faxinas.length > 0
+                        const hasPagamento = labels.pagamentos.length > 0
                         const hasBoth = hasCheckIn && hasCheckOut
 
                         if (hasBoth) {
@@ -231,6 +255,20 @@ export function CalendarGrid({
                               {hasFaxina && (
                                 <span className="text-[9px] font-bold text-yellow-500 leading-tight">FAXINA</span>
                               )}
+                              {hasPagamento && labels.pagamentos.map((p, idx) => (
+                                <TooltipProvider key={idx} delayDuration={200}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="text-[8px] font-bold text-blue-400 leading-tight truncate max-w-full px-0.5">
+                                        {formatCurrency(p.precoTotal)}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" className="text-xs">
+                                      <span className="font-medium">{p.nomeHospede}</span> — {formatCurrency(p.precoTotal)}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ))}
                             </>
                           )
                         }
@@ -246,6 +284,20 @@ export function CalendarGrid({
                             {hasFaxina && (
                               <span className="text-[10px] font-bold text-yellow-500 leading-tight">FAXINA</span>
                             )}
+                            {hasPagamento && labels.pagamentos.map((p, idx) => (
+                              <TooltipProvider key={idx} delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-[9px] font-bold text-blue-400 leading-tight truncate max-w-full px-0.5">
+                                      {formatCurrency(p.precoTotal)}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom" className="text-xs">
+                                    <span className="font-medium">{p.nomeHospede}</span> — {formatCurrency(p.precoTotal)}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ))}
                           </>
                         )
                       })()}

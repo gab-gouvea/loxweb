@@ -47,6 +47,7 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
       temHobbyBox: property?.temHobbyBox ?? false,
       acessoPredio: property?.acessoPredio ?? "",
       acessoApartamento: property?.acessoApartamento ?? "",
+      senhaWifi: property?.senhaWifi ?? "",
       ativo: property?.ativo ?? true,
     },
   })
@@ -181,6 +182,13 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
           label="Como entrar no apartamento"
           placeholder="Ex: Senha da fechadura digital: 1234#"
           rows={2}
+        />
+
+        <FormTextField<PropertyFormData>
+          control={form.control}
+          name="senhaWifi"
+          label="Senha do Wi-Fi"
+          placeholder="Ex: MinhaRede123"
         />
 
         <div className="flex justify-end gap-2 pt-4">

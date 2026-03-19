@@ -179,6 +179,7 @@ export function FaxinaTerceirizadaPage() {
                 <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>DORMS</TableHead>
                 <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>ACESSO PRÉDIO</TableHead>
                 <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>ACESSO APTO/CASA</TableHead>
+                <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>SENHA WI-FI</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -189,6 +190,7 @@ export function FaxinaTerceirizadaPage() {
                   <TableCell className="py-0.5 px-1 whitespace-normal" style={{ fontSize: "12px" }}>{property.quartos} DORM</TableCell>
                   <TableCell className="py-0.5 px-1 whitespace-normal break-words" style={{ fontSize: "12px" }}>{property.acessoPredio || "—"}</TableCell>
                   <TableCell className="py-0.5 px-1 whitespace-normal break-words" style={{ fontSize: "12px" }}>{property.acessoApartamento || "—"}</TableCell>
+                  <TableCell className="py-0.5 px-1 whitespace-normal break-words" style={{ fontSize: "12px" }}>{property.senhaWifi || "—"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

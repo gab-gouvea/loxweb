@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
-import { ArrowLeft, Building2, BedDouble, MapPin, User, Package, DoorOpen, Pencil, PowerOff, Power, Trash2 } from "lucide-react"
+import { ArrowLeft, Building2, BedDouble, MapPin, User, Package, DoorOpen, Pencil, PowerOff, Power, Trash2, Wifi } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -139,7 +139,7 @@ export function PropertyDetailPage() {
               <span>Hobby Box: {property.temHobbyBox ? "Sim" : "Não"}</span>
             </div>
           </div>
-          {(property.acessoPredio || property.acessoApartamento) && (
+          {(property.acessoPredio || property.acessoApartamento || property.senhaWifi) && (
             <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               {property.acessoPredio && (
                 <div className="rounded-md bg-muted/50 p-3">
@@ -157,6 +157,15 @@ export function PropertyDetailPage() {
                     Como entrar no apartamento
                   </div>
                   <p className="text-muted-foreground">{property.acessoApartamento}</p>
+                </div>
+              )}
+              {property.senhaWifi && (
+                <div className="rounded-md bg-muted/50 p-3">
+                  <div className="flex items-center gap-1 font-medium mb-1">
+                    <Wifi className="h-4 w-4" />
+                    Senha do Wi-Fi
+                  </div>
+                  <p className="text-muted-foreground">{property.senhaWifi}</p>
                 </div>
               )}
             </div>

@@ -170,27 +170,27 @@ export function FaxinaTerceirizadaPage() {
       {/* Table 2: Property Reference */}
       <div className="space-y-3">
         <h3 className="text-lg font-semibold">Informações das Propriedades</h3>
-        <div className="rounded-lg border max-w-5xl" style={{ fontSize: "12px" }}>
+        <div className="overflow-x-auto rounded-lg border text-xs">
           <Table>
             <TableHeader>
               <TableRow className="bg-yellow-100 hover:bg-yellow-100">
-                <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>PROPRIEDADE</TableHead>
-                <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>ENDEREÇO</TableHead>
-                <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>DORMS</TableHead>
-                <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>ACESSO PRÉDIO</TableHead>
-                <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>ACESSO APTO/CASA</TableHead>
-                <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>SENHA WI-FI</TableHead>
+                <TableHead className="font-bold text-black py-1 px-1 text-xs">PROPRIEDADE</TableHead>
+                <TableHead className="font-bold text-black py-1 px-1 text-xs">ENDEREÇO</TableHead>
+                <TableHead className="font-bold text-black py-1 px-1 text-xs">DORMS</TableHead>
+                <TableHead className="font-bold text-black py-1 px-1 text-xs">ACESSO PRÉDIO</TableHead>
+                <TableHead className="font-bold text-black py-1 px-1 text-xs">ACESSO APTO/CASA</TableHead>
+                <TableHead className="font-bold text-black py-1 px-1 text-xs">SENHA WI-FI</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProperties.map((property) => (
                 <TableRow key={property.id}>
-                  <TableCell className="font-medium py-0.5 px-1 whitespace-normal break-words" style={{ fontSize: "12px" }}>{property.nome}</TableCell>
-                  <TableCell className="py-0.5 px-1 whitespace-normal break-words" style={{ fontSize: "12px" }}>{property.endereco || "—"}</TableCell>
-                  <TableCell className="py-0.5 px-1 whitespace-normal" style={{ fontSize: "12px" }}>{property.quartos} DORM</TableCell>
-                  <TableCell className="py-0.5 px-1 whitespace-normal break-words" style={{ fontSize: "12px" }}>{property.acessoPredio || "—"}</TableCell>
-                  <TableCell className="py-0.5 px-1 whitespace-normal break-words" style={{ fontSize: "12px" }}>{property.acessoApartamento || "—"}</TableCell>
-                  <TableCell className="py-0.5 px-1 whitespace-normal break-words" style={{ fontSize: "12px" }}>{property.senhaWifi || "—"}</TableCell>
+                  <TableCell className="font-medium py-0.5 px-1 whitespace-normal break-words">{property.nome}</TableCell>
+                  <TableCell className="py-0.5 px-1 whitespace-normal break-words">{property.endereco || "—"}</TableCell>
+                  <TableCell className="py-0.5 px-1 whitespace-normal">{property.quartos} DORM</TableCell>
+                  <TableCell className="py-0.5 px-1 whitespace-normal break-words">{property.acessoPredio || "—"}</TableCell>
+                  <TableCell className="py-0.5 px-1 whitespace-normal break-words">{property.acessoApartamento || "—"}</TableCell>
+                  <TableCell className="py-0.5 px-1 whitespace-normal break-words">{property.senhaWifi || "—"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

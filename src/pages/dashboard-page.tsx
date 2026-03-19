@@ -71,6 +71,7 @@ export function DashboardPage() {
     // Próximos check-ins (hoje + 7 dias)
     const proximosCheckins = naoCanceladas
       .filter((r) => {
+        if (r.checkinConfirmado) return false
         const d = toLocalDateStr(r.checkIn)
         return d >= today && d <= in7days
       })
@@ -79,6 +80,7 @@ export function DashboardPage() {
     // Próximos checkouts (hoje + 7 dias)
     const proximosCheckouts = naoCanceladas
       .filter((r) => {
+        if (r.checkoutConfirmado) return false
         const d = toLocalDateStr(r.checkOut)
         return d >= today && d <= in7days
       })

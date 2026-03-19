@@ -9,6 +9,7 @@ import {
   CalendarClock,
   PowerOff,
   X,
+  Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,6 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { useAlerts, type AlertType } from "@/hooks/use-alerts"
+import { useUpdateReservation } from "@/hooks/use-reservations"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 
@@ -47,6 +49,7 @@ const alertColors: Record<AlertType, string> = {
 export function AlertsDropdown() {
   const navigate = useNavigate()
   const { alerts } = useAlerts()
+  const updateReservation = useUpdateReservation()
   const [open, setOpen] = useState(false)
   const [dismissed, setDismissed] = useState<Map<string, number>>(new Map())
 
@@ -68,6 +71,16 @@ export function AlertsDropdown() {
   function handleDismiss(e: React.MouseEvent, alertId: string) {
     e.stopPropagation()
     setDismissed((prev) => new Map(prev).set(alertId, Date.now()))
+  }
+
+  function handleConfirmCheckinCheckout(e: React.MouseEvent, alert: { id: string; type: AlertType }) {
+    e.stopPropagation()
+    const reservationId = alert.id.replace(/^(checkin|checkout)-/, "")
+    if (alert.type === "checkin_hoje") {
+      updateReservation.mutate({ id: reservationId, data: { checkinConfirmado: true, status: "em andamento" } })
+    } else {
+      updateReservation.mutate({ id: reservationId, data: { checkoutConfirmado: true, status: "concluída" } })
+    }
   }
 
   return (
@@ -114,13 +127,25 @@ export function AlertsDropdown() {
                       {alert.description}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    onClick={(e) => handleDismiss(e, alert.id)}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    {(alert.type === "checkin_hoje" || alert.type === "checkout_hoje") && (
+                      <button
+                        type="button"
+                        className="rounded p-1 text-green-600 hover:bg-green-100 transition-colors"
+                        title="Confirmar"
+                        onClick={(e) => handleConfirmCheckinCheckout(e, alert)}
+                      >
+                        <Check className="h-4 w-4" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      onClick={(e) => handleDismiss(e, alert.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               )
             })}

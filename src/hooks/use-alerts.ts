@@ -59,7 +59,7 @@ export function useAlerts() {
       const propNome = propertyMap.get(r.propriedadeId)?.nome ?? "Propriedade"
 
       // Check-in hoje
-      if (checkInDate === today) {
+      if (checkInDate === today && !r.checkinConfirmado) {
         result.push({
           id: `checkin-${r.id}`,
           type: "checkin_hoje",
@@ -70,7 +70,7 @@ export function useAlerts() {
       }
 
       // Checkout hoje
-      if (checkOutDate === today) {
+      if (checkOutDate === today && !r.checkoutConfirmado) {
         result.push({
           id: `checkout-${r.id}`,
           type: "checkout_hoje",

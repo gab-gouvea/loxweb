@@ -46,6 +46,8 @@ export const reservationSchema = z.object({
   valorRecebidoCancelamento: z.number().min(0).optional(),
   valorLiquidoCancelamento: z.number().min(0).optional(),
   pagamentoRecebido: z.boolean().optional(),
+  checkinConfirmado: z.boolean().optional(),
+  checkoutConfirmado: z.boolean().optional(),
   percentualComissao: z.number().nullable().optional(),
   criadoEm: z.string(),
   atualizadoEm: z.string(),

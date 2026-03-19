@@ -179,7 +179,7 @@ export function FaxinaTerceirizadaPage() {
                 <TableHead className="font-bold text-black py-1 px-1 text-xs">DORMS</TableHead>
                 <TableHead className="font-bold text-black py-1 px-1 text-xs">ACESSO PRÉDIO</TableHead>
                 <TableHead className="font-bold text-black py-1 px-1 text-xs">ACESSO APTO/CASA</TableHead>
-                <TableHead className="font-bold text-black py-1 px-1 text-xs">SENHA WI-FI</TableHead>
+                <TableHead className="font-bold text-black py-1 px-1 text-xs">WI-FI</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

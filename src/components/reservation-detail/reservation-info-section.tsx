@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Check, X } from "lucide-react"
+import { Check, ThumbsUp } from "lucide-react"
 import { formatDate, localDateToISO } from "@/lib/date-utils"
 import { formatCurrency, sourceLabels } from "@/lib/constants"
 import type { Reservation, ReservationSource } from "@/types/reservation"
@@ -149,7 +149,7 @@ export function ReservationInfoSection({
                 onClick={(e) => { e.stopPropagation(); onMutate({ pagamentoRecebido: !reservation.pagamentoRecebido }) }}
                 disabled={isPending}
               >
-                {reservation.pagamentoRecebido ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                {reservation.pagamentoRecebido ? <Check className="h-3 w-3" /> : <ThumbsUp className="h-3 w-3" />}
               </Button>
               <CardContent className="flex items-center gap-2 pt-3 pb-3">
                 <Wallet className="h-4 w-4 text-muted-foreground" />

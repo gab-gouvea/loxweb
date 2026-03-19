@@ -163,7 +163,7 @@ export function PropertyDetailPage() {
                 <div className="rounded-md bg-muted/50 p-3">
                   <div className="flex items-center gap-1 font-medium mb-1">
                     <Wifi className="h-4 w-4" />
-                    Senha do Wi-Fi
+                    Wi-Fi
                   </div>
                   <p className="text-muted-foreground">{property.senhaWifi}</p>
                 </div>

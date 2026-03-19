@@ -187,7 +187,7 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
         <FormTextField<PropertyFormData>
           control={form.control}
           name="senhaWifi"
-          label="Senha do Wi-Fi"
+          label="Wi-Fi"
           placeholder="Ex: MinhaRede123"
         />
 

@@ -178,7 +178,7 @@ export function FaxinaTerceirizadaPage() {
                 <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>ENDEREÇO</TableHead>
                 <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>DORMS</TableHead>
                 <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>ACESSO PRÉDIO</TableHead>
-                <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>ACESSO APTO</TableHead>
+                <TableHead className="font-bold text-black py-1 px-1" style={{ fontSize: "12px" }}>ACESSO APTO/CASA</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

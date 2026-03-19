@@ -80,7 +80,7 @@ export function LoginPage() {
           <img src="/lox.svg" alt="Lox" className="h-14 w-14 rounded-xl" />
           <div>
             <CardTitle className="text-2xl font-bold">Lox</CardTitle>
-            <CardDescription className="mt-1">Gestão de Reservas</CardDescription>
+            <CardDescription className="mt-1">Gestão de reservas</CardDescription>
           </div>
         </CardHeader>
         <CardContent>

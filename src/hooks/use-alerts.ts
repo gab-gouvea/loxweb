@@ -10,6 +10,7 @@ export type AlertType =
   | "checkout_hoje"
   | "faxina_hoje"
   | "faxina_nao_paga"
+  | "pagamento_hoje"
   | "manutencao_atrasada"
   | "manutencao_agendada_hoje"
   | "manutencao_agendada_7dias"
@@ -29,6 +30,7 @@ const alertLabels: Record<AlertType, string> = {
   checkout_hoje: "Checkout Hoje",
   faxina_hoje: "Faxina Hoje",
   faxina_nao_paga: "Faxina Não Paga",
+  pagamento_hoje: "Pagamento Hoje",
   manutencao_atrasada: "Manutenção Atrasada",
   manutencao_agendada_hoje: "Manutenção Agendada Hoje",
   manutencao_agendada_7dias: "Manutenção em 7 Dias",
@@ -91,6 +93,24 @@ export function useAlerts() {
           type: "faxina_hoje",
           title: alertLabels.faxina_hoje,
           description: `${r.nomeHospede} — ${propNome}`,
+          link: `/reservas/${r.id}`,
+        })
+      }
+
+      // Pagamento hoje (checkIn + 1 dia)
+      const paymentDate = format(addDays(parseISO(checkInDate), 1), "yyyy-MM-dd")
+      if (paymentDate === today && r.status !== "cancelada" && !r.pagamentoRecebido) {
+        const prop = propertyMap.get(r.propriedadeId)
+        const taxaLimpeza = prop?.taxaLimpeza ?? 0
+        const comissaoPercent = r.percentualComissao ?? prop?.percentualComissao ?? 0
+        const baseComissao = (r.precoTotal ?? 0) - taxaLimpeza
+        const valorComissao = baseComissao * comissaoPercent / 100
+        const valorFormatado = valorComissao.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+        result.push({
+          id: `pagamento-${r.id}`,
+          type: "pagamento_hoje",
+          title: alertLabels.pagamento_hoje,
+          description: `${r.nomeHospede} — ${propNome} — ${valorFormatado}`,
           link: `/reservas/${r.id}`,
         })
       }

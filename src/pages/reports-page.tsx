@@ -90,6 +90,9 @@ export function ReportsPage() {
       totalRecebido += recebido
       if (r.status === "cancelada") {
         totalLiquido += r.valorLiquidoCancelamento ?? 0
+        if (recebido > 0) {
+          totalPago += recebido
+        }
       } else {
         const taxaLimpeza = property?.taxaLimpeza ?? 0
         const valorReserva = (r.precoTotal ?? 0) - taxaLimpeza
@@ -167,7 +170,7 @@ export function ReportsPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <SummaryCard title="Recebido" value={formatCurrency(summaryTotals.totalPago)} valueClassName="text-green-600" />
-        <SummaryCard title="Meu Subtotal" value={formatCurrency(summaryTotals.totalRecebido)} />
+        <SummaryCard title="Meu Total Líquido" value={formatCurrency(summaryTotals.totalRecebido)} />
         <SummaryCard title="Reservas no Período" value={summaryTotals.numReservas} />
         <SummaryCard title="A Receber" value={formatCurrency(summaryTotals.totalAReceber)} valueClassName={summaryTotals.totalAReceber > 0 ? "text-orange-600" : "text-muted-foreground"} />
         <SummaryCard title={propertyFilter === "todos" ? "Total Líquido Proprietários" : "Total Líquido Proprietário"} value={formatCurrency(summaryTotals.totalLiquido)} />
@@ -314,10 +317,10 @@ export function ReportsPage() {
 
             <div className="flex justify-end gap-6 pr-4">
               <p className="text-sm text-muted-foreground">
-                Total Líquido: {formatCurrency(subtotalLiquido)}
+                Total Líquido Proprietário: {formatCurrency(subtotalLiquido)}
               </p>
               <p className="text-sm font-bold">
-                Subtotal: {formatCurrency(subtotalReservas)}
+                Meu Total Líquido: {formatCurrency(subtotalReservas)}
               </p>
             </div>
           </div>

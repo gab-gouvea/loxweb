@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { startOfMonth, endOfMonth, getDaysInMonth, parseISO, differenceInDays, max, min } from "date-fns"
+import { startOfMonth, endOfMonth, getDaysInMonth, parseISO, differenceInDays, max, min, addDays } from "date-fns"
 import { usePropertyMap } from "./use-property-map"
 import { useReservations } from "./use-reservations"
 import { toLocalDateStr } from "@/lib/date-utils"
@@ -30,10 +30,11 @@ export function useOccupancy(month: Date) {
         const checkIn = parseISO(toLocalDateStr(r.checkIn))
         const checkOut = parseISO(toLocalDateStr(r.checkOut))
         const overlapStart = max([checkIn, monthStart])
-        const overlapEnd = min([checkOut, monthEnd])
+        const overlapEnd = min([addDays(checkOut, 1), addDays(monthEnd, 1)])
         const days = differenceInDays(overlapEnd, overlapStart)
         if (days > 0) occupiedDays += days
       }
+      if (occupiedDays > totalDays) occupiedDays = totalDays
       const pct = Math.round((occupiedDays / totalDays) * 100)
       return { id: prop.id, nome: prop.nome, pct, occupiedDays, totalDays }
     }).sort((a, b) => b.pct - a.pct)

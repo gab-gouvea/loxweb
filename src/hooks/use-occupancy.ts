@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { startOfMonth, endOfMonth, getDaysInMonth, parseISO, differenceInDays, max, min, addDays } from "date-fns"
+import { startOfMonth, endOfMonth, getDaysInMonth, parseISO, addDays, differenceInCalendarDays } from "date-fns"
 import { usePropertyMap } from "./use-property-map"
 import { useReservations } from "./use-reservations"
 import { toLocalDateStr } from "@/lib/date-utils"
@@ -25,16 +25,19 @@ export function useOccupancy(month: Date) {
 
     return activeProperties.map((prop) => {
       const propReservations = naoCanceladas.filter((r) => r.propriedadeId === prop.id)
-      let occupiedDays = 0
+      const occupiedSet = new Set<number>()
       for (const r of propReservations) {
         const checkIn = parseISO(toLocalDateStr(r.checkIn))
         const checkOut = parseISO(toLocalDateStr(r.checkOut))
-        const overlapStart = max([checkIn, monthStart])
-        const overlapEnd = min([addDays(checkOut, 1), addDays(monthEnd, 1)])
-        const days = differenceInDays(overlapEnd, overlapStart)
-        if (days > 0) occupiedDays += days
+        // Marca cada dia que o hóspede está presente (checkIn até checkOut inclusive)
+        let day = checkIn < monthStart ? monthStart : checkIn
+        const end = checkOut > monthEnd ? monthEnd : checkOut
+        while (day <= end) {
+          occupiedSet.add(differenceInCalendarDays(day, monthStart))
+          day = addDays(day, 1)
+        }
       }
-      if (occupiedDays > totalDays) occupiedDays = totalDays
+      const occupiedDays = occupiedSet.size
       const pct = Math.round((occupiedDays / totalDays) * 100)
       return { id: prop.id, nome: prop.nome, pct, occupiedDays, totalDays }
     }).sort((a, b) => b.pct - a.pct)

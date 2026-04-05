@@ -28,10 +28,8 @@ export function LocacaoDialog({
   function handleSubmit(formData: LocacaoFormData) {
     const data = {
       ...formData,
-      numMoradores: formData.numMoradores === "" ? undefined : formData.numMoradores,
       valorMensal: formData.valorMensal === "" ? undefined : formData.valorMensal,
       valorTotal: formData.valorTotal === "" ? undefined : formData.valorTotal,
-      percentualComissao: formData.percentualComissao === "" ? undefined : formData.percentualComissao,
       garantia: formData.garantia === "" ? undefined : formData.garantia,
     }
     if (isEditing) {

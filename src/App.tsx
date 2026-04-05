@@ -17,6 +17,8 @@ import { FaxinaPagamentosPage } from "@/pages/faxina-pagamentos-page"
 import { DashboardPage } from "@/pages/dashboard-page"
 import { OccupancyPage } from "@/pages/occupancy-page"
 import { ReceiptsPage } from "@/pages/receipts-page"
+import { LocacoesPage } from "@/pages/locacoes-page"
+import { LocacaoDetailPage } from "@/pages/locacao-detail-page"
 
 const router = createBrowserRouter([
   {
@@ -45,6 +47,8 @@ const router = createBrowserRouter([
           { path: "faxina-terceirizada", element: <FaxinaTerceirizadaPage /> },
           { path: "faxina-terceirizada/pagamentos", element: <FaxinaPagamentosPage /> },
           { path: "recibos", element: <ReceiptsPage /> },
+          { path: "longatemporada", element: <LocacoesPage /> },
+          { path: "longatemporada/:id", element: <LocacaoDetailPage /> },
         ],
       },
     ],

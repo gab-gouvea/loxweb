@@ -71,6 +71,9 @@ export const reservationFormSchema = z.object({
   faxinaPaga: z.boolean().optional(),
   faxinaData: z.string().optional(),
   despesas: z.array(despesaSchema).optional(),
-})
+}).refine((data) => {
+  if (!data.checkIn || !data.checkOut) return true
+  return data.checkOut > data.checkIn
+}, { message: "Check-out deve ser depois do check-in", path: ["checkOut"] })
 
 export type ReservationFormData = z.infer<typeof reservationFormSchema>

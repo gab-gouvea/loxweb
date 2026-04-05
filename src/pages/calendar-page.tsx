@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { addDays } from "date-fns"
 import { useCalendarStore } from "@/hooks/use-calendar-store"
 import { useReservationsByDateRange } from "@/hooks/use-reservations"
+import { useLocacoesByDateRange } from "@/hooks/use-locacoes"
 import { useProperties } from "@/hooks/use-properties"
 import { useProprietarioMap } from "@/hooks/use-proprietario-map"
 import { CalendarHeader } from "@/components/calendar/calendar-header"
@@ -25,12 +26,15 @@ export function CalendarPage() {
   }, [startDate, visibleDays])
 
   const { data: allReservations = [] } = useReservationsByDateRange(dateRange.start, dateRange.end)
-const { data: properties = [] } = useProperties()
+  const { data: allLocacoes = [] } = useLocacoesByDateRange(dateRange.start, dateRange.end)
+  const { data: properties = [] } = useProperties()
   const { proprietarioMap } = useProprietarioMap()
 
   const reservations = useMemo(() => {
     return allReservations.filter((r) => r.status !== "cancelada")
   }, [allReservations])
+
+  const locacoes = allLocacoes
 
   const filteredProperties = useMemo(() => {
     const active = properties.filter((p) => p.ativo)
@@ -55,6 +59,10 @@ const { data: properties = [] } = useProperties()
     navigate(`/reservas/${reservationId}`)
   }
 
+  function handleLocacaoClick(locacaoId: string) {
+    navigate(`/longatemporada/${locacaoId}`)
+  }
+
   function handleNewReservation() {
     setDefaultCheckIn(undefined)
     setDefaultPropertyId(undefined)
@@ -76,10 +84,12 @@ const { data: properties = [] } = useProperties()
         startDate={startDate}
         visibleDays={visibleDays}
         reservations={reservations}
+        locacoes={locacoes}
         properties={filteredProperties}
         proprietarioMap={proprietarioMap}
         onDayClick={handleDayClick}
         onReservationClick={handleReservationClick}
+        onLocacaoClick={handleLocacaoClick}
         showCheckoutsFaxinas={showCheckoutsFaxinas}
       />
 

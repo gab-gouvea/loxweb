@@ -23,9 +23,20 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
+import { useLocacoes, useUpdateLocacao } from "@/hooks/use-locacoes"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { formatCurrency } from "@/lib/constants"
 import { useFaxinaPagamentosMonthStore } from "@/hooks/use-month-store"
+
+interface FaxinaPagItem {
+  id: string
+  propriedadeId: string
+  nomeHospede: string
+  checkOut: string
+  custoEmpresaFaxina?: number | null
+  faxinaPaga?: boolean
+  tipo: "reserva" | "locacao"
+}
 
 export function FaxinaPagamentosPage() {
   const { currentMonth, setCurrentMonth } = useFaxinaPagamentosMonthStore()
@@ -35,28 +46,49 @@ export function FaxinaPagamentosPage() {
   const navigate = useNavigate()
   const { properties, propertyMap } = usePropertyMap()
   const updateReservation = useUpdateReservation()
+  const updateLocacao = useUpdateLocacao()
 
   const { data: allReservations = [] } = useReservations()
+  const { data: allLocacoes = [] } = useLocacoes()
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
 
-  // Filter only empresa parceira faxinas by checkout month
+  // Filter empresa parceira faxinas from reservations + locações by checkout month
   const faxinas = useMemo(() => {
-    return allReservations
-      .filter((r) => {
-        const checkOut = parseISO(r.checkOut)
-        if (checkOut < monthStart || checkOut > monthEnd) return false
-        if (r.status === "cancelada") return false
-        if (r.faxinaPorMim !== false) return false
-        if (!r.faxinaStatus || r.faxinaStatus === "nao_agendada") return false
-        if (propertyFilter !== "todos" && r.propriedadeId !== propertyFilter) return false
-        if (pagoFilter === "pago" && !r.faxinaPaga) return false
-        if (pagoFilter === "nao_pago" && r.faxinaPaga) return false
-        return true
+    const items: FaxinaPagItem[] = []
+
+    for (const r of allReservations) {
+      const checkOut = parseISO(r.checkOut)
+      if (checkOut < monthStart || checkOut > monthEnd) continue
+      if (r.status === "cancelada") continue
+      if (r.faxinaPorMim !== false) continue
+      if (!r.faxinaStatus || r.faxinaStatus === "nao_agendada") continue
+      if (propertyFilter !== "todos" && r.propriedadeId !== propertyFilter) continue
+      if (pagoFilter === "pago" && !r.faxinaPaga) continue
+      if (pagoFilter === "nao_pago" && r.faxinaPaga) continue
+      items.push({
+        id: r.id, propriedadeId: r.propriedadeId, nomeHospede: r.nomeHospede,
+        checkOut: r.checkOut, custoEmpresaFaxina: r.custoEmpresaFaxina, faxinaPaga: r.faxinaPaga, tipo: "reserva",
       })
-      .sort((a, b) => a.checkOut.localeCompare(b.checkOut) || a.id.localeCompare(b.id))
-  }, [allReservations, monthStart, monthEnd, propertyFilter, pagoFilter])
+    }
+
+    for (const l of allLocacoes) {
+      const checkOut = parseISO(l.checkOut)
+      if (checkOut < monthStart || checkOut > monthEnd) continue
+      if (l.faxinaPorMim !== false) continue
+      if (!l.faxinaStatus || l.faxinaStatus === "nao_agendada") continue
+      if (propertyFilter !== "todos" && l.propriedadeId !== propertyFilter) continue
+      if (pagoFilter === "pago" && !l.faxinaPaga) continue
+      if (pagoFilter === "nao_pago" && l.faxinaPaga) continue
+      items.push({
+        id: l.id, propriedadeId: l.propriedadeId, nomeHospede: l.nomeCompleto,
+        checkOut: l.checkOut, custoEmpresaFaxina: l.custoEmpresaFaxina, faxinaPaga: l.faxinaPaga, tipo: "locacao",
+      })
+    }
+
+    return items.sort((a, b) => a.checkOut.localeCompare(b.checkOut) || a.id.localeCompare(b.id))
+  }, [allReservations, allLocacoes, monthStart, monthEnd, propertyFilter, pagoFilter])
 
   const summary = useMemo(() => {
     const total = faxinas.reduce((sum, r) => sum + (r.custoEmpresaFaxina ?? 0), 0)
@@ -119,37 +151,39 @@ export function FaxinaPagamentosPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {faxinas.map((reservation) => {
-                const property = propertyMap.get(reservation.propriedadeId)
-                const checkOutDate = parseISO(reservation.checkOut)
+              {faxinas.map((item) => {
+                const property = propertyMap.get(item.propriedadeId)
+                const checkOutDate = parseISO(item.checkOut)
+                const link = item.tipo === "reserva" ? `/reservas/${item.id}` : `/longatemporada/${item.id}`
 
                 return (
                   <TableRow
-                    key={reservation.id}
+                    key={item.id}
                     className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => navigate(`/reservas/${reservation.id}`)}
+                    onClick={() => navigate(link)}
                   >
                     <TableCell className="font-medium">{property?.nome ?? "—"}</TableCell>
-                    <TableCell>{reservation.nomeHospede}</TableCell>
+                    <TableCell>{item.nomeHospede}</TableCell>
                     <TableCell>{format(checkOutDate, "dd/MM/yyyy")}</TableCell>
                     <TableCell className="text-right">
-                      {formatCurrency(reservation.custoEmpresaFaxina ?? 0)}
+                      {formatCurrency(item.custoEmpresaFaxina ?? 0)}
                     </TableCell>
                     <TableCell className="text-center">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={`h-7 w-7 ${reservation.faxinaPaga ? "text-green-600" : "text-red-500"}`}
+                        className={`h-7 w-7 ${item.faxinaPaga ? "text-green-600" : "text-red-500"}`}
                         onClick={(e) => {
                           e.stopPropagation()
-                          updateReservation.mutate({
-                            id: reservation.id,
-                            data: { faxinaPaga: !reservation.faxinaPaga },
-                          })
+                          if (item.tipo === "reserva") {
+                            updateReservation.mutate({ id: item.id, data: { faxinaPaga: !item.faxinaPaga } })
+                          } else {
+                            updateLocacao.mutate({ id: item.id, data: { faxinaPaga: !item.faxinaPaga } })
+                          }
                         }}
-                        disabled={updateReservation.isPending}
+                        disabled={updateReservation.isPending || updateLocacao.isPending}
                       >
-                        {reservation.faxinaPaga ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                        {item.faxinaPaga ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                       </Button>
                     </TableCell>
                   </TableRow>

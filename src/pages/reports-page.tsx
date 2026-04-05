@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
+import { useLocacoes } from "@/hooks/use-locacoes"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { formatDate } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
@@ -33,7 +34,9 @@ import { toast } from "sonner"
 import { calcFaxinaReceita, calcDespesas, calcTotalRecebido } from "@/lib/reservation-calculations"
 import { groupByProperty } from "@/lib/collection-utils"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
+import { KeyRound } from "lucide-react"
 import type { Reservation } from "@/types/reservation"
+import type { Locacao } from "@/types/locacao"
 import { useReportsMonthStore } from "@/hooks/use-month-store"
 
 export function ReportsPage() {
@@ -46,8 +49,8 @@ export function ReportsPage() {
   // Dialog state for cancelled reservation - líquido
   const [editingLiquido, setEditingLiquido] = useState<Reservation | null>(null)
   const [canceladaLiquido, setCanceladaLiquido] = useState<number | "">(0)
-
   const { data: allReservations = [], isLoading: loadingReservations } = useReservations()
+  const { data: allLocacoes = [] } = useLocacoes()
   const { properties, propertyMap } = usePropertyMap()
   const navigate = useNavigate()
   const updateReservation = useUpdateReservation()
@@ -63,6 +66,36 @@ export function ReportsPage() {
     })
   }, [allReservations, monthStart, monthEnd])
 
+  // Locações que geram recebimento neste mês
+  const monthLocacoes = useMemo(() => {
+    return allLocacoes.filter((l) => {
+      if (propertyFilter !== "todos" && l.propriedadeId !== propertyFilter) return false
+      const checkIn = parseISO(l.checkIn)
+      const checkOut = parseISO(l.checkOut)
+      if (l.tipoPagamento === "avista") {
+        // À vista: aparece só no mês do checkIn
+        return checkIn >= monthStart && checkIn <= monthEnd
+      }
+      // Mensal: aparece em todos os meses que a locação cobre
+      return checkOut >= monthStart && checkIn <= monthEnd
+    })
+  }, [allLocacoes, monthStart, monthEnd, propertyFilter])
+
+  // Calcular bruto da locação para este mês
+  function getLocacaoBruto(l: Locacao): number {
+    if (l.tipoPagamento === "avista") return l.valorTotal ?? 0
+    return l.valorMensal ?? 0
+  }
+
+  function getLocacaoComissao(l: Locacao): number {
+    const bruto = getLocacaoBruto(l)
+    return (bruto * (l.percentualComissao ?? 0)) / 100
+  }
+
+  const totalLocacoes = useMemo(() => {
+    return monthLocacoes.reduce((sum, l) => sum + getLocacaoComissao(l), 0)
+  }, [monthLocacoes])
+
   const filteredReservations = useMemo(() => {
     let result = monthReservations
 
@@ -75,9 +108,21 @@ export function ReportsPage() {
 
   const grouped = useMemo(() => groupByProperty(filteredReservations), [filteredReservations])
 
+  // Agrupar locações por propriedade
+  const locacoesByProperty = useMemo(() => {
+    const map = new Map<string, Locacao[]>()
+    for (const l of monthLocacoes) {
+      const list = map.get(l.propriedadeId) ?? []
+      list.push(l)
+      map.set(l.propriedadeId, list)
+    }
+    return map
+  }, [monthLocacoes])
+
   const propertyIds = useMemo(() => {
-    return Array.from(grouped.keys())
-  }, [grouped])
+    const ids = new Set([...grouped.keys(), ...locacoesByProperty.keys()])
+    return Array.from(ids)
+  }, [grouped, locacoesByProperty])
 
   const summaryTotals = useMemo(() => {
     let totalRecebido = 0
@@ -107,6 +152,9 @@ export function ReportsPage() {
         }
       }
     }
+    // Incluir locações nos totais
+    totalRecebido += totalLocacoes
+
     const canceladas = filteredReservations.filter((r) => r.status === "cancelada").length
     return {
       totalRecebido,
@@ -115,8 +163,10 @@ export function ReportsPage() {
       totalAReceber,
       numReservas: filteredReservations.length - canceladas,
       canceladas,
+      totalLocacoes,
+      numLocacoes: monthLocacoes.length,
     }
-  }, [filteredReservations, propertyMap])
+  }, [filteredReservations, propertyMap, totalLocacoes, monthLocacoes])
 
 
 
@@ -183,10 +233,12 @@ export function ReportsPage() {
         if (!property) return null
 
         const propReservations = grouped.get(propertyId) || []
+        const propLocacoes = locacoesByProperty.get(propertyId) ?? []
+        const subtotalLocProp = propLocacoes.reduce((sum, l) => sum + getLocacaoComissao(l), 0)
         const subtotalReservas = propReservations.reduce(
           (sum, r) => sum + calcTotalRecebido(r, property),
           0,
-        )
+        ) + subtotalLocProp
         const subtotalLiquido = propReservations.reduce((sum, r) => {
             if (r.status === "cancelada") {
               return sum + (r.valorLiquidoCancelamento ?? 0)
@@ -311,6 +363,35 @@ export function ReportsPage() {
                       </TableRow>
                     )
                   })}
+                  {/* Locações desta propriedade — fundo azul */}
+                  {(locacoesByProperty.get(propertyId) ?? []).map((loc) => {
+                    const bruto = getLocacaoBruto(loc)
+                    const comissaoPercent = loc.percentualComissao ?? 0
+                    const comissaoValor = getLocacaoComissao(loc)
+                    const liquido = bruto - comissaoValor
+                    return (
+                      <TableRow
+                        key={`loc-${loc.id}`}
+                        className="cursor-pointer hover:bg-blue-200/80 bg-blue-100/70"
+                        onClick={() => navigate(`/longatemporada/${loc.id}`)}
+                      >
+                        <TableCell className="font-medium w-[130px]">
+                          <div className="flex items-center gap-2">
+                            <KeyRound className="h-3 w-3 text-blue-600 shrink-0" />
+                            <span className="truncate block max-w-[100px]">{loc.nomeCompleto}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(loc.checkIn)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(loc.checkOut)}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{formatCurrency(bruto)}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{formatCurrency(liquido)}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{comissaoPercent}%</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{formatCurrency(comissaoValor)}</TableCell>
+                        <TableCell colSpan={2} />
+                        <TableCell className="text-right whitespace-nowrap">{formatCurrency(comissaoValor)}</TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -327,11 +408,12 @@ export function ReportsPage() {
         )
       })}
 
-      {propertyIds.length === 0 && !loadingReservations && (
+      {propertyIds.length === 0 && monthLocacoes.length === 0 && !loadingReservations && (
         <div className="py-12 text-center text-muted-foreground">
-          Nenhuma reserva encontrada para este período.
+          Nenhuma reserva ou locação encontrada para este período.
         </div>
       )}
+
 
       {/* Dialog - valor recebido cancelamento */}
       <Dialog open={!!editingRecebido} onOpenChange={(open) => !open && setEditingRecebido(null)}>

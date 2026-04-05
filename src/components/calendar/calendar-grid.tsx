@@ -2,9 +2,10 @@ import { useMemo } from "react"
 import { addDays, format, isToday, getDay, differenceInCalendarDays, parseISO, startOfDay } from "date-fns"
 import { cn } from "@/lib/utils"
 import { computeTimelineSegments } from "@/lib/calendar-utils"
-import { DAYS_OF_WEEK } from "@/lib/date-utils"
+import { DAYS_OF_WEEK, toLocalDateStr } from "@/lib/date-utils"
 import { CalendarReservationBar } from "./calendar-reservation-bar"
 import type { Reservation } from "@/types/reservation"
+import type { Locacao } from "@/types/locacao"
 import type { Property } from "@/types/property"
 import type { Proprietario } from "@/types/proprietario"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -19,10 +20,12 @@ interface CalendarGridProps {
   startDate: Date
   visibleDays: number
   reservations: Reservation[]
+  locacoes?: Locacao[]
   properties: Property[]
   proprietarioMap?: Map<string, Proprietario>
   onDayClick: (date: Date, propertyId: string) => void
   onReservationClick: (reservationId: string) => void
+  onLocacaoClick?: (locacaoId: string) => void
   showCheckoutsFaxinas: boolean
 }
 
@@ -37,10 +40,12 @@ export function CalendarGrid({
   startDate,
   visibleDays,
   reservations,
+  locacoes = [],
   properties,
   proprietarioMap,
   onDayClick,
   onReservationClick,
+  onLocacaoClick,
   showCheckoutsFaxinas,
 }: CalendarGridProps) {
   const days = useMemo(() => {
@@ -48,8 +53,8 @@ export function CalendarGrid({
   }, [startDate, visibleDays])
 
   const segments = useMemo(
-    () => computeTimelineSegments(reservations, startDate, visibleDays),
-    [reservations, startDate, visibleDays],
+    () => computeTimelineSegments(reservations, startDate, visibleDays, locacoes),
+    [reservations, startDate, visibleDays, locacoes],
   )
 
   const segmentsByProperty = useMemo(() => {
@@ -69,6 +74,75 @@ export function CalendarGrid({
     }
     return map
   }, [reservations])
+
+  // Locação segments (blue bars)
+  const locacaoSegments = useMemo(() => {
+    const segs: { id: string; propertyId: string; guestName: string; startOffset: number; endOffset: number; isClippedStart: boolean; isClippedEnd: boolean }[] = []
+    const sd = startOfDay(startDate)
+    for (const l of locacoes) {
+      const checkIn = startOfDay(parseISO(l.checkIn))
+      const checkOut = startOfDay(parseISO(l.checkOut))
+      const rawStart = differenceInCalendarDays(checkIn, sd)
+      const rawEnd = differenceInCalendarDays(checkOut, sd) + 1
+      if (rawEnd <= 0 || rawStart >= visibleDays) continue
+
+      let startOffset = Math.max(0, rawStart)
+      let endOffset = Math.min(visibleDays, rawEnd)
+      const isClippedStart = rawStart < 0
+      const isClippedEnd = rawEnd > visibleDays
+
+      // Check if checkin touches another checkout (reservation or locação) — compare date strings
+      const locCheckInStr = toLocalDateStr(l.checkIn)
+      const locCheckOutStr = toLocalDateStr(l.checkOut)
+
+      const hasOtherCheckout = reservations.some(
+        (r) => r.propriedadeId === l.propriedadeId && r.status !== "cancelada" &&
+          toLocalDateStr(r.checkOut) === locCheckInStr
+      ) || locacoes.some(
+        (other) => other.id !== l.id && other.propriedadeId === l.propriedadeId &&
+          toLocalDateStr(other.checkOut) === locCheckInStr
+      )
+      if (hasOtherCheckout) {
+        startOffset = Math.max(startOffset, rawStart + 0.5)
+      }
+
+      // Check if checkout touches another checkin (reservation or locação)
+      const checkOutDay = differenceInCalendarDays(checkOut, sd)
+      const hasOtherCheckin = reservations.some(
+        (r) => r.propriedadeId === l.propriedadeId && r.status !== "cancelada" &&
+          toLocalDateStr(r.checkIn) === locCheckOutStr
+      ) || locacoes.some(
+        (other) => other.id !== l.id && other.propriedadeId === l.propriedadeId &&
+          toLocalDateStr(other.checkIn) === locCheckOutStr
+      )
+      if (hasOtherCheckin) {
+        endOffset = Math.min(endOffset, checkOutDay + 0.5)
+      }
+
+      if (endOffset <= startOffset) continue
+
+      segs.push({
+        id: l.id,
+        propertyId: l.propriedadeId,
+        guestName: l.nomeCompleto,
+        startOffset,
+        endOffset,
+        isClippedStart,
+        isClippedEnd,
+      })
+    }
+    return segs
+  }, [locacoes, reservations, startDate, visibleDays])
+
+  const locacaoSegmentsByProperty = useMemo(() => {
+    const map = new Map<string, typeof locacaoSegments>()
+    for (const seg of locacaoSegments) {
+      const list = map.get(seg.propertyId) ?? []
+      list.push(seg)
+      map.set(seg.propertyId, list)
+    }
+    return map
+  }, [locacaoSegments])
 
   const propertyMap = useMemo(() => {
     const map = new Map<string, Property>()
@@ -132,8 +206,46 @@ export function CalendarGrid({
       }
     }
 
+    // Labels for locações: checkin, checkout, faxinas
+    for (const l of locacoes) {
+      const checkIn = startOfDay(parseISO(l.checkIn))
+      const checkOut = startOfDay(parseISO(l.checkOut))
+
+      // Check-in label
+      const checkInDay = differenceInCalendarDays(checkIn, sd)
+      if (checkInDay >= 0 && checkInDay < visibleDays) {
+        const key = `${l.propriedadeId}-${checkInDay}`
+        const existing = getCell(key)
+        existing.checkins.push(l.nomeCompleto)
+        map.set(key, existing)
+      }
+
+      // Checkout label
+      const checkOutDay = differenceInCalendarDays(checkOut, sd)
+      if (checkOutDay >= 0 && checkOutDay < visibleDays) {
+        const key = `${l.propriedadeId}-${checkOutDay}`
+        const existing = getCell(key)
+        existing.checkouts.push(l.nomeCompleto)
+        map.set(key, existing)
+      }
+
+      // Faxina labels (based on faxinaIntervaloDias)
+      const intervalDays = l.faxinaIntervaloDias ?? 15
+      let faxinaDate = addDays(checkIn, intervalDays)
+      while (faxinaDate <= checkOut) {
+        const faxinaDay = differenceInCalendarDays(faxinaDate, sd)
+        if (faxinaDay >= 0 && faxinaDay < visibleDays) {
+          const key = `${l.propriedadeId}-${faxinaDay}`
+          const existing = getCell(key)
+          existing.faxinas.push(l.nomeCompleto)
+          map.set(key, existing)
+        }
+        faxinaDate = addDays(faxinaDate, intervalDays)
+      }
+    }
+
     return map
-  }, [showCheckoutsFaxinas, reservations, startDate, visibleDays, propertyMap])
+  }, [showCheckoutsFaxinas, reservations, locacoes, startDate, visibleDays, propertyMap])
 
 
 
@@ -315,6 +427,33 @@ export function CalendarGrid({
                     onClick={onReservationClick}
                   />
                 ))}
+
+                {/* Locação bars (blue) */}
+                {!showCheckoutsFaxinas && (locacaoSegmentsByProperty.get(prop.id) ?? []).map((seg) => {
+                  const barHeight = 32
+                  const topOffset = (ROW_HEIGHT - barHeight) / 2
+                  const barWidth = (seg.endOffset - seg.startOffset) * COL_WIDTH - 4
+                  return (
+                    <button
+                      key={`loc-${seg.id}`}
+                      type="button"
+                      className={`absolute z-[4] cursor-pointer truncate px-2 text-xs font-medium text-white transition-opacity hover:opacity-90 bg-blue-700 ${!seg.isClippedStart ? "rounded-l-full" : "rounded-l-none"} ${!seg.isClippedEnd ? "rounded-r-full" : "rounded-r-none"}`}
+                      style={{
+                        top: topOffset,
+                        left: seg.startOffset * COL_WIDTH + 2,
+                        width: barWidth,
+                        height: barHeight,
+                        lineHeight: `${barHeight}px`,
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onLocacaoClick?.(seg.id)
+                      }}
+                    >
+                      <span className="truncate">{seg.guestName}</span>
+                    </button>
+                  )
+                })}
               </div>
             )
           })}

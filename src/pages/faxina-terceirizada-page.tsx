@@ -21,11 +21,21 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useReservations } from "@/hooks/use-reservations"
+import { useLocacoes } from "@/hooks/use-locacoes"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { useProprietarioMap } from "@/hooks/use-proprietario-map"
 import { formatCurrency } from "@/lib/constants"
-import type { Reservation } from "@/types/reservation"
 import { useFaxinaMonthStore } from "@/hooks/use-month-store"
+
+interface FaxinaItem {
+  id: string
+  propriedadeId: string
+  nomeHospede: string
+  checkOut: string
+  custoEmpresaFaxina?: number | null
+  faxinaPaga?: boolean
+  tipo: "reserva" | "locacao"
+}
 
 export function FaxinaTerceirizadaPage() {
   const { currentMonth, setCurrentMonth } = useFaxinaMonthStore()
@@ -37,33 +47,64 @@ export function FaxinaTerceirizadaPage() {
   const { proprietarioMap } = useProprietarioMap()
 
   const { data: allReservations = [] } = useReservations()
+  const { data: allLocacoes = [] } = useLocacoes()
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
 
-  // Filter only third-party cleanings by checkout month
+  // Filter third-party cleanings from reservations + locações by checkout month
   const faxinas = useMemo(() => {
-    return allReservations
-      .filter((r) => {
-        const checkOut = parseISO(r.checkOut)
-        if (checkOut < monthStart || checkOut > monthEnd) return false
-        if (r.status === "cancelada") return false
-        if (r.faxinaPorMim !== false) return false
-        if (!r.faxinaStatus || r.faxinaStatus === "nao_agendada") return false
-        if (propertyFilter !== "todos" && r.propriedadeId !== propertyFilter) return false
-        if (statusFilter === "agendadas" && r.faxinaPaga) return false
-        return true
+    const items: FaxinaItem[] = []
+
+    // Reservas
+    for (const r of allReservations) {
+      const checkOut = parseISO(r.checkOut)
+      if (checkOut < monthStart || checkOut > monthEnd) continue
+      if (r.status === "cancelada") continue
+      if (r.faxinaPorMim !== false) continue
+      if (!r.faxinaStatus || r.faxinaStatus === "nao_agendada") continue
+      if (propertyFilter !== "todos" && r.propriedadeId !== propertyFilter) continue
+      if (statusFilter === "agendadas" && r.faxinaPaga) continue
+      items.push({
+        id: r.id,
+        propriedadeId: r.propriedadeId,
+        nomeHospede: r.nomeHospede,
+        checkOut: r.checkOut,
+        custoEmpresaFaxina: r.custoEmpresaFaxina,
+        faxinaPaga: r.faxinaPaga,
+        tipo: "reserva",
       })
-      .sort((a, b) => a.checkOut.localeCompare(b.checkOut))
-  }, [allReservations, monthStart, monthEnd, propertyFilter, statusFilter])
+    }
+
+    // Locações
+    for (const l of allLocacoes) {
+      const checkOut = parseISO(l.checkOut)
+      if (checkOut < monthStart || checkOut > monthEnd) continue
+      if (l.faxinaPorMim !== false) continue
+      if (!l.faxinaStatus || l.faxinaStatus === "nao_agendada") continue
+      if (propertyFilter !== "todos" && l.propriedadeId !== propertyFilter) continue
+      if (statusFilter === "agendadas" && l.faxinaPaga) continue
+      items.push({
+        id: l.id,
+        propriedadeId: l.propriedadeId,
+        nomeHospede: l.nomeCompleto,
+        checkOut: l.checkOut,
+        custoEmpresaFaxina: l.custoEmpresaFaxina,
+        faxinaPaga: l.faxinaPaga,
+        tipo: "locacao",
+      })
+    }
+
+    return items.sort((a, b) => a.checkOut.localeCompare(b.checkOut))
+  }, [allReservations, allLocacoes, monthStart, monthEnd, propertyFilter, statusFilter])
 
   // Check if there's a next check-in on the same day as checkout
-  function hasNextCheckInToday(reservation: Reservation): boolean {
-    const checkOutDate = parseISO(reservation.checkOut)
+  function hasNextCheckInToday(item: FaxinaItem): boolean {
+    const checkOutDate = parseISO(item.checkOut)
     return allReservations.some(
       (r) =>
-        r.id !== reservation.id &&
-        r.propriedadeId === reservation.propriedadeId &&
+        r.id !== item.id &&
+        r.propriedadeId === item.propriedadeId &&
         r.status !== "cancelada" &&
         isSameDay(parseISO(r.checkIn), checkOutDate),
     )
@@ -124,19 +165,20 @@ export function FaxinaTerceirizadaPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {faxinas.map((reservation) => {
-                  const property = propertyMap.get(reservation.propriedadeId)
+                {faxinas.map((item) => {
+                  const property = propertyMap.get(item.propriedadeId)
                   const owner = property?.proprietarioId
                     ? proprietarioMap.get(property.proprietarioId)
                     : undefined
-                  const checkOutDate = parseISO(reservation.checkOut)
-                  const nextCheckIn = hasNextCheckInToday(reservation)
+                  const checkOutDate = parseISO(item.checkOut)
+                  const nextCheckIn = hasNextCheckInToday(item)
+                  const link = item.tipo === "reserva" ? `/reservas/${item.id}` : `/longatemporada/${item.id}`
 
                   return (
-                    <TableRow key={reservation.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/reservas/${reservation.id}`)}>
+                    <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(link)}>
                       <TableCell className="font-medium">{property?.nome ?? "—"}</TableCell>
                       <TableCell>{owner?.nomeCompleto ?? "—"}</TableCell>
-                      <TableCell>{reservation.nomeHospede}</TableCell>
+                      <TableCell>{item.nomeHospede}</TableCell>
                       <TableCell>{format(checkOutDate, "dd/MM/yyyy")}</TableCell>
                       <TableCell className="text-center">
                         {nextCheckIn ? (
@@ -152,7 +194,7 @@ export function FaxinaTerceirizadaPage() {
                       </TableCell>
                       <TableCell>{format(checkOutDate, "yyyy")}</TableCell>
                       <TableCell className="text-right">
-                        {formatCurrency(reservation.custoEmpresaFaxina ?? 0)}
+                        {formatCurrency(item.custoEmpresaFaxina ?? 0)}
                       </TableCell>
                     </TableRow>
                   )
@@ -180,6 +222,7 @@ export function FaxinaTerceirizadaPage() {
                 <TableHead className="font-bold text-black py-1 px-1 text-xs">ACESSO PRÉDIO</TableHead>
                 <TableHead className="font-bold text-black py-1 px-1 text-xs">ACESSO APTO/CASA</TableHead>
                 <TableHead className="font-bold text-black py-1 px-1 text-xs">WI-FI</TableHead>
+                <TableHead className="font-bold text-black py-1 px-1 text-xs">HOBBY BOX</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -191,6 +234,7 @@ export function FaxinaTerceirizadaPage() {
                   <TableCell className="py-0.5 px-1 whitespace-normal break-words">{property.acessoPredio || "—"}</TableCell>
                   <TableCell className="py-0.5 px-1 whitespace-normal break-words">{property.acessoApartamento || "—"}</TableCell>
                   <TableCell className="py-0.5 px-1 whitespace-normal break-words">{property.senhaWifi || "—"}</TableCell>
+                  <TableCell className={`py-0.5 px-1 whitespace-normal ${property.temHobbyBox ? "text-green-600 font-medium" : ""}`}>{property.temHobbyBox ? "Sim" : "Não"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

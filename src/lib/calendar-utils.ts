@@ -1,5 +1,7 @@
 import { parseISO, startOfDay, differenceInCalendarDays } from "date-fns"
 import type { Reservation, ReservationStatus, FaxinaStatus } from "@/types/reservation"
+import type { Locacao } from "@/types/locacao"
+import { toLocalDateStr } from "@/lib/date-utils"
 
 export interface TimelineSegment {
   reservationId: string
@@ -19,21 +21,27 @@ export function computeTimelineSegments(
   reservations: Reservation[],
   startDate: Date,
   visibleDays: number,
+  locacoes: Locacao[] = [],
 ): TimelineSegment[] {
   const segments: TimelineSegment[] = []
 
-  // Build a set of check-in days per property to detect same-day checkout/checkin overlaps
+  // Build a set of check-in/checkout days per property (reservations + locações)
   const checkInsByProperty = new Map<string, Set<number>>()
   const checkOutsByProperty = new Map<string, Set<number>>()
-  for (const r of reservations) {
-    const ciDay = differenceInCalendarDays(startOfDay(parseISO(r.checkIn)), startDate)
-    const coDay = differenceInCalendarDays(startOfDay(parseISO(r.checkOut)), startDate)
-    const ciSet = checkInsByProperty.get(r.propriedadeId) ?? new Set()
+
+  const allEntries = [
+    ...reservations.map((r) => ({ propriedadeId: r.propriedadeId, checkIn: r.checkIn, checkOut: r.checkOut })),
+    ...locacoes.map((l) => ({ propriedadeId: l.propriedadeId, checkIn: l.checkIn, checkOut: l.checkOut })),
+  ]
+  for (const entry of allEntries) {
+    const ciDay = differenceInCalendarDays(startOfDay(parseISO(entry.checkIn)), startDate)
+    const coDay = differenceInCalendarDays(startOfDay(parseISO(entry.checkOut)), startDate)
+    const ciSet = checkInsByProperty.get(entry.propriedadeId) ?? new Set()
     ciSet.add(ciDay)
-    checkInsByProperty.set(r.propriedadeId, ciSet)
-    const coSet = checkOutsByProperty.get(r.propriedadeId) ?? new Set()
+    checkInsByProperty.set(entry.propriedadeId, ciSet)
+    const coSet = checkOutsByProperty.get(entry.propriedadeId) ?? new Set()
     coSet.add(coDay)
-    checkOutsByProperty.set(r.propriedadeId, coSet)
+    checkOutsByProperty.set(entry.propriedadeId, coSet)
   }
 
   for (const reservation of reservations) {
@@ -49,27 +57,29 @@ export function computeTimelineSegments(
     let startOffset = Math.max(0, rawStart)
     let endOffset = Math.min(visibleDays, rawEnd)
 
-    // If another reservation checks out on the same day this one checks in, shift start by half
-    const coSet = checkOutsByProperty.get(reservation.propriedadeId)
-    if (coSet?.has(rawStart)) {
-      // Check it's not our own checkout
-      const hasOtherCheckout = reservations.some(
-        (r) => r.id !== reservation.id && r.propriedadeId === reservation.propriedadeId &&
-          differenceInCalendarDays(startOfDay(parseISO(r.checkOut)), startDate) === rawStart,
-      )
-      if (hasOtherCheckout) startOffset = Math.max(startOffset, rawStart + 0.5)
-    }
+    // If another entry checks out on the same day this one checks in, shift start by half
+    const resCheckInStr = toLocalDateStr(reservation.checkIn)
+    const resCheckOutStr = toLocalDateStr(reservation.checkOut)
 
-    // If another reservation checks in on the same day this one checks out, trim end by half
-    const ciSet = checkInsByProperty.get(reservation.propriedadeId)
+    const hasOtherCheckout = reservations.some(
+      (r) => r.id !== reservation.id && r.propriedadeId === reservation.propriedadeId &&
+        toLocalDateStr(r.checkOut) === resCheckInStr,
+    ) || locacoes.some(
+      (l) => l.propriedadeId === reservation.propriedadeId &&
+        toLocalDateStr(l.checkOut) === resCheckInStr,
+    )
+    if (hasOtherCheckout) startOffset = Math.max(startOffset, rawStart + 0.5)
+
+    // If another entry checks in on the same day this one checks out, trim end by half
     const checkOutDay = differenceInCalendarDays(checkOut, startDate)
-    if (ciSet?.has(checkOutDay)) {
-      const hasOtherCheckIn = reservations.some(
-        (r) => r.id !== reservation.id && r.propriedadeId === reservation.propriedadeId &&
-          differenceInCalendarDays(startOfDay(parseISO(r.checkIn)), startDate) === checkOutDay,
-      )
-      if (hasOtherCheckIn) endOffset = Math.min(endOffset, checkOutDay + 0.5)
-    }
+    const hasOtherCheckIn = reservations.some(
+      (r) => r.id !== reservation.id && r.propriedadeId === reservation.propriedadeId &&
+        toLocalDateStr(r.checkIn) === resCheckOutStr,
+    ) || locacoes.some(
+      (l) => l.propriedadeId === reservation.propriedadeId &&
+        toLocalDateStr(l.checkIn) === resCheckOutStr,
+    )
+    if (hasOtherCheckIn) endOffset = Math.min(endOffset, checkOutDay + 0.5)
 
     if (endOffset <= startOffset) continue
 

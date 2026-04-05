@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { addDays, differenceInDays, format, parseISO } from "date-fns"
 import { useReservations } from "./use-reservations"
+import { useLocacoes } from "./use-locacoes"
 import { usePropertyMap } from "./use-property-map"
 import { useAllPropertyComponents, useAllPendingScheduledMaintenances } from "./use-property-details"
 import { toLocalDateStr, getTodayStr } from "@/lib/date-utils"
@@ -16,6 +17,12 @@ export type AlertType =
   | "manutencao_agendada_hoje"
   | "manutencao_agendada_7dias"
   | "propriedade_inativa"
+  | "locacao_checkin_hoje"
+  | "locacao_checkout_hoje"
+  | "locacao_faxina_atrasada"
+  | "locacao_faxina_proxima"
+  | "locacao_expirando"
+  | "locacao_expirando_urgente"
 
 export interface Alert {
   id: string
@@ -36,10 +43,17 @@ const alertLabels: Record<AlertType, string> = {
   manutencao_agendada_hoje: "Manutenção Agendada Hoje",
   manutencao_agendada_7dias: "Manutenção em 7 Dias",
   propriedade_inativa: "Propriedade Inativa",
+  locacao_checkin_hoje: "Entrada Locação Hoje",
+  locacao_checkout_hoje: "Saída Locação Hoje",
+  locacao_faxina_atrasada: "Faxina Atrasada (Locação)",
+  locacao_faxina_proxima: "Faxina Próxima (Locação)",
+  locacao_expirando: "Locação Expirando",
+  locacao_expirando_urgente: "Locação Expirando!",
 }
 
 export function useAlerts() {
   const { data: reservations = [] } = useReservations()
+  const { data: locacoes = [] } = useLocacoes()
   const { propertyMap } = usePropertyMap()
   const { data: components = [] } = useAllPropertyComponents()
   const { data: pendingMaintenances = [] } = useAllPendingScheduledMaintenances()
@@ -203,8 +217,85 @@ export function useAlerts() {
       }
     }
 
+    // ---- Alertas de Locações ----
+    const locacoesAtivas = locacoes.filter((l) => l.status === "ativa")
+
+    for (const l of locacoesAtivas) {
+      const checkInDate = toLocalDateStr(l.checkIn)
+      const checkOutDate = toLocalDateStr(l.checkOut)
+      const propNome = propertyMap.get(l.propriedadeId)?.nome ?? "Propriedade"
+
+      // Entrada hoje
+      if (checkInDate === today) {
+        result.push({
+          id: `loc-checkin-${l.id}`,
+          type: "locacao_checkin_hoje",
+          title: alertLabels.locacao_checkin_hoje,
+          description: `${l.nomeCompleto} — ${propNome}`,
+          link: `/longatemporada/${l.id}`,
+        })
+      }
+
+      // Saída hoje
+      if (checkOutDate === today) {
+        result.push({
+          id: `loc-checkout-${l.id}`,
+          type: "locacao_checkout_hoje",
+          title: alertLabels.locacao_checkout_hoje,
+          description: `${l.nomeCompleto} — ${propNome}`,
+          link: `/longatemporada/${l.id}`,
+        })
+      }
+
+      // Faxina de rotina atrasada
+      if (l.proximaFaxina) {
+        const proxFaxina = toLocalDateStr(l.proximaFaxina)
+        if (proxFaxina < today) {
+          result.push({
+            id: `loc-faxina-atrasada-${l.id}`,
+            type: "locacao_faxina_atrasada",
+            title: alertLabels.locacao_faxina_atrasada,
+            description: `${l.nomeCompleto} — ${propNome}`,
+            link: `/longatemporada/${l.id}`,
+          })
+        } else if (proxFaxina <= format(addDays(new Date(), 3), "yyyy-MM-dd")) {
+          const dias = differenceInDays(parseISO(proxFaxina), new Date())
+          result.push({
+            id: `loc-faxina-prox-${l.id}`,
+            type: "locacao_faxina_proxima",
+            title: dias === 0 ? "Faxina Hoje (Locação)" : `Faxina em ${dias} dia${dias > 1 ? "s" : ""} (Locação)`,
+            description: `${l.nomeCompleto} — ${propNome}`,
+            link: `/longatemporada/${l.id}`,
+          })
+        }
+      }
+
+      // Locação expirando
+      const diasRestantes = differenceInDays(parseISO(checkOutDate), new Date())
+      if (diasRestantes > 0 && diasRestantes <= 3) {
+        // Urgente: faltam 3 dias ou menos
+        result.push({
+          id: `loc-expirando-urgente-${l.id}`,
+          type: "locacao_expirando_urgente",
+          title: `Locação expira em ${diasRestantes} dia${diasRestantes > 1 ? "s" : ""}!`,
+          description: `${l.nomeCompleto} — ${propNome}`,
+          link: `/longatemporada/${l.id}`,
+        })
+      } else if (diasRestantes > 3 && diasRestantes <= 20) {
+        result.push({
+          id: `loc-expirando-${l.id}`,
+          type: "locacao_expirando",
+          title: diasRestantes <= 15
+            ? `Locação expira em ${diasRestantes} dias (prazo de extensão encerrado)`
+            : `Locação expira em ${diasRestantes} dias`,
+          description: `${l.nomeCompleto} — ${propNome}`,
+          link: `/longatemporada/${l.id}`,
+        })
+      }
+    }
+
     return result
-  }, [reservations, components, pendingMaintenances, propertyMap])
+  }, [reservations, locacoes, components, pendingMaintenances, propertyMap])
 
   return { alerts, count: alerts.length }
 }

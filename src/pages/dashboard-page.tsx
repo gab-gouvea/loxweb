@@ -306,7 +306,7 @@ export function DashboardPage() {
                     <TableCell className="font-medium max-w-[140px] truncate">{c.nome}</TableCell>
                     <TableCell className="max-w-[140px] truncate">{propertyMap.get(c.propriedadeId)?.nome}</TableCell>
                     <TableCell className="max-w-[100px] truncate">{c.prestador || "—"}</TableCell>
-                    <TableCell className="text-red-600">
+                    <TableCell>
                       {formatDate(c.proximaManutencao)}
                     </TableCell>
                   </TableRow>

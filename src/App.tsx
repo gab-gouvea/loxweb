@@ -19,6 +19,7 @@ import { OccupancyPage } from "@/pages/occupancy-page"
 import { ReceiptsPage } from "@/pages/receipts-page"
 import { LocacoesPage } from "@/pages/locacoes-page"
 import { LocacaoDetailPage } from "@/pages/locacao-detail-page"
+import { LocacaoContratoPage } from "@/pages/locacao-contrato-page"
 
 const router = createBrowserRouter([
   {
@@ -49,6 +50,7 @@ const router = createBrowserRouter([
           { path: "recibos", element: <ReceiptsPage /> },
           { path: "longatemporada", element: <LocacoesPage /> },
           { path: "longatemporada/:id", element: <LocacaoDetailPage /> },
+          { path: "longatemporada/:id/contrato", element: <LocacaoContratoPage /> },
         ],
       },
     ],

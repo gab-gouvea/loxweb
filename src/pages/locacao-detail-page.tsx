@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams, Link } from "react-router-dom"
 import {
   ArrowLeft,
   Building2,
@@ -129,6 +129,19 @@ export function LocacaoDetailPage() {
             Editar
           </Button>
         </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-6 border-b">
+        <span className="pb-2 text-sm font-medium border-b-2 border-primary">
+          Detalhes
+        </span>
+        <Link
+          to={`/longatemporada/${locacao.id}/contrato`}
+          className="pb-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          Contrato
+        </Link>
       </div>
 
       {/* Info cards */}

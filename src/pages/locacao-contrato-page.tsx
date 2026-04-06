@@ -364,7 +364,6 @@ export function LocacaoContratoPage() {
   function getQuadroDefault(idx: number): string {
     if (!contratoData || !locacao) return ""
     const d = contratoData
-    const dataNasc = locacao.dataNascimento ? format(parseISO(locacao.dataNascimento), "dd/MM/yyyy") : "—"
     switch (idx) {
       case 0: return `**${d.locadoraNome.toUpperCase()}**, Brasileira, ${d.locadoraEstadoCivil}, ${d.locadoraProfissao}, inscrita no CPF sob o nº ${d.locadoraCpf}, residente e domiciliado na ${d.locadoraEndereco}, doravante denominado LOCADORA.`
       case 1: return `**${d.locatariaNome.toUpperCase()}**, brasileira, ${d.locatariaEstadoCivil}, ${d.locatariaProfissao}, inscrito no CPF sob o nº ${d.locatariaCpf}, residente e domiciliado(a) na ${d.locatariaEndereco}, doravante denominada LOCATÁRIA.`

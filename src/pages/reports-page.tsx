@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react"
 import { Pencil } from "lucide-react"
-import { startOfMonth, endOfMonth, addDays, parseISO } from "date-fns"
+import { startOfMonth, endOfMonth, addDays, addMonths, parseISO } from "date-fns"
 import { useNavigate } from "react-router-dom"
 import { MonthNavigation } from "@/components/shared/month-navigation"
 import { TabNavigation } from "@/components/shared/tab-navigation"
@@ -66,35 +66,74 @@ export function ReportsPage() {
     })
   }, [allReservations, monthStart, monthEnd])
 
-  // Locações que geram recebimento neste mês
-  const monthLocacoes = useMemo(() => {
-    return allLocacoes.filter((l) => {
-      if (propertyFilter !== "todos" && l.propriedadeId !== propertyFilter) return false
-      const checkIn = parseISO(l.checkIn)
-      const checkOut = parseISO(l.checkOut)
+  // Locações que geram recebimento neste mês (pagamento OU faxina de saída)
+  const [monthLocacoes, locacaoInfoMap] = useMemo(() => {
+    const result: Locacao[] = []
+    const infoMap = new Map<string, { hasPayment: boolean; hasFaxina: boolean }>()
+
+    for (const l of allLocacoes) {
+      if (propertyFilter !== "todos" && l.propriedadeId !== propertyFilter) continue
+
+      const checkInDate = parseISO(l.checkIn)
+      const checkOutDate = parseISO(l.checkOut)
+
+      let hasPayment = false
       if (l.tipoPagamento === "avista") {
-        // À vista: aparece só no mês do checkIn
-        return checkIn >= monthStart && checkIn <= monthEnd
+        hasPayment = checkInDate >= monthStart && checkInDate <= monthEnd
+      } else {
+        // Mensal: pagamento no dia da entrada de cada mês
+        let current = new Date(checkInDate)
+        while (current < checkOutDate) {
+          if (current >= monthStart && current <= monthEnd) {
+            hasPayment = true
+            break
+          }
+          current = addMonths(current, 1)
+        }
       }
-      // Mensal: aparece em todos os meses que a locação cobre
-      return checkOut >= monthStart && checkIn <= monthEnd
-    })
+
+      let hasFaxina = false
+      if (l.faxinaStatus === "agendada" && l.faxinaData) {
+        const faxinaDate = parseISO(l.faxinaData)
+        hasFaxina = faxinaDate >= monthStart && faxinaDate <= monthEnd
+      }
+
+      if (hasPayment || hasFaxina) {
+        result.push(l)
+        infoMap.set(l.id, { hasPayment, hasFaxina })
+      }
+    }
+    return [result, infoMap] as const
   }, [allLocacoes, monthStart, monthEnd, propertyFilter])
 
-  // Calcular bruto da locação para este mês
-  function getLocacaoBruto(l: Locacao): number {
+  // Calcular bruto da locação para este mês (só se tem pagamento no mês)
+  function getLocacaoBruto(l: Locacao, hasPayment: boolean): number {
+    if (!hasPayment) return 0
     if (l.tipoPagamento === "avista") return l.valorTotal ?? 0
     return l.valorMensal ?? 0
   }
 
-  function getLocacaoComissao(l: Locacao): number {
-    const bruto = getLocacaoBruto(l)
+  function getLocacaoComissao(l: Locacao, hasPayment: boolean): number {
+    const bruto = getLocacaoBruto(l, hasPayment)
     return (bruto * (l.percentualComissao ?? 0)) / 100
   }
 
+  function calcLocacaoFaxinaReceita(l: Locacao, property: { taxaLimpeza?: number } | undefined): number {
+    if (l.faxinaStatus !== "agendada") return 0
+    const taxaLimpeza = property?.taxaLimpeza ?? 0
+    if (l.faxinaPorMim) return taxaLimpeza
+    return taxaLimpeza - (l.custoEmpresaFaxina ?? 0)
+  }
+
   const totalLocacoes = useMemo(() => {
-    return monthLocacoes.reduce((sum, l) => sum + getLocacaoComissao(l), 0)
-  }, [monthLocacoes])
+    return monthLocacoes.reduce((sum, l) => {
+      const info = locacaoInfoMap.get(l.id)!
+      const property = propertyMap.get(l.propriedadeId)
+      const comissao = getLocacaoComissao(l, info.hasPayment)
+      const faxina = info.hasFaxina ? calcLocacaoFaxinaReceita(l, property) : 0
+      return sum + comissao + faxina
+    }, 0)
+  }, [monthLocacoes, locacaoInfoMap, propertyMap])
 
   const filteredReservations = useMemo(() => {
     let result = monthReservations
@@ -234,7 +273,12 @@ export function ReportsPage() {
 
         const propReservations = grouped.get(propertyId) || []
         const propLocacoes = locacoesByProperty.get(propertyId) ?? []
-        const subtotalLocProp = propLocacoes.reduce((sum, l) => sum + getLocacaoComissao(l), 0)
+        const subtotalLocProp = propLocacoes.reduce((sum, l) => {
+          const info = locacaoInfoMap.get(l.id)!
+          const comissao = getLocacaoComissao(l, info.hasPayment)
+          const faxina = info.hasFaxina ? calcLocacaoFaxinaReceita(l, propertyMap.get(l.propriedadeId)) : 0
+          return sum + comissao + faxina
+        }, 0)
         const subtotalReservas = propReservations.reduce(
           (sum, r) => sum + calcTotalRecebido(r, property),
           0,
@@ -365,10 +409,13 @@ export function ReportsPage() {
                   })}
                   {/* Locações desta propriedade — fundo azul */}
                   {(locacoesByProperty.get(propertyId) ?? []).map((loc) => {
-                    const bruto = getLocacaoBruto(loc)
+                    const info = locacaoInfoMap.get(loc.id)!
+                    const bruto = getLocacaoBruto(loc, info.hasPayment)
                     const comissaoPercent = loc.percentualComissao ?? 0
-                    const comissaoValor = getLocacaoComissao(loc)
+                    const comissaoValor = getLocacaoComissao(loc, info.hasPayment)
+                    const faxinaReceita = info.hasFaxina ? calcLocacaoFaxinaReceita(loc, property) : 0
                     const liquido = bruto - comissaoValor
+                    const recebido = comissaoValor + faxinaReceita
                     return (
                       <TableRow
                         key={`loc-${loc.id}`}
@@ -383,12 +430,19 @@ export function ReportsPage() {
                         </TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(loc.checkIn)}</TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(loc.checkOut)}</TableCell>
-                        <TableCell className="text-right whitespace-nowrap">{formatCurrency(bruto)}</TableCell>
-                        <TableCell className="text-right whitespace-nowrap">{formatCurrency(liquido)}</TableCell>
-                        <TableCell className="text-right whitespace-nowrap">{comissaoPercent}%</TableCell>
-                        <TableCell className="text-right whitespace-nowrap">{formatCurrency(comissaoValor)}</TableCell>
-                        <TableCell colSpan={2} />
-                        <TableCell className="text-right whitespace-nowrap">{formatCurrency(comissaoValor)}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{bruto > 0 ? formatCurrency(bruto) : "—"}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{bruto > 0 ? formatCurrency(liquido) : "—"}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{info.hasPayment ? `${comissaoPercent}%` : "—"}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{info.hasPayment ? formatCurrency(comissaoValor) : "—"}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">
+                          {faxinaReceita > 0 ? (
+                            <span className="text-green-700">+{formatCurrency(faxinaReceita)}</span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell />
+                        <TableCell className="text-right whitespace-nowrap font-semibold">{formatCurrency(recebido)}</TableCell>
                       </TableRow>
                     )
                   })}

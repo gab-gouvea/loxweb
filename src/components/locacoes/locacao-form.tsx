@@ -64,7 +64,7 @@ export function LocacaoForm({
       valorMensal: locacao?.valorMensal ?? undefined,
       tipoPagamento: locacao?.tipoPagamento ?? "mensal",
       valorTotal: locacao?.valorTotal ?? undefined,
-      percentualComissao: locacao?.percentualComissao ?? undefined,
+      percentualComissao: locacao?.percentualComissao || undefined,
       garantia: locacao?.garantia ?? "",
       notas: locacao?.notas ?? "",
     },

@@ -24,7 +24,7 @@ import {
   CheckCircle2,
 } from "lucide-react"
 import { toast } from "sonner"
-import { addDays } from "date-fns"
+import { addDays, addMonths, parseISO } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -188,17 +188,40 @@ export function LocacaoDetailPage() {
           </Card>
         )}
 
-        {locacao.valorMensal != null && (
-          <Card>
-            <CardContent className="flex items-center gap-2 pt-3 pb-3">
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Valor Mensal</p>
-                <p className="text-sm font-medium">{formatCurrency(locacao.valorMensal)}</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {(() => {
+          const checkInDate = parseISO(toLocalDateStr(locacao.checkIn))
+          const checkOutDate = parseISO(toLocalDateStr(locacao.checkOut))
+          let meses = 0
+          let cur = checkInDate
+          while (cur < checkOutDate) { meses++; cur = addMonths(cur, 1) }
+          const valorTotal = locacao.tipoPagamento === "avista"
+            ? (locacao.valorTotal ?? 0)
+            : (locacao.valorMensal ?? 0) * meses
+          return (
+            <>
+              <Card>
+                <CardContent className="flex items-center gap-2 pt-3 pb-3">
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Valor Total</p>
+                    <p className="text-sm font-medium">{formatCurrency(valorTotal)}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              {locacao.tipoPagamento !== "avista" && (
+                <Card>
+                  <CardContent className="flex items-center gap-2 pt-3 pb-3">
+                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Valor Mensal</p>
+                      <p className="text-sm font-medium">{formatCurrency(locacao.valorMensal ?? 0)}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )
+        })()}
 
         {locacao.garantia && (
           <Card>

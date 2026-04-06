@@ -1,4 +1,5 @@
 import { z } from "zod/v4"
+import { addMonths, parseISO } from "date-fns"
 
 export const locacaoStatuses = ["ativa", "encerrada"] as const
 export const garantiaTypes = ["caucao", "seguro_fianca"] as const
@@ -69,9 +70,10 @@ export const locacaoFormSchema = z.object({
   return data.checkOut > data.checkIn
 }, { message: "Data de saída deve ser depois da data de entrada", path: ["checkOut"] }).refine((data) => {
   if (!data.checkIn || !data.checkOut) return true
-  const diffMs = new Date(data.checkOut).getTime() - new Date(data.checkIn).getTime()
-  return diffMs <= 90 * 24 * 60 * 60 * 1000
-}, { message: "Locação não pode ter mais de 90 dias", path: ["checkOut"] }).refine((data) => {
+  const checkIn = parseISO(data.checkIn)
+  const maxDate = addMonths(checkIn, 3)
+  return parseISO(data.checkOut) <= maxDate
+}, { message: "Locação não pode ter mais de 3 meses", path: ["checkOut"] }).refine((data) => {
   if (data.tipoPagamento === "mensal") return data.valorMensal !== "" && data.valorMensal != null
   return true
 }, { message: "Informe o valor mensal", path: ["valorMensal"] }).refine((data) => {

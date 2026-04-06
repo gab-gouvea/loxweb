@@ -23,9 +23,20 @@ import { usePropertyMap } from "@/hooks/use-property-map"
 import { LocacaoDialog } from "@/components/locacoes/locacao-dialog"
 import { LocacaoDeleteDialog } from "@/components/locacoes/locacao-delete-dialog"
 import { LocacaoStatusBadge } from "@/components/locacoes/locacao-status-badge"
-import { formatDate } from "@/lib/date-utils"
+import { addMonths, parseISO } from "date-fns"
+import { formatDate, toLocalDateStr } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
 import type { Locacao, LocacaoStatus } from "@/types/locacao"
+
+function calcValorTotal(loc: Locacao): number {
+  if (loc.tipoPagamento === "avista") return loc.valorTotal ?? 0
+  const checkIn = parseISO(toLocalDateStr(loc.checkIn))
+  const checkOut = parseISO(toLocalDateStr(loc.checkOut))
+  let meses = 0
+  let cur = checkIn
+  while (cur < checkOut) { meses++; cur = addMonths(cur, 1) }
+  return (loc.valorMensal ?? 0) * meses
+}
 
 const PAGE_SIZE = 20
 
@@ -151,7 +162,7 @@ export function LocacoesPage() {
                 <TableHead className="whitespace-nowrap">Entrada</TableHead>
                 <TableHead className="whitespace-nowrap">Saída</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Valor Mensal</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Valor</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -179,9 +190,7 @@ export function LocacoesPage() {
                         <LocacaoStatusBadge status={locacao.status as LocacaoStatus} />
                       </TableCell>
                       <TableCell className="text-right">
-                        {locacao.valorMensal
-                          ? formatCurrency(locacao.valorMensal)
-                          : "—"}
+                        {formatCurrency(calcValorTotal(locacao))}
                       </TableCell>
                       <TableCell>
                         <Button

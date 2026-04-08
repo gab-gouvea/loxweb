@@ -41,8 +41,17 @@ export class ApiLocacaoService implements LocacaoService {
     return data
   }
 
+  async getRecebimentosByLocacao(locacaoId: string): Promise<RecebimentoLocacao[]> {
+    const { data } = await api.get<RecebimentoLocacao[]>(`/locacoes/${locacaoId}/recebimentos`)
+    return data
+  }
+
   async upsertRecebimento(locacaoId: string, mes: number, ano: number, valorRecebido: number): Promise<RecebimentoLocacao> {
     const { data } = await api.put<RecebimentoLocacao>(`/locacoes/${locacaoId}/recebimentos/${mes}/${ano}`, { valorRecebido })
     return data
+  }
+
+  async deleteRecebimento(locacaoId: string, mes: number, ano: number): Promise<void> {
+    await api.delete(`/locacoes/${locacaoId}/recebimentos/${mes}/${ano}`)
   }
 }

@@ -47,6 +47,7 @@ export function LocacoesPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deletingLocacao, setDeletingLocacao] = useState<Locacao | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>("todos")
+  const [tipoFilter, setTipoFilter] = useState<string>("todos")
   const [propertyFilter, setPropertyFilter] = useState<string>("todos")
   const [sortBy, setSortBy] = useState<string>("recente")
   const [searchName, setSearchName] = useState("")
@@ -56,6 +57,9 @@ export function LocacoesPage() {
     let result = locacoes
     if (statusFilter !== "todos") {
       result = result.filter((l) => l.status === statusFilter)
+    }
+    if (tipoFilter !== "todos") {
+      result = result.filter((l) => (l.tipoLocacao ?? "temporada") === tipoFilter)
     }
     if (propertyFilter !== "todos") {
       result = result.filter((l) => l.propriedadeId === propertyFilter)
@@ -77,12 +81,13 @@ export function LocacoesPage() {
       default:
         return result
     }
-  }, [locacoes, statusFilter, propertyFilter, sortBy, searchName])
+  }, [locacoes, statusFilter, tipoFilter, propertyFilter, sortBy, searchName])
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
   const paginatedLocacoes = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const handleStatusFilter = (v: string) => { setStatusFilter(v); setPage(1) }
+  const handleTipoFilter = (v: string) => { setTipoFilter(v); setPage(1) }
   const handlePropertyFilter = (v: string) => { setPropertyFilter(v); setPage(1) }
   const handleSortBy = (v: string) => { setSortBy(v); setPage(1) }
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => { setSearchName(e.target.value); setPage(1) }
@@ -116,6 +121,17 @@ export function LocacoesPage() {
             <SelectItem value="todos">Todos os status</SelectItem>
             <SelectItem value="ativa">Ativa</SelectItem>
             <SelectItem value="encerrada">Encerrada</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={tipoFilter} onValueChange={handleTipoFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os tipos</SelectItem>
+            <SelectItem value="temporada">Temporada</SelectItem>
+            <SelectItem value="anual">Anual</SelectItem>
           </SelectContent>
         </Select>
 
@@ -162,14 +178,15 @@ export function LocacoesPage() {
                 <TableHead className="whitespace-nowrap">Entrada</TableHead>
                 <TableHead className="whitespace-nowrap">Saída</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Valor</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Valor Total</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedLocacoes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     Nenhuma locação encontrada
                   </TableCell>
                 </TableRow>
@@ -188,6 +205,12 @@ export function LocacoesPage() {
                       <TableCell>{formatDate(locacao.checkOut)}</TableCell>
                       <TableCell>
                         <LocacaoStatusBadge status={locacao.status as LocacaoStatus} />
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center gap-1 text-xs text-muted-foreground`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${locacao.tipoLocacao === "anual" ? "bg-indigo-400" : "bg-teal-400"}`} />
+                          {locacao.tipoLocacao === "anual" ? "Anual" : "Temporada"}
+                        </span>
                       </TableCell>
                       <TableCell className="text-right">
                         {formatCurrency(calcValorTotal(locacao))}

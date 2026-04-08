@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef, Fragment } from "react"
 import { useNavigate, useParams, Link } from "react-router-dom"
 import { toast } from "sonner"
 import { ArrowLeft, Download, Pencil, Save } from "lucide-react"
-import { format, parseISO, differenceInDays } from "date-fns"
+import { format, parseISO, differenceInDays, addMonths } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
 import jsPDF from "jspdf"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,8 @@ const STORAGE_KEY_PREFIX = "lox_contrato_clausulas_"
 const TESTEMUNHAS_KEY_PREFIX = "lox_contrato_testemunhas_"
 const QUADRO_KEY_PREFIX = "lox_contrato_quadro_"
 const MORADORES_KEY_PREFIX = "lox_contrato_moradores_"
+const ANUAL_STORAGE_KEY_PREFIX = "lox_contrato_anual_clausulas_"
+const ANUAL_QUADRO_KEY_PREFIX = "lox_contrato_anual_quadro_"
 
 interface PessoaAutorizada {
   nome: string
@@ -84,6 +86,17 @@ interface ContratoData {
   garantia: string
   numMoradores: number
   tipoPagamento: string
+  // Annual-specific fields
+  locadoraRg: string
+  locatariaRg: string
+  mesesAnual: number
+  checkInExtenso: string
+  checkOutExtenso: string
+  valorMensalFormatado: string
+  valorMensalExtenso: string
+  diaVencimento: number
+  caucaoFormatado: string
+  caucaoExtenso: string
 }
 
 // ==================== TEXT RENDERING HELPERS (HTML) ====================
@@ -170,30 +183,67 @@ function pdfRenderSegments(
   y: number,
   maxW: number,
   lh: number,
+  justify = true,
 ): number {
-  let cx = x
-  let cy = y
-
+  // Flatten all segments into word tokens with formatting
+  type WordToken = { text: string; bold: boolean; underline: boolean; width: number }
+  const tokens: WordToken[] = []
   for (const seg of segs) {
     doc.setFont("helvetica", seg.bold ? "bold" : "normal")
     const words = seg.text.split(/\s+/).filter(Boolean)
     for (const w of words) {
-      const ww = doc.getTextWidth(w)
-      const sp = cx > x ? doc.getTextWidth(" ") : 0
-      if (cx + sp + ww > x + maxW && cx > x) {
-        cx = x
-        cy += lh
-      }
-      const dx = cx > x ? cx + sp : cx
-      doc.text(w, dx, cy)
-      if (seg.underline) {
-        doc.line(dx, cy + 0.5, dx + ww, cy + 0.5)
-      }
-      cx = dx + ww
+      tokens.push({ text: w, bold: seg.bold, underline: seg.underline ?? false, width: doc.getTextWidth(w) })
     }
   }
 
-  return cy + lh
+  // Break tokens into lines
+  type Line = { tokens: WordToken[]; onlyWordsWidth: number }
+  const lines: Line[] = []
+  let currentLine: WordToken[] = []
+  let lineWidth = 0  // total line width including spaces (for line-break decisions)
+  doc.setFont("helvetica", "normal")
+  const spaceW = doc.getTextWidth(" ")
+
+  for (const tok of tokens) {
+    const needed = currentLine.length > 0 ? spaceW + tok.width : tok.width
+    if (currentLine.length > 0 && lineWidth + needed > maxW) {
+      const wordsOnly = currentLine.reduce((s, t) => s + t.width, 0)
+      lines.push({ tokens: currentLine, onlyWordsWidth: wordsOnly })
+      currentLine = [tok]
+      lineWidth = tok.width
+    } else {
+      currentLine.push(tok)
+      lineWidth += needed
+    }
+  }
+  if (currentLine.length > 0) {
+    const wordsOnly = currentLine.reduce((s, t) => s + t.width, 0)
+    lines.push({ tokens: currentLine, onlyWordsWidth: wordsOnly })
+  }
+
+  // Render lines — justify all except the last
+  let cy = y
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li]
+    const isLast = li === lines.length - 1
+    const gaps = line.tokens.length - 1
+    const extraSpace = maxW - line.onlyWordsWidth
+    const gapSize = (justify && !isLast && gaps > 0 && extraSpace > 0) ? extraSpace / gaps : spaceW
+
+    let cx = x
+    for (let ti = 0; ti < line.tokens.length; ti++) {
+      const tok = line.tokens[ti]
+      doc.setFont("helvetica", tok.bold ? "bold" : "normal")
+      doc.text(tok.text, cx, cy)
+      if (tok.underline) {
+        doc.line(cx, cy + 0.5, cx + tok.width, cy + 0.5)
+      }
+      cx += tok.width + (ti < line.tokens.length - 1 ? gapSize : 0)
+    }
+    cy += lh
+  }
+
+  return cy
 }
 
 // ==================== DEFAULT CLAUSES ====================
@@ -238,6 +288,114 @@ function getDefaultClausulas(data?: ContratoData | null): Clausula[] {
   ]
 }
 
+// ==================== ANNUAL CONTRACT HELPERS ====================
+
+const numerosExtenso: Record<number, string> = {
+  1: "um", 2: "dois", 3: "três", 4: "quatro", 5: "cinco", 6: "seis",
+  7: "sete", 8: "oito", 9: "nove", 10: "dez", 11: "onze", 12: "doze",
+  13: "treze", 14: "quatorze", 15: "quinze", 16: "dezesseis", 17: "dezessete",
+  18: "dezoito", 19: "dezenove", 20: "vinte", 21: "vinte e um", 22: "vinte e dois",
+  23: "vinte e três", 24: "vinte e quatro", 25: "vinte e cinco", 26: "vinte e seis",
+  27: "vinte e sete", 28: "vinte e oito", 29: "vinte e nove", 30: "trinta",
+}
+
+function numeroPorExtenso(n: number): string {
+  return numerosExtenso[n] ?? String(n)
+}
+
+function formatDateExtenso(dateStr: string): string {
+  return format(parseISO(dateStr), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+}
+
+function countMesesAddMonths(checkInDate: string, checkOutDate: string): number {
+  const start = parseISO(checkInDate)
+  const end = parseISO(checkOutDate)
+  let meses = 0
+  let cur = start
+  while (cur < end) {
+    meses++
+    cur = addMonths(cur, 1)
+  }
+  return meses
+}
+
+function getDefaultClausulasAnual(data?: ContratoData | null): Clausula[] {
+  if (!data) return []
+  const enderecoImovel = data.imovelEndereco
+  const meses = data.mesesAnual ?? 0
+  const mesesExtenso = numeroPorExtenso(meses)
+  const checkInExtenso = data.checkInExtenso ?? "[data check-in]"
+  const checkOutExtenso = data.checkOutExtenso ?? "[data check-out]"
+  const valorMensalF = data.valorMensalFormatado ?? "R$ [valor]"
+  const valorMensalExtenso = data.valorMensalExtenso ?? "[valor por extenso]"
+  const diaVencimento = data.diaVencimento ?? 1
+  const caucaoValorF = data.caucaoFormatado ?? "R$ [caução]"
+  const caucaoExtenso = data.caucaoExtenso ?? "[caução por extenso]"
+
+  return [
+    {
+      titulo: "",
+      texto: `**CLÁUSULA PRIMEIRA – DO OBJETO**\n\nO LOCADOR dá em locação ao LOCATÁRIO, que aceita, o imóvel de uso estritamente residencial, livre e desembaraçado de pessoas e coisas, localizado na ${enderecoImovel}.`,
+    },
+    {
+      titulo: "",
+      texto: `**CLÁUSULA SEGUNDA – DO PRAZO**\n\nO prazo de locação é de ${meses} (${mesesExtenso}) meses, com início em ${checkInExtenso} e término em ${checkOutExtenso}, data em que o LOCATÁRIO restituirá o imóvel nas mesmas condições iniciais e inteiramente desocupado de coisas e pessoas, independente de qualquer aviso, notificação e interpelação judicial.\n\n§1º. Decorrido o prazo acima e sendo do interesse das partes– o qual se verificará com o silêncio das mesmas– o contrato continuará a vigorar por prazo indeterminado, podendo, a partir deste momento, quaisquer delas rescindi-lo, notificando previamente e por escrito, a outra, com antecedência de 30 (trinta) dias.\n\n§2º. É permitido ao LOCATÁRIO desocupar o imóvel depois de transcorridos 12 (doze) meses de contrato ou quando prorrogado por tempo indeterminado, independente do pagamento de multa, desde que não tenha infringido nenhuma cláusula deste contrato e notifique por escrito sua intenção com a antecedência mínima de 30 (trinta) dias.\n\n§3º. Desocupando o imóvel antes de transcorrido o prazo de 12 (doze) meses, será devida multa no valor de 3 (três) meses de aluguel, calculado proporcionalmente ao tempo restante de contrato, de acordo com o art. 4º da Lei n. 8.245 de 1991\n\n§4º. Inexistindo notificação prévia da desocupação, conforme estabelecido no parágrafo anterior, passados 12 (doze) meses de contrato ou sendo este prorrogado por tempo indeterminado, o LOCATÁRIO deverá pagar a quantia referente a 01 (um) mês de aluguel e encargos, de acordo com o parágrafo único do art. 6º da Lei n. 8.245 de 1991.`,
+    },
+    {
+      titulo: "",
+      texto: `**CLÁUSULA TERCEIRA – DO VALOR E FORMA DE PAGAMENTO**\n\nO aluguel mensal será de ${valorMensalF} (${valorMensalExtenso}), a serem pagos pelo LOCATÁRIO até o dia ${diaVencimento} do mês subsequente ao vencido a ser pago diretamente ao LOCADOR, através de depósito na conta do LOCADOR no **[BANCO] AG [XXXX] CC: [XXXXXXX-X]**, servindo o comprovante de depósito como recibo de pagamento do aluguel.`,
+    },
+    {
+      titulo: "",
+      texto: `**CLÁUSULA QUARTA - DESPESAS E TRIBUTOS**\n\nJuntamente com o aluguel estipulado o LOCATÁRIO pagará o IPTU, taxa de condomínio, água, luz, gás e internet; através de depósito na mesma conta do LOCADOR citada na (cláusula 3a), servindo o comprovante de depósito como recibo de pagamento dos encargos decorrentes da locação;\n\nParágrafo único: O pagamento do fundo de reserva do condomínio é de responsabilidade do LOCADOR e seu valor será abatido do LOCATÁRIO`,
+    },
+    {
+      titulo: "",
+      texto: `**CLÁUSULA QUINTA - DO SEGURO CONTRA INCÊNDIO**\n\n§1º. O LOCATÁRIO se compromete a contratar, no prazo de até 15 (quinze) dias a partir da assinatura deste contrato, seguro contra incêndio com cobertura para o imóvel objeto desta locação, incluindo danos ao imóvel e a terceiros.\n\n§2º. O seguro deverá permanecer vigente durante toda a locação, devendo o LOCATÁRIO apresentar anualmente ao LOCADOR o comprovante de renovação da apólice e do pagamento correspondente.\n\n§3º. Caso o LOCATÁRIO não contrate ou não renove o seguro, poderá o LOCADOR fazê-lo por conta do LOCATÁRIO, que será responsabilizado pelo reembolso imediato do valor pago, juntamente com o aluguel do mês subsequente.`,
+    },
+    {
+      titulo: "",
+      texto: `**CLÁUSULA SEXTA - DO TERMO DE VISTORIA**\n\nO imóvel objeto deste contrato será entregue ao LOCATÁRIO nas condições descritas no Termo de Vistoria Inicial, que será enviado para ambas as partes e fará parte integrante deste contrato.\n\nParágrafo único: Ao término da locação, será realizada nova vistoria, e o LOCATÁRIO se compromete a devolver o imóvel no mesmo estado em que o recebeu, salvo as deteriorações decorrentes do uso normal. Caso sejam constatados danos, o LOCATÁRIO se responsabiliza por realizar os reparos ou indenizar o LOCADOR, conforme orçamento previamente apresentado.`,
+    },
+    {
+      titulo: "",
+      texto: `**CLÁUSULA SÉTIMA – DO REAJUSTE DO ALUGUEL**\n\nO valor do aluguel será reajustado anualmente, a cada período de 12 (doze) meses, com base na variação acumulada do Índice Nacional de Preços ao Consumidor Amplo (IPCA), divulgado pelo IBGE, ou por outro índice oficial que venha a substituí-lo.\n\nParágrafo único: Na hipótese de extinção do índice mencionado, as partes acordam desde já em utilizar outro índice oficial que melhor reflita a perda do poder aquisitivo da moeda, observando-se os limites da legislação vigente.`,
+    },
+    {
+      titulo: "",
+      texto: `**CLÁUSULA OITAVA – DA MULTA POR ATRASO E NÃO PAGAMENTO**\n\nO não pagamento do aluguel e/ou encargos da locação até a data de vencimento acarretará ao LOCATÁRIO multa moratória de 10% (dez por cento) sobre o valor do débito; juros de mora de 1% (um por cento) ao mês; correção monetária sobre o valor em atraso com base no IPCA, desde a data do vencimento até o efetivo pagamento.\n\nO vencimento do aluguel impago conferirá o direito do LOCADOR em ingressar com ação de despejo para desocupação do imóvel, sendo que a não propositura desta ação logo após o vencimento não caracterizará a moratória prevista no inciso I do artigo 838 do Código Civil Brasileiro;\n\nCaso ocorra o atraso no pagamento do aluguel e o mesmo seja enviado para cobrança em escritório de advocacia o LOCATÁRIO ficará sujeito ao pagamento dos honorários do profissional na base de 20% do valor do débito atualizado, independentemente das multas e cominações legais\n\nO atraso por período superior a 30 (trinta) dias autoriza o LOCADOR a considerar o contrato rescindido de pleno direito, podendo requerer a desocupação do imóvel, sem prejuízo da cobrança dos valores devidos e aplicação das penalidades previstas neste instrumento.`,
+    },
+    {
+      titulo: "",
+      texto: `**CLÁUSULA NONA – DA GARANTIA LOCATÍCIA**\n\nComo garantia do presente contrato, o LOCATÁRIO efetuará depósito caução no valor correspondente a 03 (três) meses de aluguel, ou seja, ${caucaoValorF} (${caucaoExtenso}), a ser pago até a data da entrega das chaves, em conta bancária do LOCADOR.\n\n§1º. Ao término da locação, será realizada vistoria de saída. Estando o imóvel em conformidade com as condições descritas no Termo de Vistoria Inicial, sem pendências financeiras ou danos além do uso normal, o valor integral da caução será devolvido ao LOCATÁRIO no prazo máximo de 07 (sete) dias corridos, contados da entrega das chaves.\n\n§2º. Caso sejam constatadas pendências financeiras ou danos imputáveis ao LOCATÁRIO, o LOCADOR poderá reter o valor necessário para cobertura dos prejuízos, apresentando os devidos comprovantes, e devolverá apenas o saldo restante, se houver.`,
+    },
+    {
+      titulo: "",
+      texto: `**CLÁUSULA DÉCIMA – DO USO DO IMÓVEL**\n\nO imóvel será utilizado exclusivamente para fins residenciais, sendo vedada sua sublocação, cessão ou empréstimo, total ou parcial, sem autorização expressa e por escrito do LOCADOR.`,
+    },
+    {
+      titulo: "",
+      texto: `**CLÁUSULA DÉCIMA PRIMEIRA – DAS OBRIGAÇÕES DO LOCADOR**\n\nO LOCADOR se obriga a: entregar o imóvel em condições de uso e a fazer manutenção, substituição ou reparo de móveis, utensílios, eletrodomésticos e equipamentos que venham a apresentar defeito ou deixem de funcionar durante a vigência deste contrato, desde que não seja constatado mau uso, dano intencional ou negligência por parte do LOCATÁRIO, seus dependentes, prepostos ou visitantes.\n\n§1º. A verificação da natureza do defeito poderá ser feita por profissional qualificado indicado por qualquer das partes. Persistindo divergência quanto à causa do defeito, poderá ser solicitado laudo técnico para apuração.\n\n§2º. Caso seja comprovado o mau uso ou culpa do LOCATÁRIO, este se responsabilizará integralmente pelas despesas com conserto ou reposição dos itens danificados.`,
+    },
+    {
+      titulo: "",
+      texto: `**CLÁUSULA DÉCIMA SEGUNDA – DAS OBRIGAÇÕES DO LOCATÁRIO**\n\nO LOCATÁRIO se obriga a: conservar o imóvel em perfeito estado de limpeza e funcionamento, promovendo os reparos que se fizerem necessários por uso normal; restituir o imóvel ao final da locação no estado em que o recebeu, salvo deteriorações decorrentes do uso normal; permitir o acesso do LOCADOR ao imóvel mediante prévio aviso, para vistoria ou realização de reparos; comunicar imediatamente ao LOCADOR qualquer dano ou defeito no imóvel; não realizar obras, benfeitorias ou modificações sem autorização prévia e por escrito do LOCADOR; respeitar, além das posturas municipais, e das de saúde, os regulamentos e convenções do edifício, ficando responsável pelas multas a que der causa.`,
+    },
+    {
+      titulo: "",
+      texto: `**CLÁUSULA DÉCIMA TERCEIRA – DA MULTA POR DESCUMPRIMENTO CONTRATUAL**\n\nO descumprimento de quaisquer das obrigações previstas neste contrato, exceto aquelas já penalizadas especificamente em outras cláusulas, sujeitará a parte inadimplente ao pagamento de multa compensatória no valor correspondente a 03 (três) meses de aluguel vigente à época, sem prejuízo da indenização por eventuais perdas e danos, se houver.`,
+    },
+    {
+      titulo: "",
+      texto: `**CLÁUSULA DÉCIMA QUARTA – DO DIREITO DE PREFERÊNCIA**\n\nEm caso de venda do imóvel durante a vigência da locação, o LOCATÁRIO terá direito de preferência, nos termos da Lei nº 8.245/91, devendo o LOCADOR notificá-lo por escrito com antecedência mínima de 30 (trinta) dias.`,
+    },
+    {
+      titulo: "",
+      texto: `**CLÁUSULA DÉCIMA QUINTA – DO FORO**\n\nFica eleito o foro da comarca de Florianópolis/SC para dirimir quaisquer dúvidas oriundas deste contrato.\n\nE, por estarem de pleno acordo, firmam o presente CONTRATO DE LOCAÇÃO RESIDENCIAL, de forma eletrônica, com validade jurídica conforme a legislação vigente, especialmente nos termos da Medida Provisória nº 2.200-2/2001.`,
+    },
+  ]
+}
+
 // ==================== COMPONENT ====================
 
 export function LocacaoContratoPage() {
@@ -247,12 +405,14 @@ export function LocacaoContratoPage() {
   const { propertyMap } = usePropertyMap()
   const { proprietarioMap } = useProprietarioMap()
 
+  const isAnual = locacao?.tipoLocacao === "anual"
+
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editText, setEditText] = useState("")
 
-  const storageKey = `${STORAGE_KEY_PREFIX}${id}`
+  const storageKey = isAnual ? `${ANUAL_STORAGE_KEY_PREFIX}${id}` : `${STORAGE_KEY_PREFIX}${id}`
   const testemunhasKey = `${TESTEMUNHAS_KEY_PREFIX}${id}`
-  const quadroKey = `${QUADRO_KEY_PREFIX}${id}`
+  const quadroKey = isAnual ? `${ANUAL_QUADRO_KEY_PREFIX}${id}` : `${QUADRO_KEY_PREFIX}${id}`
   const moradoresKey = `${MORADORES_KEY_PREFIX}${id}`
   const [savedClausulas, setSavedClausulas] = useState<Clausula[] | null>(null)
   const [testemunhas, setTestemunhas] = useState<[Testemunha, Testemunha]>(DEFAULT_TESTEMUNHAS)
@@ -260,36 +420,53 @@ export function LocacaoContratoPage() {
   const [editingQuadroIdx, setEditingQuadroIdx] = useState<number | null>(null)
   const [editQuadroText, setEditQuadroText] = useState("")
   const [moradoresData, setMoradoresData] = useState<MoradoresData | null>(null)
+  const localDataKey = `lox_contrato_localdata_${id}`
+  const [localData, setLocalData] = useState<string | null>(null)
+  const [editingLocalData, setEditingLocalData] = useState(false)
+  const [editLocalDataText, setEditLocalDataText] = useState("")
   const loadedRef = useRef(false)
+  const prevStorageKeyRef = useRef(storageKey)
 
+  // Reload from localStorage when storageKey changes (e.g. locacao type loaded)
   useEffect(() => {
-    if (loadedRef.current) return
-    const saved = localStorage.getItem(storageKey)
-    if (saved) {
-      try {
-        setSavedClausulas(JSON.parse(saved))
-      } catch { /* ignore */ }
+    if (!loadedRef.current || prevStorageKeyRef.current !== storageKey) {
+      prevStorageKeyRef.current = storageKey
+      const saved = localStorage.getItem(storageKey)
+      if (saved) {
+        try { setSavedClausulas(JSON.parse(saved)) } catch { /* ignore */ }
+      } else {
+        setSavedClausulas(null)
+      }
+      const savedTest = localStorage.getItem(testemunhasKey)
+      if (savedTest) {
+        try { setTestemunhas(JSON.parse(savedTest)) } catch { /* ignore */ }
+      }
+      const savedQ = localStorage.getItem(quadroKey)
+      if (savedQ) {
+        try { setSavedQuadro(JSON.parse(savedQ)) } catch { /* ignore */ }
+      } else {
+        setSavedQuadro(Array(8).fill(null))
+      }
+      const savedM = localStorage.getItem(moradoresKey)
+      if (savedM) {
+        try { setMoradoresData(JSON.parse(savedM)) } catch { /* ignore */ }
+      }
+      const savedLD = localStorage.getItem(localDataKey)
+      if (savedLD) {
+        setLocalData(savedLD)
+      }
+      loadedRef.current = true
     }
-    const savedTest = localStorage.getItem(testemunhasKey)
-    if (savedTest) {
-      try {
-        setTestemunhas(JSON.parse(savedTest))
-      } catch { /* ignore */ }
-    }
-    const savedQ = localStorage.getItem(quadroKey)
-    if (savedQ) {
-      try {
-        setSavedQuadro(JSON.parse(savedQ))
-      } catch { /* ignore */ }
-    }
-    const savedM = localStorage.getItem(moradoresKey)
-    if (savedM) {
-      try {
-        setMoradoresData(JSON.parse(savedM))
-      } catch { /* ignore */ }
-    }
-    loadedRef.current = true
-  }, [storageKey, testemunhasKey, quadroKey, moradoresKey])
+  }, [storageKey, testemunhasKey, quadroKey, moradoresKey, localDataKey])
+
+  const defaultLocalData = `Florianópolis, ${format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}.`
+  const localDataText = localData ?? defaultLocalData
+
+  function saveLocalData() {
+    localStorage.setItem(localDataKey, editLocalDataText)
+    setLocalData(editLocalDataText)
+    setEditingLocalData(false)
+  }
 
   function updateTestemunha(index: 0 | 1, field: "nome" | "cpf", value: string) {
     const updated = [...testemunhas] as [Testemunha, Testemunha]
@@ -308,12 +485,17 @@ export function LocacaoContratoPage() {
     const checkOutDate = toLocalDateStr(locacao.checkOut)
     const dias = differenceInDays(parseISO(checkOutDate), parseISO(checkInDate))
 
+    const mesesAnual = countMesesAddMonths(checkInDate, checkOutDate)
     const meses = Math.ceil(dias / 30)
     const valorBruto = locacao.tipoPagamento === "avista"
       ? (locacao.valorTotal ?? 0)
       : (locacao.valorMensal ?? 0) * meses
     const valorLabel = "TOTAL DA TEMPORADA"
     const taxaLimpezaNum = property.taxaLimpeza ?? 0
+    const valorMensal = locacao.valorMensal ?? 0
+    // Caução default: mensal = 3x aluguel; à vista = valor total. Editável no quadro.
+    const caucaoValor = locacao.tipoPagamento === "avista" ? (locacao.valorTotal ?? 0) : valorMensal * 3
+    const checkInDateParsed = parseISO(checkInDate)
 
     return {
       locadoraNome: proprietario?.nomeCompleto ?? "—",
@@ -340,10 +522,21 @@ export function LocacaoContratoPage() {
       garantia: locacao.garantia ? garantiaLabels[locacao.garantia] ?? locacao.garantia : "—",
       numMoradores: locacao.numMoradores ?? 1,
       tipoPagamento: locacao.tipoPagamento === "avista" ? "À Vista" : "Mensal",
+      // Annual-specific
+      locadoraRg: proprietario?.rg ?? "—",
+      locatariaRg: locacao.rg ?? "—",
+      mesesAnual,
+      checkInExtenso: formatDateExtenso(checkInDate),
+      checkOutExtenso: formatDateExtenso(checkOutDate),
+      valorMensalFormatado: formatCurrency(valorMensal),
+      valorMensalExtenso: valorPorExtenso(valorMensal),
+      diaVencimento: checkInDateParsed.getDate(),
+      caucaoFormatado: formatCurrency(caucaoValor),
+      caucaoExtenso: valorPorExtenso(caucaoValor),
     }
   }, [locacao, property, proprietario])
 
-  const clausulas = savedClausulas ?? getDefaultClausulas(contratoData)
+  const clausulas = savedClausulas ?? (isAnual ? getDefaultClausulasAnual(contratoData) : getDefaultClausulas(contratoData))
 
   function saveClausulas(updated: Clausula[]) {
     setSavedClausulas(updated)
@@ -364,6 +557,24 @@ export function LocacaoContratoPage() {
   function getQuadroDefault(idx: number): string {
     if (!contratoData || !locacao) return ""
     const d = contratoData
+    if (isAnual) {
+      const buildPessoa = (nome: string, estadoCivil: string, profissao: string, rg: string, cpf: string, endereco: string) => {
+        const parts: string[] = [`**${nome.toUpperCase()}**`, "brasileiro(a)"]
+        if (estadoCivil && estadoCivil !== "—") parts.push(estadoCivil)
+        if (profissao && profissao !== "—") parts.push(profissao)
+        const docParts: string[] = []
+        if (rg && rg !== "—") docParts.push(`portador do RG nº ${rg}`)
+        if (cpf && cpf !== "—") docParts.push(`inscrito no CPF sob o nº ${cpf}`)
+        if (docParts.length > 0) parts.push(docParts.join(", "))
+        if (endereco && endereco !== "—") parts.push(`residente e domiciliado na ${endereco}`)
+        return parts.join(", ")
+      }
+      switch (idx) {
+        case 0: return buildPessoa(d.locadoraNome, d.locadoraEstadoCivil, d.locadoraProfissao, d.locadoraRg, d.locadoraCpf, d.locadoraEndereco)
+        case 1: return buildPessoa(d.locatariaNome, d.locatariaEstadoCivil, d.locatariaProfissao, d.locatariaRg, d.locatariaCpf, d.locatariaEndereco)
+        default: return ""
+      }
+    }
     switch (idx) {
       case 0: return `**${d.locadoraNome.toUpperCase()}**, Brasileira, ${d.locadoraEstadoCivil}, ${d.locadoraProfissao}, inscrita no CPF sob o nº ${d.locadoraCpf}, residente e domiciliado na ${d.locadoraEndereco}, doravante denominado LOCADORA.`
       case 1: return `**${d.locatariaNome.toUpperCase()}**, brasileira, ${d.locatariaEstadoCivil}, ${d.locatariaProfissao}, inscrito no CPF sob o nº ${d.locatariaCpf}, residente e domiciliado(a) na ${d.locatariaEndereco}, doravante denominada LOCATÁRIA.`
@@ -371,7 +582,7 @@ export function LocacaoContratoPage() {
       case 3: return `**FINALIDADE RESIDENCIAL:** Lazer`
       case 4: return `**PRAZO:** ${d.dias} DIAS, ENTRADA: Dia ${d.checkIn} às 16h, SAÍDA: ${d.checkOut} às 10h`
       case 5: return `**VALOR DO ALUGUEL e ENCARGOS*:**\n**${d.valorLabel}:** ${d.valorFormatado}\n**LIMPEZA:** ${d.taxaLimpeza}\n**(*) ENCARGOS INCLUSOS: internet e IPTU**\n**Água e luz inclusos até os limites mensais previstos neste contrato**`
-      case 6: return `**Garantia: ${d.garantia}**`
+      case 6: return `**Garantia: Caução:** [VALOR] ([VALOR POR EXTENSO]) a serem pagos por transferência bancária na assinatura do contrato para que seja feito o bloqueio das datas no calendário.`
       case 7: return `Obs.: - É obrigatória a apresentação de documento de cada menor que se hospedar junto com seus pais ou responsáveis legais. - **Não** é permitido fumar no interior do imóvel. Animais de estimação de médio a pequeno porte autorizados: [ x ] SIM [  ] NÃO - Horário habitual de entrada, às 16h e saída, às 10h. Exceções deverão ser combinadas com antecedência mínima de 24 horas. - O LOCADOR fornecerá itens de cama, mesa e banho.`
       default: return ""
     }
@@ -404,7 +615,7 @@ export function LocacaoContratoPage() {
   function renderQuadroBox(idx: number, borderClass: string, rows = 3) {
     const isEditing = editingQuadroIdx === idx
     return (
-      <div className={`${borderClass} p-3 text-sm text-justify group`}>
+      <div className={`${borderClass.includes("p-0") ? "" : "p-3"} text-sm text-justify group ${borderClass}`}>
         {isEditing ? (
           <div className="space-y-2">
             <Textarea value={editQuadroText} onChange={e => setEditQuadroText(e.target.value)} rows={rows} className="text-sm" />
@@ -470,21 +681,41 @@ export function LocacaoContratoPage() {
   function exportPDF() {
     if (!contratoData || !locacao) return
 
-    // Validar placeholders não preenchidos
-    const placeholderRe = /\[\s*[A-Za-zÀ-ÿ]{2,}[A-Za-zÀ-ÿ\-\/\s]*\]/
-    const quadroLabels = ["Locadora", "Locatária", "Objeto", "Finalidade", "Prazo", "Valor", "Garantia", "Observações"]
-    for (let qi = 0; qi < 8; qi++) {
-      if (placeholderRe.test(quadroText(qi))) {
-        toast.error("Preencha todos os campos entre [colchetes] antes de exportar", {
-          description: `Verifique a seção "${quadroLabels[qi]}"`,
-        })
-        return
+    // Validar placeholders não preenchidos — detecta [texto], [R$ valor], etc.
+    // Ignora checkboxes [ x ] e [  ] do campo Obs
+    const placeholderRe = /\[[^\]]{2,}\]/
+    const isCheckbox = (match: string) => /^\[\s*x?\s*\]$/i.test(match)
+    if (isAnual) {
+      const anualQuadroLabels = ["Locador", "Locatário"]
+      for (let qi = 0; qi < 2; qi++) {
+        const matches = quadroText(qi).match(/\[[^\]]{2,}\]/g) ?? []
+        if (matches.some(m => !isCheckbox(m))) {
+          toast.error("Preencha todos os campos entre [colchetes] antes de exportar", {
+            description: `Verifique a seção "${anualQuadroLabels[qi]}"`,
+          })
+          return
+        }
+      }
+    } else {
+      const quadroLabels = ["Locadora", "Locatária", "Objeto", "Finalidade", "Prazo", "Valor", "Garantia", "Observações"]
+      for (let qi = 0; qi < 8; qi++) {
+        const matches = quadroText(qi).match(/\[[^\]]{2,}\]/g) ?? []
+        if (matches.some(m => !isCheckbox(m))) {
+          toast.error("Preencha todos os campos entre [colchetes] antes de exportar", {
+            description: `Verifique a seção "${quadroLabels[qi]}"`,
+          })
+          return
+        }
       }
     }
-    for (const clausula of clausulas) {
-      if (placeholderRe.test(clausula.texto)) {
+    for (let ci = 0; ci < clausulas.length; ci++) {
+      const clausula = clausulas[ci]
+      const clausulaMatches = clausula.texto.match(/\[[^\]]{2,}\]/g) ?? []
+      if (clausulaMatches.some(m => !isCheckbox(m))) {
+        const boldMatch = clausula.texto.match(/\*\*(.+?)\*\*/)
+        const clausulaLabel = clausula.titulo || (boldMatch ? boldMatch[1] : `Cláusula ${ci + 1}`)
         toast.error("Preencha todos os campos entre [colchetes] nas cláusulas antes de exportar", {
-          description: `Verifique a cláusula "${clausula.titulo}"`,
+          description: `Verifique: ${clausulaLabel}`,
         })
         return
       }
@@ -504,20 +735,10 @@ export function LocacaoContratoPage() {
       }
     }
 
-    // ---- FIRST PAGE: Bordered "quadro inicial" ----
     const boxX = margin
     const boxW = maxWidth
-    const boxStartY = y
-    const sections: number[] = [] // Y positions for horizontal dividers
 
-    // Title
-    doc.setFontSize(12)
-    doc.setFont("helvetica", "bold")
-    doc.text("CONTRATO DE LOCAÇÃO DE TEMPORADA", pageWidth / 2, y + 6, { align: "center" })
-    y += 12
-    sections.push(y)
-
-    // Helper to render a quadro section in PDF
+    // Helper to render a quadro section in PDF (used for both layouts)
     function pdfQuadroSection(idx: number, fontSize = 9) {
       doc.setFontSize(fontSize)
       const text = quadroText(idx)
@@ -527,89 +748,144 @@ export function LocacaoContratoPage() {
         y = pdfRenderSegments(doc, segs, boxX + 3, y + 4, boxW - 6, LH)
       }
       y += 1
+    }
+
+    if (isAnual) {
+      // ---- ANNUAL: Flowing text, no bordered quadro ----
+
+      // Title
+      doc.setFontSize(12)
+      doc.setFont("helvetica", "bold")
+      doc.text("CONTRATO DE LOCAÇÃO RESIDENCIAL", pageWidth / 2, y + 6, { align: "center" })
+      y += 16
+
+      // Intro text
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "normal")
+      const intro1 = "Pelo presente instrumento particular, de um lado, como LOCADOR:"
+      y = pdfRenderSegments(doc, [{ text: intro1, bold: false }], margin, y, maxWidth, LH)
+      y += 2
+
+      // Locador details
+      doc.setFontSize(9)
+      const locadorText = quadroText(0)
+      for (const line of locadorText.split("\n")) {
+        const segs = parsePdfSegments(line)
+        y = pdfRenderSegments(doc, segs, margin, y, maxWidth, LH)
+      }
+      y += 6
+
+      // "E, de outro lado..."
+      doc.setFont("helvetica", "normal")
+      const intro2 = "E, de outro lado, como LOCATÁRIO:"
+      y = pdfRenderSegments(doc, [{ text: intro2, bold: false }], margin, y, maxWidth, LH)
+      y += 2
+
+      // Locatário details
+      const locatarioText = quadroText(1)
+      for (const line of locatarioText.split("\n")) {
+        const segs = parsePdfSegments(line)
+        y = pdfRenderSegments(doc, segs, margin, y, maxWidth, LH)
+      }
+      y += 6
+
+      // "Têm justo e contratado..."
+      doc.setFont("helvetica", "normal")
+      const intro3 = "Têm justo e contratado o que segue:"
+      doc.text(intro3, margin, y)
+      y += LH + 8
+    } else {
+      // ---- TEMPORADA: Bordered "quadro inicial" ----
+      const boxStartY = y
+      const sections: number[] = []
+
+      // Title
+      doc.setFontSize(12)
+      doc.setFont("helvetica", "bold")
+      doc.text("CONTRATO DE LOCAÇÃO DE TEMPORADA", pageWidth / 2, y + 6, { align: "center" })
+      y += 12
       sections.push(y)
-    }
 
-    // Locadora
-    pdfQuadroSection(0)
+      function pdfQuadroSectionBordered(idx: number, fontSize = 9) {
+        pdfQuadroSection(idx, fontSize)
+        sections.push(y)
+      }
 
-    // Locatária
-    pdfQuadroSection(1)
+      // Locadora
+      pdfQuadroSectionBordered(0)
+      // Locatária
+      pdfQuadroSectionBordered(1)
+      // Objeto
+      pdfQuadroSectionBordered(2)
+      // Finalidade
+      pdfQuadroSectionBordered(3)
+      // Prazo
+      pdfQuadroSectionBordered(4)
+      // Valor
+      pdfQuadroSectionBordered(5)
+      // Garantia
+      pdfQuadroSectionBordered(6)
 
-    // Objeto
-    pdfQuadroSection(2)
+      // Moradores + Pessoas autorizadas
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "normal")
+      doc.text(`NÚMERO MÁXIMO DE PESSOAS: ${moradores.maxPessoas}.`, boxX + 3, y + 4)
+      y += LH + 4
+      doc.text("PESSOAS AUTORIZADAS:", boxX + 3, y)
+      y += LH + 1
 
-    // Finalidade
-    pdfQuadroSection(3)
-
-    // Prazo
-    pdfQuadroSection(4)
-
-    // Valor
-    pdfQuadroSection(5)
-
-    // Garantia
-    pdfQuadroSection(6)
-
-    // Moradores + Pessoas autorizadas
-    doc.setFontSize(9)
-    doc.setFont("helvetica", "normal")
-    doc.text(`NÚMERO MÁXIMO DE PESSOAS: ${moradores.maxPessoas}.`, boxX + 3, y + 4)
-    y += LH + 4
-    doc.text("PESSOAS AUTORIZADAS:", boxX + 3, y)
-    y += LH + 1
-
-    // Table
-    const colW = [(boxW - 6) * 0.45, (boxW - 6) * 0.27, (boxW - 6) * 0.28]
-    const tX = boxX + 3
-    const headers = ["Nome Ocupante", "CPF", "Data de Nascimento"]
-    doc.setFont("helvetica", "bold")
-    doc.rect(tX, y, colW[0], 5)
-    doc.text(headers[0], tX + 1, y + 3.5)
-    doc.rect(tX + colW[0], y, colW[1], 5)
-    doc.text(headers[1], tX + colW[0] + 1, y + 3.5)
-    doc.rect(tX + colW[0] + colW[1], y, colW[2], 5)
-    doc.text(headers[2], tX + colW[0] + colW[1] + 1, y + 3.5)
-    y += 5
-
-    // Data rows from moradores state
-    doc.setFont("helvetica", "normal")
-    const minRows = Math.max(moradores.pessoas.length, 3)
-    for (let r = 0; r < minRows; r++) {
-      const p = moradores.pessoas[r]
+      // Table
+      const colW = [(boxW - 6) * 0.45, (boxW - 6) * 0.27, (boxW - 6) * 0.28]
+      const tX = boxX + 3
+      const headers = ["Nome Ocupante", "CPF", "Data de Nascimento"]
+      doc.setFont("helvetica", "bold")
       doc.rect(tX, y, colW[0], 5)
-      doc.text(p?.nome || "", tX + 1, y + 3.5)
+      doc.text(headers[0], tX + 1, y + 3.5)
       doc.rect(tX + colW[0], y, colW[1], 5)
-      doc.text(p?.cpf || "", tX + colW[0] + 1, y + 3.5)
+      doc.text(headers[1], tX + colW[0] + 1, y + 3.5)
       doc.rect(tX + colW[0] + colW[1], y, colW[2], 5)
-      doc.text(p?.dataNascimento || "", tX + colW[0] + colW[1] + 1, y + 3.5)
+      doc.text(headers[2], tX + colW[0] + colW[1] + 1, y + 3.5)
       y += 5
+
+      // Data rows from moradores state
+      doc.setFont("helvetica", "normal")
+      const minRows = Math.max(moradores.pessoas.length, 3)
+      for (let r = 0; r < minRows; r++) {
+        const p = moradores.pessoas[r]
+        doc.rect(tX, y, colW[0], 5)
+        doc.text(p?.nome || "", tX + 1, y + 3.5)
+        doc.rect(tX + colW[0], y, colW[1], 5)
+        doc.text(p?.cpf || "", tX + colW[0] + 1, y + 3.5)
+        doc.rect(tX + colW[0] + colW[1], y, colW[2], 5)
+        doc.text(p?.dataNascimento || "", tX + colW[0] + colW[1] + 1, y + 3.5)
+        y += 5
+      }
+      y += 2
+      sections.push(y)
+
+      // Observações
+      pdfQuadroSection(7, 8)
+      sections.push(y)
+      const boxEndY = y
+
+      // Draw outer border and section dividers
+      doc.setDrawColor(0)
+      doc.setLineWidth(0.3)
+      doc.rect(boxX, boxStartY, boxW, boxEndY - boxStartY)
+      for (const sy of sections) {
+        doc.line(boxX, sy, boxX + boxW, sy)
+      }
+
+      y += 5
+
+      // "Pelo presente instrumento..."
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "normal")
+      const peloPresente = "Pelo presente instrumento particular de contrato de locação de imóvel para temporada, que entre si fazem a LOCADORA e LOCATÁRIA acima qualificadas, ajustam e contratam, mediante as seguintes cláusulas e condições"
+      checkPage(30)
+      y = pdfRenderSegments(doc, [{ text: peloPresente, bold: false }], margin, y, maxWidth, LH)
+      y += 6
     }
-    y += 2
-    sections.push(y)
-
-    // Observações
-    pdfQuadroSection(7, 8)
-    const boxEndY = y
-
-    // Draw outer border and section dividers
-    doc.setDrawColor(0)
-    doc.setLineWidth(0.3)
-    doc.rect(boxX, boxStartY, boxW, boxEndY - boxStartY)
-    for (const sy of sections) {
-      doc.line(boxX, sy, boxX + boxW, sy)
-    }
-
-    y += 5
-
-    // "Pelo presente instrumento..."
-    doc.setFontSize(9)
-    doc.setFont("helvetica", "normal")
-    const peloPresente = "Pelo presente instrumento particular de contrato de locação de imóvel para temporada, que entre si fazem a LOCADORA e LOCATÁRIA acima qualificadas, ajustam e contratam, mediante as seguintes cláusulas e condições"
-    const ppLines = doc.splitTextToSize(peloPresente, maxWidth)
-    checkPage(ppLines.length * LH + 10)
-    doc.text(ppLines, margin, y)
-    y += ppLines.length * LH + 8
 
     // ---- CLAUSES ----
     doc.setLineWidth(0.2)
@@ -648,8 +924,7 @@ export function LocacaoContratoPage() {
     y += 8
     doc.setFontSize(10)
     doc.setFont("helvetica", "normal")
-    const hoje = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
-    doc.text(`Florianópolis, ${hoje}.`, pageWidth / 2, y, { align: "center" })
+    doc.text(localDataText, pageWidth / 2, y, { align: "center" })
     y += 15
 
     // Locadora signature
@@ -690,7 +965,9 @@ export function LocacaoContratoPage() {
 
     const nomeProprietario = contratoData.locadoraNome.replace(/\s+/g, "_")
     const nomeInquilino = locacao.nomeCompleto.replace(/\s+/g, "_")
-    const nomeArquivo = `Contrato_de_locação_de_Temporada_${nomeProprietario}_e_${nomeInquilino}.pdf`
+    const nomeArquivo = isAnual
+      ? `Contrato_de_locação_Residencial_${nomeProprietario}_${nomeInquilino}.pdf`
+      : `Contrato_de_locação_de_Temporada_${nomeProprietario}_e_${nomeInquilino}.pdf`
     doc.save(nomeArquivo)
   }
 
@@ -749,110 +1026,134 @@ export function LocacaoContratoPage() {
       {/* Preview do contrato */}
       {contratoData && (
         <div className="max-w-3xl space-y-0">
-          {/* ===== PRIMEIRA PÁGINA: QUADRO COM BORDAS ===== */}
 
-          {/* Título */}
-          <h2 className="text-lg font-bold text-center py-3 border border-b-0">
-            CONTRATO DE LOCAÇÃO DE TEMPORADA
-          </h2>
+          {isAnual ? (
+            <>
+              {/* ===== ANNUAL: Flowing text, no bordered quadro ===== */}
+              <h2 className="text-lg font-bold text-center py-3">
+                CONTRATO DE LOCAÇÃO RESIDENCIAL
+              </h2>
 
-          {/* Locadora */}
-          {renderQuadroBox(0, "border")}
+              <div className="text-sm text-justify space-y-4 pb-4">
+                <p>Pelo presente instrumento particular, de um lado, como LOCADOR:</p>
+                {renderQuadroBox(0, "p-0", 3)}
 
-          {/* Locatária */}
-          {renderQuadroBox(1, "border border-t-0")}
+                <p>E, de outro lado, como LOCATÁRIO:</p>
+                {renderQuadroBox(1, "p-0", 3)}
 
-          {/* Objeto */}
-          {renderQuadroBox(2, "border border-t-0")}
+                <p>Têm justo e contratado o que segue:</p>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* ===== TEMPORADA: QUADRO COM BORDAS ===== */}
 
-          {/* Finalidade */}
-          {renderQuadroBox(3, "border border-t-0")}
+              {/* Título */}
+              <h2 className="text-lg font-bold text-center py-3 border border-b-0">
+                CONTRATO DE LOCAÇÃO DE TEMPORADA
+              </h2>
 
-          {/* Prazo */}
-          {renderQuadroBox(4, "border border-t-0")}
+              {/* Locadora */}
+              {renderQuadroBox(0, "border")}
 
-          {/* Valor */}
-          {renderQuadroBox(5, "border border-t-0", 6)}
+              {/* Locatária */}
+              {renderQuadroBox(1, "border border-t-0")}
 
-          {/* Garantia */}
-          {renderQuadroBox(6, "border border-t-0")}
+              {/* Objeto */}
+              {renderQuadroBox(2, "border border-t-0")}
 
-          {/* Moradores + Pessoas autorizadas */}
-          <div className="border border-t-0 p-3 text-sm space-y-2">
-            <div className="flex items-center gap-2">
-              <span>NÚMERO MÁXIMO DE PESSOAS:</span>
-              <input
-                type="number"
-                min={1}
-                value={moradores.maxPessoas}
-                onChange={e => updateMaxPessoas(e.target.value)}
-                className="w-12 border-b border-dashed text-center outline-none bg-transparent"
-              />
-            </div>
-            <p>PESSOAS AUTORIZADAS:</p>
-            <table className="w-full border-collapse border text-sm">
-              <thead>
-                <tr>
-                  <th className="border p-1.5 text-left font-semibold">Nome Ocupante</th>
-                  <th className="border p-1.5 text-left font-semibold">CPF</th>
-                  <th className="border p-1.5 text-left font-semibold">Data de Nascimento</th>
-                  <th className="border p-1.5 w-8"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {moradores.pessoas.map((pessoa, i) => (
-                  <tr key={i}>
-                    <td className="border p-0.5">
-                      <input
-                        value={pessoa.nome}
-                        onChange={e => updatePessoa(i, "nome", e.target.value)}
-                        placeholder="Nome completo"
-                        className="w-full px-1 py-1 outline-none bg-transparent"
-                      />
-                    </td>
-                    <td className="border p-0.5">
-                      <input
-                        value={pessoa.cpf}
-                        onChange={e => updatePessoa(i, "cpf", e.target.value)}
-                        placeholder="000.000.000-00"
-                        className="w-full px-1 py-1 outline-none bg-transparent"
-                      />
-                    </td>
-                    <td className="border p-0.5">
-                      <input
-                        value={pessoa.dataNascimento}
-                        onChange={e => updatePessoa(i, "dataNascimento", e.target.value)}
-                        placeholder="dd/mm/aaaa"
-                        className="w-full px-1 py-1 outline-none bg-transparent"
-                      />
-                    </td>
-                    <td className="border p-0.5 text-center">
-                      {moradores.pessoas.length > 1 && (
-                        <button onClick={() => removePessoa(i)} className="text-muted-foreground hover:text-destructive text-xs">✕</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={addPessoa}>
-              + Adicionar pessoa
-            </Button>
-          </div>
+              {/* Finalidade */}
+              {renderQuadroBox(3, "border border-t-0")}
 
-          {/* Observações */}
-          {renderQuadroBox(7, "border border-t-0", 5)}
+              {/* Prazo */}
+              {renderQuadroBox(4, "border border-t-0")}
 
-          {/* "Pelo presente instrumento..." — fora da caixa */}
-          <div className="pt-6 pb-4 text-sm text-justify">
-            <p>Pelo presente instrumento particular de contrato de locação de imóvel para temporada, que entre si fazem a LOCADORA e LOCATÁRIA acima qualificadas, ajustam e contratam, mediante as seguintes cláusulas e condições</p>
-          </div>
+              {/* Valor */}
+              {renderQuadroBox(5, "border border-t-0", 6)}
+
+              {/* Garantia */}
+              {renderQuadroBox(6, "border border-t-0")}
+
+              {/* Moradores + Pessoas autorizadas */}
+              <div className="border border-t-0 p-3 text-sm space-y-2">
+                <div className="flex items-center gap-2">
+                  <span>NÚMERO MÁXIMO DE PESSOAS:</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={moradores.maxPessoas}
+                    onChange={e => updateMaxPessoas(e.target.value)}
+                    className="w-12 border-b border-dashed text-center outline-none bg-transparent"
+                  />
+                </div>
+                <p>PESSOAS AUTORIZADAS:</p>
+                <table className="w-full border-collapse border text-sm">
+                  <thead>
+                    <tr>
+                      <th className="border p-1.5 text-left font-semibold">Nome Ocupante</th>
+                      <th className="border p-1.5 text-left font-semibold">CPF</th>
+                      <th className="border p-1.5 text-left font-semibold">Data de Nascimento</th>
+                      <th className="border p-1.5 w-8"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {moradores.pessoas.map((pessoa, i) => (
+                      <tr key={i}>
+                        <td className="border p-0.5">
+                          <input
+                            value={pessoa.nome}
+                            onChange={e => updatePessoa(i, "nome", e.target.value)}
+                            placeholder="Nome completo"
+                            className="w-full px-1 py-1 outline-none bg-transparent"
+                          />
+                        </td>
+                        <td className="border p-0.5">
+                          <input
+                            value={pessoa.cpf}
+                            onChange={e => updatePessoa(i, "cpf", e.target.value)}
+                            placeholder="000.000.000-00"
+                            className="w-full px-1 py-1 outline-none bg-transparent"
+                          />
+                        </td>
+                        <td className="border p-0.5">
+                          <input
+                            value={pessoa.dataNascimento}
+                            onChange={e => updatePessoa(i, "dataNascimento", e.target.value)}
+                            placeholder="dd/mm/aaaa"
+                            className="w-full px-1 py-1 outline-none bg-transparent"
+                          />
+                        </td>
+                        <td className="border p-0.5 text-center">
+                          {moradores.pessoas.length > 1 && (
+                            <button onClick={() => removePessoa(i)} className="text-muted-foreground hover:text-destructive text-xs">✕</button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={addPessoa}>
+                  + Adicionar pessoa
+                </Button>
+              </div>
+
+              {/* Observações */}
+              {renderQuadroBox(7, "border border-t-0", 5)}
+
+              {/* "Pelo presente instrumento..." — fora da caixa */}
+              <div className="pt-6 pb-4 text-sm text-justify">
+                <p>Pelo presente instrumento particular de contrato de locação de imóvel para temporada, que entre si fazem a LOCADORA e LOCATÁRIA acima qualificadas, ajustam e contratam, mediante as seguintes cláusulas e condições</p>
+              </div>
+            </>
+          )}
 
           {/* ===== CLÁUSULAS — SEM BORDAS ===== */}
           {clausulas.map((clausula, i) => (
             <div key={i} className="space-y-2 pb-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-bold text-sm underline underline-offset-4">{clausula.titulo}</h3>
+                {clausula.titulo ? (
+                  <h3 className="font-bold text-sm underline underline-offset-4">{clausula.titulo}</h3>
+                ) : <div />}
                 {editingIndex !== i && (
                   <Button
                     variant="ghost"
@@ -894,9 +1195,32 @@ export function LocacaoContratoPage() {
 
           {/* ===== ASSINATURAS ===== */}
           <div className="space-y-10 pt-8">
-            <p className="text-sm text-center">
-              Florianópolis, {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}.
-            </p>
+            <div className="text-sm text-center group flex items-center justify-center gap-2">
+              {editingLocalData ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    value={editLocalDataText}
+                    onChange={e => setEditLocalDataText(e.target.value)}
+                    className="border rounded px-2 py-1 text-sm text-center w-80"
+                    autoFocus
+                  />
+                  <Button size="sm" onClick={saveLocalData}><Save className="h-3 w-3 mr-1" />Salvar</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingLocalData(false)}>Cancelar</Button>
+                </div>
+              ) : (
+                <>
+                  <span>{localDataText}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => { setEditLocalDataText(localDataText); setEditingLocalData(true) }}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                </>
+              )}
+            </div>
 
             {/* Locadora */}
             <div className="max-w-xs space-y-1">

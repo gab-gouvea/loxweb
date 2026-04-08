@@ -64,11 +64,30 @@ export function useRecebimentosLocacao(mes: number, ano: number) {
   })
 }
 
+export function useRecebimentosByLocacao(locacaoId: string) {
+  return useQuery({
+    queryKey: ["recebimentos-locacao", "by-locacao", locacaoId],
+    queryFn: () => locacaoService.getRecebimentosByLocacao(locacaoId),
+    enabled: !!locacaoId,
+  })
+}
+
 export function useUpsertRecebimentoLocacao() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ locacaoId, mes, ano, valorRecebido }: { locacaoId: string; mes: number; ano: number; valorRecebido: number }) =>
       locacaoService.upsertRecebimento(locacaoId, mes, ano, valorRecebido),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recebimentos-locacao"] })
+    },
+  })
+}
+
+export function useDeleteRecebimentoLocacao() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ locacaoId, mes, ano }: { locacaoId: string; mes: number; ano: number }) =>
+      locacaoService.deleteRecebimento(locacaoId, mes, ano),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recebimentos-locacao"] })
     },

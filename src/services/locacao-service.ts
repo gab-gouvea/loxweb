@@ -9,7 +9,9 @@ export interface LocacaoService {
   update(id: string, data: Partial<LocacaoFormData> & Partial<Locacao>): Promise<Locacao>
   delete(id: string): Promise<void>
   getRecebimentos(mes: number, ano: number): Promise<RecebimentoLocacao[]>
+  getRecebimentosByLocacao(locacaoId: string): Promise<RecebimentoLocacao[]>
   upsertRecebimento(locacaoId: string, mes: number, ano: number, valorRecebido: number): Promise<RecebimentoLocacao>
+  deleteRecebimento(locacaoId: string, mes: number, ano: number): Promise<void>
 }
 
 export const locacaoService: LocacaoService = new ApiLocacaoService()

@@ -25,7 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
-import { useLocacoes } from "@/hooks/use-locacoes"
+import { useLocacoes, useRecebimentosLocacao } from "@/hooks/use-locacoes"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { formatDate } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
@@ -57,6 +57,10 @@ export function ReportsPage() {
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
+  const reportMes = currentMonth.getMonth() + 1
+  const reportAno = currentMonth.getFullYear()
+  const { data: locacaoRecebimentos = [] } = useRecebimentosLocacao(reportMes, reportAno)
+  const locacaoRecebidoSet = useMemo(() => new Set(locacaoRecebimentos.map(r => r.locacaoId)), [locacaoRecebimentos])
 
   // Reserva pertence ao mês de (checkIn + 1 dia) — dia do recebimento
   const monthReservations = useMemo(() => {
@@ -191,8 +195,27 @@ export function ReportsPage() {
         }
       }
     }
-    // Incluir locações nos totais
+    // Incluir locações nos totais (separando pago/a receber)
+    let locacoesPago = 0
+    let locacoesAReceber = 0
+    for (const l of monthLocacoes) {
+      const info = locacaoInfoMap.get(l.id)!
+      const property = propertyMap.get(l.propriedadeId)
+      const comissao = getLocacaoComissao(l, info.hasPayment)
+      const bruto = getLocacaoBruto(l, info.hasPayment)
+      const faxina = info.hasFaxina ? calcLocacaoFaxinaReceita(l, property) : 0
+      const locTotal = comissao + faxina
+      if (locacaoRecebidoSet.has(l.id)) {
+        locacoesPago += locTotal
+      } else {
+        locacoesAReceber += locTotal
+      }
+      // Líquido proprietário: bruto - comissão (faxina não sai do proprietário)
+      totalLiquido += bruto - comissao
+    }
     totalRecebido += totalLocacoes
+    totalPago += locacoesPago
+    totalAReceber += locacoesAReceber
 
     const canceladas = filteredReservations.filter((r) => r.status === "cancelada").length
     return {
@@ -205,7 +228,7 @@ export function ReportsPage() {
       totalLocacoes,
       numLocacoes: monthLocacoes.length,
     }
-  }, [filteredReservations, propertyMap, totalLocacoes, monthLocacoes])
+  }, [filteredReservations, propertyMap, totalLocacoes, monthLocacoes, locacaoInfoMap, locacaoRecebidoSet])
 
 
 
@@ -426,6 +449,7 @@ export function ReportsPage() {
                           <div className="flex items-center gap-2">
                             <KeyRound className="h-3 w-3 text-blue-600 shrink-0" />
                             <span className="truncate block max-w-[100px]">{loc.nomeCompleto}</span>
+                            {locacaoRecebidoSet.has(loc.id) && <span className="text-green-600 text-xs">✓</span>}
                           </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(loc.checkIn)}</TableCell>

@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { addDays, format, isToday, getDay, differenceInCalendarDays, parseISO, startOfDay } from "date-fns"
+import { addDays, addMonths, format, isToday, getDay, differenceInCalendarDays, parseISO, startOfDay } from "date-fns"
 import { cn } from "@/lib/utils"
 import { computeTimelineSegments } from "@/lib/calendar-utils"
 import { DAYS_OF_WEEK, toLocalDateStr } from "@/lib/date-utils"
@@ -33,6 +33,7 @@ interface CellLabels {
   checkins: string[]
   checkouts: string[]
   faxinas: string[]
+  faxinasRotina: string[] // faxina de rotina de locação (mostra nome do inquilino)
   pagamentos: { nomeHospede: string; precoTotal: number }[]
 }
 
@@ -158,7 +159,7 @@ export function CalendarGrid({
 
     const map = new Map<string, CellLabels>()
     const sd = startOfDay(startDate)
-    const getCell = (key: string) => map.get(key) ?? { checkins: [], checkouts: [], faxinas: [], pagamentos: [] }
+    const getCell = (key: string) => map.get(key) ?? { checkins: [], checkouts: [], faxinas: [], faxinasRotina: [], pagamentos: [] }
 
     for (const r of reservations) {
       // Check-in label
@@ -229,18 +230,49 @@ export function CalendarGrid({
         map.set(key, existing)
       }
 
-      // Faxina labels (based on faxinaIntervaloDias)
-      const intervalDays = l.faxinaIntervaloDias ?? 15
-      let faxinaDate = addDays(checkIn, intervalDays)
-      while (faxinaDate <= checkOut) {
-        const faxinaDay = differenceInCalendarDays(faxinaDate, sd)
-        if (faxinaDay >= 0 && faxinaDay < visibleDays) {
-          const key = `${l.propriedadeId}-${faxinaDay}`
-          const existing = getCell(key)
-          existing.faxinas.push(l.nomeCompleto)
-          map.set(key, existing)
+      // Faxina labels (based on faxinaIntervaloDias — só temporada, só ativa)
+      if (l.tipoLocacao !== "anual" && l.status === "ativa") {
+        const intervalDays = l.faxinaIntervaloDias ?? 15
+        let faxinaDate = addDays(checkIn, intervalDays)
+        while (faxinaDate <= checkOut) {
+          const faxinaDay = differenceInCalendarDays(faxinaDate, sd)
+          if (faxinaDay >= 0 && faxinaDay < visibleDays) {
+            const key = `${l.propriedadeId}-${faxinaDay}`
+            const existing = getCell(key)
+            existing.faxinasRotina.push(l.nomeCompleto)
+            map.set(key, existing)
+          }
+          faxinaDate = addDays(faxinaDate, intervalDays)
         }
-        faxinaDate = addDays(faxinaDate, intervalDays)
+      }
+
+      // Payment labels — paga e mora: pagamento no dia da entrada de cada mês, exceto checkout
+      // Último pagamento (1 mês antes do checkout) inclui faxina
+      const prop = propertyMap.get(l.propriedadeId)
+      const comissaoPct = l.percentualComissao ?? 0
+      const taxaLimpeza = prop?.taxaLimpeza ?? 0
+      const isAvista = l.tipoPagamento === "avista"
+      let payDate = checkIn
+      while (payDate < checkOut) {
+        const payDay = differenceInCalendarDays(payDate, sd)
+        if (payDay >= 0 && payDay < visibleDays) {
+          const key = `${l.propriedadeId}-${payDay}`
+          const existing = getCell(key)
+          const nextPay = addMonths(payDate, 1)
+          const isUltimo = nextPay >= checkOut
+          const faxinaReceita = isUltimo ? (l.faxinaPorMim ? taxaLimpeza : taxaLimpeza - (l.custoEmpresaFaxina ?? 0)) : 0
+          // À vista: comissão só no primeiro mês; mensal: comissão todo mês
+          const bruto = isAvista
+            ? (payDate.getTime() === checkIn.getTime() ? (l.valorTotal ?? 0) : 0)
+            : (l.valorMensal ?? 0)
+          const valor = (bruto * comissaoPct / 100) + faxinaReceita
+          // Nota: faxina separada no detail page, mas no calendário mantemos o total para simplificar a visualização
+          if (valor > 0) {
+            existing.pagamentos.push({ nomeHospede: l.nomeCompleto, precoTotal: valor })
+            map.set(key, existing)
+          }
+        }
+        payDate = addMonths(payDate, 1)
       }
     }
 
@@ -351,6 +383,7 @@ export function CalendarGrid({
                         const hasCheckIn = labels.checkins.length > 0
                         const hasCheckOut = labels.checkouts.length > 0
                         const hasFaxina = labels.faxinas.length > 0
+                        const hasFaxinaRotina = labels.faxinasRotina.length > 0
                         const hasPagamento = labels.pagamentos.length > 0
                         const hasBoth = hasCheckIn && hasCheckOut
 
@@ -365,6 +398,9 @@ export function CalendarGrid({
                               {hasFaxina && (
                                 <span className="text-[9px] font-bold text-yellow-500 leading-tight">FAXINA</span>
                               )}
+                              {hasFaxinaRotina && labels.faxinasRotina.map((nome, idx) => (
+                                <span key={idx} className="text-[9px] font-bold text-yellow-500 leading-tight truncate max-w-full px-0.5">FAX {nome.split(" ")[0]}</span>
+                              ))}
                               {hasPagamento && labels.pagamentos.map((p, idx) => (
                                 <TooltipProvider key={idx} delayDuration={200}>
                                   <Tooltip>
@@ -394,6 +430,9 @@ export function CalendarGrid({
                             {hasFaxina && (
                               <span className="text-[10px] font-bold text-yellow-500 leading-tight">FAXINA</span>
                             )}
+                            {hasFaxinaRotina && labels.faxinasRotina.map((nome, idx) => (
+                              <span key={idx} className="text-[10px] font-bold text-yellow-500 leading-tight truncate max-w-full px-0.5">FAX {nome.split(" ")[0]}</span>
+                            ))}
                             {hasPagamento && labels.pagamentos.map((p, idx) => (
                               <TooltipProvider key={idx} delayDuration={200}>
                                 <Tooltip>

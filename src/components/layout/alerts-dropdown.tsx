@@ -54,6 +54,7 @@ const alertIcons: Record<AlertType, typeof Bell> = {
   locacao_checkout_hoje: LogOut,
   locacao_faxina_atrasada: RefreshCw,
   locacao_faxina_proxima: RefreshCw,
+  locacao_pagamento_pendente: CircleDollarSign,
   locacao_expirando: Timer,
   locacao_expirando_urgente: Timer,
 }
@@ -72,6 +73,7 @@ const alertColors: Record<AlertType, string> = {
   locacao_checkout_hoje: "text-red-600",
   locacao_faxina_atrasada: "text-red-600",
   locacao_faxina_proxima: "text-yellow-600",
+  locacao_pagamento_pendente: "text-blue-500",
   locacao_expirando: "text-orange-600",
   locacao_expirando_urgente: "text-red-600",
 }
@@ -97,6 +99,7 @@ export function AlertsDropdown() {
     if (a.type === "pagamento_pendente") return elapsed >= SNOOZE_1_DIA
     if (a.type === "locacao_faxina_atrasada") return elapsed >= SNOOZE_2_DIAS
     if (a.type === "locacao_faxina_proxima") return elapsed >= SNOOZE_1_DIA
+    if (a.type === "locacao_pagamento_pendente") return elapsed >= SNOOZE_1_DIA
     return false
   })
   const visibleCount = visibleAlerts.length

@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Building2,
   CalendarDays,
+  ClipboardCheck,
   Mail,
   MapPin,
   Pencil,
@@ -22,14 +23,19 @@ import {
   Building,
   Clock,
   CheckCircle2,
+  Wallet,
+  ThumbsUp,
 } from "lucide-react"
 import { toast } from "sonner"
-import { addDays, addMonths, parseISO } from "date-fns"
+import { addDays, addMonths, parseISO, isBefore, format } from "date-fns"
+import { ptBR } from "date-fns/locale/pt-BR"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,7 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useLocacao, useUpdateLocacao } from "@/hooks/use-locacoes"
+import { useLocacao, useUpdateLocacao, useRecebimentosByLocacao, useUpsertRecebimentoLocacao, useDeleteRecebimentoLocacao } from "@/hooks/use-locacoes"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { LocacaoStatusBadge } from "@/components/locacoes/locacao-status-badge"
 import { LocacaoDialog } from "@/components/locacoes/locacao-dialog"
@@ -55,6 +61,9 @@ export function LocacaoDetailPage() {
   const { data: locacao, isLoading } = useLocacao(id!)
   const { propertyMap } = usePropertyMap()
   const updateMutation = useUpdateLocacao()
+  const { data: recebimentos = [] } = useRecebimentosByLocacao(id!)
+  const upsertRecebimento = useUpsertRecebimentoLocacao()
+  const deleteRecebimento = useDeleteRecebimentoLocacao()
 
   const [editingNotas, setEditingNotas] = useState(false)
   const [notas, setNotas] = useState("")
@@ -63,8 +72,16 @@ export function LocacaoDetailPage() {
   const [custoEmpresa, setCustoEmpresa] = useState<number | null>(null)
   const [faxinaDataSaida, setFaxinaDataSaida] = useState<string | null>(null)
   const [confirmConcluir, setConfirmConcluir] = useState(false)
+  const [concluirData, setConcluirData] = useState<Date>(new Date())
   const [confirmEncerrar, setConfirmEncerrar] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+  // Vistoria (anual) — mode: false=closed, "agendar"=date picker, "concluir"=notes form
+  const [editingVistoriaEntrada, setEditingVistoriaEntrada] = useState<false | "agendar" | "concluir">(false)
+  const [vistoriaEntradaNotas, setVistoriaEntradaNotas] = useState("")
+  const [vistoriaEntradaData, setVistoriaEntradaData] = useState("")
+  const [editingVistoriaSaida, setEditingVistoriaSaida] = useState<false | "agendar" | "concluir">(false)
+  const [vistoriaSaidaNotas, setVistoriaSaidaNotas] = useState("")
+  const [vistoriaSaidaData, setVistoriaSaidaData] = useState("")
 
   if (isLoading) {
     return (
@@ -87,6 +104,7 @@ export function LocacaoDetailPage() {
   }
 
   const property = propertyMap.get(locacao.propriedadeId)
+  const isAnual = locacao.tipoLocacao === "anual"
 
   function handleMutate(data: Partial<LocacaoFormData & Locacao>) {
     updateMutation.mutate(
@@ -122,6 +140,9 @@ export function LocacaoDetailPage() {
           </Button>
           <h1 className="text-2xl font-bold">{locacao.nomeCompleto}</h1>
           <LocacaoStatusBadge status={locacao.status as LocacaoStatus} />
+          <Badge variant="outline" className={isAnual ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-teal-50 text-teal-700 border-teal-200"}>
+            {isAnual ? "Anual" : "Longa Temporada"}
+          </Badge>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
@@ -191,34 +212,132 @@ export function LocacaoDetailPage() {
         {(() => {
           const checkInDate = parseISO(toLocalDateStr(locacao.checkIn))
           const checkOutDate = parseISO(toLocalDateStr(locacao.checkOut))
-          let meses = 0
-          let cur = checkInDate
-          while (cur < checkOutDate) { meses++; cur = addMonths(cur, 1) }
-          const valorTotal = locacao.tipoPagamento === "avista"
-            ? (locacao.valorTotal ?? 0)
-            : (locacao.valorMensal ?? 0) * meses
+          const today = parseISO(getTodayStr())
+          const recebimentoMap = new Map(recebimentos.map(r => [`${r.mes}-${r.ano}`, r]))
+          const comissaoPct = locacao.percentualComissao ?? 0
+          const taxaLimpeza = property?.taxaLimpeza ?? 0
+
+          // Receita líquida de faxina pro gestor: taxa inteira (por mim) ou taxa - custo empresa (terceirizada)
+          const faxinaReceita = locacao.faxinaPorMim ? taxaLimpeza : taxaLimpeza - (locacao.custoEmpresaFaxina ?? 0)
+
+          // Ciclo atual baseado no dia de entrada
+          let cicloStart = checkInDate
+          while (isBefore(addMonths(cicloStart, 1), today) || addMonths(cicloStart, 1).getTime() === today.getTime()) {
+            cicloStart = addMonths(cicloStart, 1)
+          }
+          if (isBefore(today, checkInDate)) cicloStart = checkInDate
+          const nextCiclo = addMonths(cicloStart, 1)
+          const isUltimoCiclo = !isBefore(nextCiclo, checkOutDate)
+
+          let pagMes: number, pagAno: number, valorBruto: number
+          if (locacao.tipoPagamento === "avista") {
+            pagMes = checkInDate.getMonth() + 1
+            pagAno = checkInDate.getFullYear()
+            valorBruto = locacao.valorTotal ?? 0
+          } else {
+            pagMes = cicloStart.getMonth() + 1
+            pagAno = cicloStart.getFullYear()
+            valorBruto = locacao.valorMensal ?? 0
+          }
+
+          const valorComissao = valorBruto * comissaoPct / 100
+
+          const pagKey = `${pagMes}-${pagAno}`
+          const recebido = recebimentoMap.has(pagKey)
+
+          // Faxina — card separado com confirmação independente (mes=99 como marcador)
+          const faxinaKey = `99-${pagAno}`
+          const faxinaRecebida = recebimentoMap.has(faxinaKey)
+
           return (
             <>
+              {/* Valor bruto */}
               <Card>
                 <CardContent className="flex items-center gap-2 pt-3 pb-3">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Valor Total</p>
-                    <p className="text-sm font-medium">{formatCurrency(valorTotal)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {locacao.tipoPagamento === "avista" ? "Valor à Vista" : "Valor Mensal"}
+                    </p>
+                    <p className="text-sm font-medium">{formatCurrency(valorBruto)}</p>
                   </div>
                 </CardContent>
               </Card>
-              {locacao.tipoPagamento !== "avista" && (
-                <Card>
-                  <CardContent className="flex items-center gap-2 pt-3 pb-3">
-                    <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Valor Mensal</p>
-                      <p className="text-sm font-medium">{formatCurrency(locacao.valorMensal ?? 0)}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              {/* Comissão — A Receber / Recebido */}
+              <Card className={`relative transition-colors ${recebido ? "border-green-300 bg-green-50" : ""}`}>
+                <Button
+                  variant={recebido ? "default" : "outline"}
+                  size="icon"
+                  className={`absolute top-1.5 right-1.5 h-6 w-6 ${recebido ? "bg-green-600 hover:bg-green-700" : ""}`}
+                  onClick={() => {
+                    if (recebido) {
+                      deleteRecebimento.mutate({ locacaoId: locacao.id, mes: pagMes, ano: pagAno }, {
+                        onSuccess: () => toast.success("Pagamento desmarcado"),
+                        onError: (err) => toast.error(getErrorMessage(err)),
+                      })
+                    } else {
+                      upsertRecebimento.mutate({ locacaoId: locacao.id, mes: pagMes, ano: pagAno, valorRecebido: valorComissao }, {
+                        onSuccess: () => toast.success("Pagamento confirmado"),
+                        onError: (err) => toast.error(getErrorMessage(err)),
+                      })
+                    }
+                  }}
+                  disabled={upsertRecebimento.isPending || deleteRecebimento.isPending}
+                >
+                  {recebido ? <Check className="h-3 w-3" /> : <ThumbsUp className="h-3 w-3" />}
+                </Button>
+                <CardContent className="flex items-center gap-2 pt-3 pb-3">
+                  <Wallet className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      {recebido ? "Recebido" : "A Receber"}
+                    </p>
+                    <p className="text-sm font-medium">{formatCurrency(valorComissao)}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              {/* Faxina — card separado com confirmação */}
+              <Card className={`relative transition-colors ${faxinaRecebida ? "border-green-300 bg-green-50" : ""}`}>
+                <Button
+                  variant={faxinaRecebida ? "default" : "outline"}
+                  size="icon"
+                  className={`absolute top-1.5 right-1.5 h-6 w-6 ${faxinaRecebida ? "bg-green-600 hover:bg-green-700" : ""}`}
+                  onClick={() => {
+                    if (faxinaRecebida) {
+                      deleteRecebimento.mutate({ locacaoId: locacao.id, mes: 99, ano: pagAno }, {
+                        onSuccess: () => toast.success("Faxina desmarcada"),
+                        onError: (err) => toast.error(getErrorMessage(err)),
+                      })
+                    } else {
+                      upsertRecebimento.mutate({ locacaoId: locacao.id, mes: 99, ano: pagAno, valorRecebido: faxinaReceita }, {
+                        onSuccess: () => toast.success("Faxina confirmada"),
+                        onError: (err) => toast.error(getErrorMessage(err)),
+                      })
+                    }
+                  }}
+                  disabled={upsertRecebimento.isPending || deleteRecebimento.isPending}
+                >
+                  {faxinaRecebida ? <Check className="h-3 w-3" /> : <ThumbsUp className="h-3 w-3" />}
+                </Button>
+                <CardContent className="flex items-center gap-2 pt-3 pb-3">
+                  <SprayCan className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      {faxinaRecebida ? "Faxina Recebida" : "Faxina a Receber"}
+                    </p>
+                    <p className="text-sm font-medium">{formatCurrency(faxinaReceita)}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="flex items-center gap-2 pt-3 pb-3">
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Comissão</p>
+                    <p className="text-sm font-medium">{locacao.percentualComissao ?? 0}%</p>
+                  </div>
+                </CardContent>
+              </Card>
             </>
           )
         })()}
@@ -312,8 +431,246 @@ export function LocacaoDetailPage() {
         </div>
       </div>
 
-      {/* Faxina de Rotina — card igual component-table */}
-      <div className="space-y-4">
+      {/* Vistorias — só anual */}
+      {isAnual && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Vistorias</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Vistoria de Entrada */}
+            {(() => {
+              const isAgendada = !!locacao.vistoriaEntradaData && !locacao.vistoriaEntradaConcluida
+              const isConcluida = !!locacao.vistoriaEntradaConcluida
+              const isNaoAgendada = !isAgendada && !isConcluida
+
+              return (
+                <Card className={isConcluida ? "border-green-300 bg-green-50/30" : "border-blue-300"}>
+                  <CardContent className="p-4 space-y-3">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
+                          isConcluida ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"
+                        }`}>
+                          <ClipboardCheck className="h-4 w-4" />
+                        </div>
+                        <h3 className="font-medium text-sm">Vistoria de Entrada</h3>
+                      </div>
+                      <Badge variant="outline" className={
+                        isConcluida ? "bg-green-100 text-green-700 border-green-200 shrink-0"
+                        : isAgendada ? "bg-blue-50 text-blue-700 border-blue-200 shrink-0"
+                        : "bg-gray-50 text-gray-600 border-gray-200 shrink-0"
+                      }>
+                        {isConcluida && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                        {isAgendada && <Clock className="mr-1 h-3 w-3" />}
+                        {isConcluida ? "Concluída" : isAgendada ? "Agendada" : "Não agendada"}
+                      </Badge>
+                    </div>
+
+                    {/* Data destaque */}
+                    {isAgendada && locacao.vistoriaEntradaData && (
+                      <div className="flex items-center gap-2 rounded-md bg-blue-50 px-3 py-2">
+                        <CalendarDays className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800">Agendada para {formatDate(locacao.vistoriaEntradaData)}</span>
+                      </div>
+                    )}
+                    {isConcluida && locacao.vistoriaEntradaData && (
+                      <div className="flex items-center gap-2 rounded-md bg-green-50 px-3 py-2">
+                        <CalendarDays className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-800">Realizada em {formatDate(locacao.vistoriaEntradaData)}</span>
+                      </div>
+                    )}
+                    {isConcluida && locacao.vistoriaEntradaNotas && (
+                      <div className="rounded-md bg-white/70 border p-2.5">
+                        <p className="text-xs text-muted-foreground mb-1">Observações</p>
+                        <p className="text-sm whitespace-pre-wrap">{locacao.vistoriaEntradaNotas}</p>
+                      </div>
+                    )}
+
+                    {/* Não agendada → Agendar */}
+                    {isNaoAgendada && (
+                      editingVistoriaEntrada === "agendar" ? (
+                        <div className="space-y-2 pt-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">Data:</span>
+                            <Input type="date" className="w-44 h-8" value={vistoriaEntradaData} onChange={(e) => setVistoriaEntradaData(e.target.value)} />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => { if (vistoriaEntradaData) { handleMutate({ vistoriaEntradaData }); setEditingVistoriaEntrada(false) } }} disabled={updateMutation.isPending || !vistoriaEntradaData}>
+                              <CalendarDays className="mr-1 h-3 w-3" />
+                              Agendar
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingVistoriaEntrada(false)}>Cancelar</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="pt-1">
+                          <Button size="sm" variant="outline" onClick={() => { setVistoriaEntradaData(locacao.checkIn.split("T")[0]); setEditingVistoriaEntrada("agendar") }}>
+                            <CalendarDays className="mr-1 h-3 w-3" />
+                            Agendar Vistoria
+                          </Button>
+                        </div>
+                      )
+                    )}
+
+                    {/* Agendada → Concluir ou Cancelar */}
+                    {isAgendada && (
+                      editingVistoriaEntrada === "concluir" ? (
+                        <div className="space-y-2 pt-1 border-t">
+                          <Textarea value={vistoriaEntradaNotas} onChange={(e) => setVistoriaEntradaNotas(e.target.value)} rows={3} placeholder="Descreva o estado do imóvel na entrada..." className="text-sm" />
+                          <div className="flex gap-2">
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => { handleMutate({ vistoriaEntradaNotas: vistoriaEntradaNotas || undefined, vistoriaEntradaConcluida: true }); setEditingVistoriaEntrada(false) }} disabled={updateMutation.isPending}>
+                              <Check className="mr-1 h-3 w-3" />
+                              Concluir Vistoria
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingVistoriaEntrada(false)}>Cancelar</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 pt-1 border-t">
+                          <Button variant="ghost" size="sm" className="h-8 text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => { setVistoriaEntradaNotas(locacao.vistoriaEntradaNotas ?? ""); setEditingVistoriaEntrada("concluir") }}>
+                            <Check className="mr-1 h-3.5 w-3.5" />
+                            Concluir
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-8 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleMutate({ clearVistoriaEntrada: true })} disabled={updateMutation.isPending}>
+                            Cancelar agendamento
+                          </Button>
+                        </div>
+                      )
+                    )}
+
+                    {/* Concluída → Desfazer */}
+                    {isConcluida && (
+                      <div className="pt-1 border-t">
+                        <Button variant="ghost" size="sm" className="h-8 text-muted-foreground" onClick={() => handleMutate({ vistoriaEntradaConcluida: false })} disabled={updateMutation.isPending}>
+                          Desfazer conclusão
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )
+            })()}
+
+            {/* Vistoria de Saída */}
+            {(() => {
+              const isAgendada = !!locacao.vistoriaSaidaData && !locacao.vistoriaSaidaConcluida
+              const isConcluida = !!locacao.vistoriaSaidaConcluida
+              const isNaoAgendada = !isAgendada && !isConcluida
+
+              return (
+                <Card className={isConcluida ? "border-green-300 bg-green-50/30" : "border-orange-300"}>
+                  <CardContent className="p-4 space-y-3">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
+                          isConcluida ? "bg-green-100 text-green-600" : "bg-orange-100 text-orange-600"
+                        }`}>
+                          <ClipboardCheck className="h-4 w-4" />
+                        </div>
+                        <h3 className="font-medium text-sm">Vistoria de Saída</h3>
+                      </div>
+                      <Badge variant="outline" className={
+                        isConcluida ? "bg-green-100 text-green-700 border-green-200 shrink-0"
+                        : isAgendada ? "bg-orange-50 text-orange-700 border-orange-200 shrink-0"
+                        : "bg-gray-50 text-gray-600 border-gray-200 shrink-0"
+                      }>
+                        {isConcluida && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                        {isAgendada && <Clock className="mr-1 h-3 w-3" />}
+                        {isConcluida ? "Concluída" : isAgendada ? "Agendada" : "Não agendada"}
+                      </Badge>
+                    </div>
+
+                    {/* Data destaque */}
+                    {isAgendada && locacao.vistoriaSaidaData && (
+                      <div className="flex items-center gap-2 rounded-md bg-orange-50 px-3 py-2">
+                        <CalendarDays className="h-4 w-4 text-orange-600" />
+                        <span className="text-sm font-medium text-orange-800">Agendada para {formatDate(locacao.vistoriaSaidaData)}</span>
+                      </div>
+                    )}
+                    {isConcluida && locacao.vistoriaSaidaData && (
+                      <div className="flex items-center gap-2 rounded-md bg-green-50 px-3 py-2">
+                        <CalendarDays className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-800">Realizada em {formatDate(locacao.vistoriaSaidaData)}</span>
+                      </div>
+                    )}
+                    {isConcluida && locacao.vistoriaSaidaNotas && (
+                      <div className="rounded-md bg-white/70 border p-2.5">
+                        <p className="text-xs text-muted-foreground mb-1">Observações</p>
+                        <p className="text-sm whitespace-pre-wrap">{locacao.vistoriaSaidaNotas}</p>
+                      </div>
+                    )}
+
+                    {/* Não agendada → Agendar */}
+                    {isNaoAgendada && (
+                      editingVistoriaSaida === "agendar" ? (
+                        <div className="space-y-2 pt-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">Data:</span>
+                            <Input type="date" className="w-44 h-8" value={vistoriaSaidaData} onChange={(e) => setVistoriaSaidaData(e.target.value)} />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => { if (vistoriaSaidaData) { handleMutate({ vistoriaSaidaData }); setEditingVistoriaSaida(false) } }} disabled={updateMutation.isPending || !vistoriaSaidaData}>
+                              <CalendarDays className="mr-1 h-3 w-3" />
+                              Agendar
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingVistoriaSaida(false)}>Cancelar</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="pt-1">
+                          <Button size="sm" variant="outline" onClick={() => { setVistoriaSaidaData(locacao.checkOut.split("T")[0]); setEditingVistoriaSaida("agendar") }}>
+                            <CalendarDays className="mr-1 h-3 w-3" />
+                            Agendar Vistoria
+                          </Button>
+                        </div>
+                      )
+                    )}
+
+                    {/* Agendada → Concluir ou Cancelar */}
+                    {isAgendada && (
+                      editingVistoriaSaida === "concluir" ? (
+                        <div className="space-y-2 pt-1 border-t">
+                          <Textarea value={vistoriaSaidaNotas} onChange={(e) => setVistoriaSaidaNotas(e.target.value)} rows={3} placeholder="Descreva o estado do imóvel na saída..." className="text-sm" />
+                          <div className="flex gap-2">
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => { handleMutate({ vistoriaSaidaNotas: vistoriaSaidaNotas || undefined, vistoriaSaidaConcluida: true }); setEditingVistoriaSaida(false) }} disabled={updateMutation.isPending}>
+                              <Check className="mr-1 h-3 w-3" />
+                              Concluir Vistoria
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingVistoriaSaida(false)}>Cancelar</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 pt-1 border-t">
+                          <Button variant="ghost" size="sm" className="h-8 text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => { setVistoriaSaidaNotas(locacao.vistoriaSaidaNotas ?? ""); setEditingVistoriaSaida("concluir") }}>
+                            <Check className="mr-1 h-3.5 w-3.5" />
+                            Concluir
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-8 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleMutate({ clearVistoriaSaida: true })} disabled={updateMutation.isPending}>
+                            Cancelar agendamento
+                          </Button>
+                        </div>
+                      )
+                    )}
+
+                    {/* Concluída → Desfazer */}
+                    {isConcluida && (
+                      <div className="pt-1 border-t">
+                        <Button variant="ghost" size="sm" className="h-8 text-muted-foreground" onClick={() => handleMutate({ vistoriaSaidaConcluida: false })} disabled={updateMutation.isPending}>
+                          Desfazer conclusão
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Faxina de Rotina — card igual component-table (só temporada) */}
+      {!isAnual && <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <RefreshCw className="h-4 w-4" />
@@ -409,7 +766,7 @@ export function LocacaoDetailPage() {
                     variant="ghost"
                     size="sm"
                     className="h-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                    onClick={() => setConfirmConcluir(true)}
+                    onClick={() => { setConcluirData(new Date()); setConfirmConcluir(true) }}
                     disabled={updateMutation.isPending}
                   >
                     <Check className="mr-1 h-3.5 w-3.5" />
@@ -433,9 +790,9 @@ export function LocacaoDetailPage() {
           )
         })()}
         </div>
-      </div>
+      </div>}
 
-      {/* Faxina de Saída — mesma UI das reservas */}
+      {/* Faxina de Saída */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -674,19 +1031,37 @@ export function LocacaoDetailPage() {
       <AlertDialog open={confirmConcluir} onOpenChange={setConfirmConcluir}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Concluir faxina?</AlertDialogTitle>
+            <AlertDialogTitle>Concluir faxina</AlertDialogTitle>
             <AlertDialogDescription>
-              A data da última faxina será atualizada para hoje e a próxima será calculada automaticamente.
+              Selecione a data em que a faxina foi realizada. A próxima será calculada automaticamente.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="flex justify-center py-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-[200px] justify-start text-left font-normal">
+                  <CalendarDays className="mr-2 h-4 w-4" />
+                  {format(concluirData, "dd/MM/yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="center">
+                <Calendar
+                  mode="single"
+                  selected={concluirData}
+                  onSelect={(date) => date && setConcluirData(date)}
+                  locale={ptBR}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                const now = new Date()
                 handleMutate({
-                  ultimaFaxina: now.toISOString(),
-                  proximaFaxina: addDays(now, locacao!.faxinaIntervaloDias!).toISOString(),
+                  ultimaFaxina: concluirData.toISOString(),
+                  proximaFaxina: addDays(concluirData, locacao!.faxinaIntervaloDias!).toISOString(),
                 })
                 setConfirmConcluir(false)
               }}

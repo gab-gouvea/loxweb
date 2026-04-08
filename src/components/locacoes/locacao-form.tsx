@@ -50,6 +50,7 @@ export function LocacaoForm({
     resolver: zodResolver(locacaoFormSchema),
     defaultValues: {
       propriedadeId: locacao?.propriedadeId ?? "",
+      tipoLocacao: locacao?.tipoLocacao ?? "temporada",
       nomeCompleto: locacao?.nomeCompleto ?? "",
       cpf: locacao?.cpf ?? "",
       rg: locacao?.rg ?? "",
@@ -75,6 +76,31 @@ export function LocacaoForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {!locacao && (
+          <FormField
+            control={form.control}
+            name="tipoLocacao"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tipo de Locação</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="temporada">Longa Temporada</SelectItem>
+                    <SelectItem value="anual">Anual</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        <hr className="my-2" />
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados do Inquilino</h3>
 
         <FormTextField<LocacaoFormData>

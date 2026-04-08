@@ -163,14 +163,39 @@ export function ReceiptsPage() {
     doc.setLineWidth(0.5)
     doc.line(82, 32, 128, 32)
 
-    // Texto
+    // Texto (justificado manualmente)
     doc.setFontSize(11)
     doc.setFont("helvetica", "normal")
-    const lines = doc.splitTextToSize(textoRecibo, 170)
-    doc.text(lines, 20, 50)
+    const maxWidth = 170
+    const lines: string[] = doc.splitTextToSize(textoRecibo, maxWidth)
+    const lineHeight = 6
+    let textY = 50
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      const isLast = i === lines.length - 1 || line.trim() === "" || (lines[i + 1] != null && lines[i + 1].trim() === "")
+      if (isLast || line.trim() === "") {
+        // Última linha do parágrafo ou linha vazia: alinhamento esquerdo
+        doc.text(line, 20, textY)
+      } else {
+        // Justificar: distribuir espaço extra entre palavras
+        const words = line.split(" ")
+        if (words.length <= 1) {
+          doc.text(line, 20, textY)
+        } else {
+          const lineWidth = doc.getTextWidth(line)
+          const extraSpace = (maxWidth - lineWidth) / (words.length - 1)
+          let curX = 20
+          for (let w = 0; w < words.length; w++) {
+            doc.text(words[w], curX, textY)
+            curX += doc.getTextWidth(words[w]) + doc.getTextWidth(" ") + extraSpace
+          }
+        }
+      }
+      textY += lineHeight
+    }
 
     // Tabela
-    const tableTop = 50 + lines.length * 6 + 15
+    const tableTop = textY + 15
     const headers = ["LOCAL", "PROPRIETARIA", "HOSPEDE", "DATA PAGTO", "MES", "ANO", "VALOR", "STATUS"]
     const colWidths = [22, 24, 22, 22, 24, 14, 24, 18]
     const rowHeight = 8

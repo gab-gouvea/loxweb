@@ -78,7 +78,7 @@ export function CalendarGrid({
 
   // Locação segments (blue bars)
   const locacaoSegments = useMemo(() => {
-    const segs: { id: string; propertyId: string; guestName: string; startOffset: number; endOffset: number; isClippedStart: boolean; isClippedEnd: boolean }[] = []
+    const segs: { id: string; propertyId: string; guestName: string; faxinaStatus?: string; startOffset: number; endOffset: number; isClippedStart: boolean; isClippedEnd: boolean }[] = []
     const sd = startOfDay(startDate)
     for (const l of locacoes) {
       const checkIn = startOfDay(parseISO(l.checkIn))
@@ -126,6 +126,7 @@ export function CalendarGrid({
         id: l.id,
         propertyId: l.propriedadeId,
         guestName: l.nomeCompleto,
+        faxinaStatus: l.faxinaStatus,
         startOffset,
         endOffset,
         isClippedStart,
@@ -476,7 +477,7 @@ export function CalendarGrid({
                     <button
                       key={`loc-${seg.id}`}
                       type="button"
-                      className={`absolute z-[4] cursor-pointer truncate px-2 text-xs font-medium text-white transition-opacity hover:opacity-90 bg-blue-700 ${!seg.isClippedStart ? "rounded-l-full" : "rounded-l-none"} ${!seg.isClippedEnd ? "rounded-r-full" : "rounded-r-none"}`}
+                      className={`absolute z-[4] cursor-pointer overflow-hidden px-2 text-xs font-medium text-white transition-opacity hover:opacity-90 bg-blue-700 ${!seg.isClippedStart ? "rounded-l-full" : "rounded-l-none"} ${!seg.isClippedEnd ? "rounded-r-full" : "rounded-r-none"}`}
                       style={{
                         top: topOffset,
                         left: seg.startOffset * COL_WIDTH + 2,
@@ -489,7 +490,12 @@ export function CalendarGrid({
                         onLocacaoClick?.(seg.id)
                       }}
                     >
-                      <span className="truncate">{seg.guestName}</span>
+                      <span className="flex items-center gap-1 h-full">
+                        <span className="truncate">{seg.guestName}</span>
+                        {seg.faxinaStatus === "agendada" && (
+                          <span className="ml-auto h-2.5 w-2.5 flex-shrink-0 rounded-full bg-yellow-400" />
+                        )}
+                      </span>
                     </button>
                   )
                 })}

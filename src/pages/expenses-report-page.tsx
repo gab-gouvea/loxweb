@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
+
+import { KeyRound } from "lucide-react"
 import { MonthNavigation } from "@/components/shared/month-navigation"
 import { TabNavigation } from "@/components/shared/tab-navigation"
 import { SummaryCard } from "@/components/shared/summary-card"
@@ -21,11 +23,14 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { useReservationsByMonth } from "@/hooks/use-reservations-by-month"
+import { useLocacoes } from "@/hooks/use-locacoes"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { formatDate } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
 import { groupByProperty } from "@/lib/collection-utils"
 import { useExpensesReportMonthStore } from "@/hooks/use-month-store"
+import type { Locacao } from "@/types/locacao"
+import type { Despesa } from "@/types/reservation"
 
 export function ExpensesReportPage() {
   const { currentMonth, setCurrentMonth } = useExpensesReportMonthStore()
@@ -34,7 +39,32 @@ export function ExpensesReportPage() {
 
   const navigate = useNavigate()
   const { data: reservations = [], isLoading } = useReservationsByMonth(currentMonth)
+  const { data: allLocacoes = [] } = useLocacoes()
   const { properties, propertyMap } = usePropertyMap()
+
+  const reportMes = currentMonth.getMonth() + 1
+  const reportAno = currentMonth.getFullYear()
+
+  // Locações com despesas atribuídas a este mês (filtradas por mes/ano da despesa)
+  const monthLocacoesWithExpenses = useMemo(() => {
+    const result: (Locacao & { filteredDespesas: Despesa[] })[] = []
+
+    for (const l of allLocacoes) {
+      if (!l.despesas?.length) continue
+      if (propertyFilter !== "todos" && l.propriedadeId !== propertyFilter) continue
+
+      // Filtrar despesas pelo mês/ano do relatório
+      let despesas = l.despesas.filter((d) => d.mes === reportMes && d.ano === reportAno)
+      if (tipoFilter !== "todos") {
+        const isReembolsavel = tipoFilter === "reembolsavel"
+        despesas = despesas.filter((d) => d.reembolsavel === isReembolsavel)
+      }
+      if (despesas.length === 0) continue
+
+      result.push({ ...l, filteredDespesas: despesas })
+    }
+    return result
+  }, [allLocacoes, reportMes, reportAno, propertyFilter, tipoFilter])
 
   // Filter reservations that have expenses
   const filteredReservations = useMemo(() => {
@@ -62,7 +92,22 @@ export function ExpensesReportPage() {
   }, [reservations, propertyFilter, tipoFilter])
 
   const grouped = useMemo(() => groupByProperty(filteredReservations), [filteredReservations])
-  const propertyIds = useMemo(() => Array.from(grouped.keys()), [grouped])
+
+  // Group locações by property
+  const locacoesByProperty = useMemo(() => {
+    const map = new Map<string, typeof monthLocacoesWithExpenses>()
+    for (const l of monthLocacoesWithExpenses) {
+      const list = map.get(l.propriedadeId) ?? []
+      list.push(l)
+      map.set(l.propriedadeId, list)
+    }
+    return map
+  }, [monthLocacoesWithExpenses])
+
+  const propertyIds = useMemo(() => {
+    const ids = new Set([...grouped.keys(), ...locacoesByProperty.keys()])
+    return Array.from(ids)
+  }, [grouped, locacoesByProperty])
 
   const summary = useMemo(() => {
     let totalReembolsavel = 0
@@ -73,8 +118,14 @@ export function ExpensesReportPage() {
         else totalNaoReembolsavel += d.valor
       }
     }
+    for (const l of monthLocacoesWithExpenses) {
+      for (const d of l.filteredDespesas) {
+        if (d.reembolsavel) totalReembolsavel += d.valor
+        else totalNaoReembolsavel += d.valor
+      }
+    }
     return { totalReembolsavel, totalNaoReembolsavel, total: totalReembolsavel + totalNaoReembolsavel }
-  }, [filteredReservations])
+  }, [filteredReservations, monthLocacoesWithExpenses])
 
 
 
@@ -119,6 +170,7 @@ export function ExpensesReportPage() {
         if (!property) return null
 
         const propReservations = grouped.get(propertyId) || []
+        const propLocacoes = locacoesByProperty.get(propertyId) ?? []
 
         return (
           <div key={propertyId} className="space-y-3">
@@ -128,9 +180,9 @@ export function ExpensesReportPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Hóspede</TableHead>
-                    <TableHead>Check-in</TableHead>
-                    <TableHead>Check-out</TableHead>
+                    <TableHead>Hóspede / Inquilino</TableHead>
+                    <TableHead>Entrada</TableHead>
+                    <TableHead>Saída</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead className="text-center">Tipo</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
@@ -150,6 +202,44 @@ export function ExpensesReportPage() {
                             </TableCell>
                             <TableCell rowSpan={reservation.despesas!.length}>
                               {formatDate(reservation.checkOut)}
+                            </TableCell>
+                          </>
+                        ) : null}
+                        <TableCell>{despesa.descricao}</TableCell>
+                        <TableCell className="text-center">
+                          {despesa.reembolsavel ? (
+                            <Badge variant="outline" className="text-green-700 border-green-300">
+                              Reembolsável
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-red-600 border-red-300">
+                              Não reembolsável
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(despesa.valor)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                  {/* Locações com despesas — fundo azul */}
+                  {propLocacoes.flatMap((loc) =>
+                    loc.filteredDespesas.map((despesa, idx) => (
+                      <TableRow key={`loc-${loc.id}-${idx}`} className="cursor-pointer hover:bg-blue-200/80 bg-blue-100/70" onClick={() => navigate(`/longatemporada/${loc.id}`)}>
+                        {idx === 0 ? (
+                          <>
+                            <TableCell className="font-medium" rowSpan={loc.filteredDespesas.length}>
+                              <div className="flex items-center gap-2">
+                                <KeyRound className="h-3 w-3 text-blue-600 shrink-0" />
+                                {loc.nomeCompleto}
+                              </div>
+                            </TableCell>
+                            <TableCell rowSpan={loc.filteredDespesas.length}>
+                              {formatDate(loc.checkIn)}
+                            </TableCell>
+                            <TableCell rowSpan={loc.filteredDespesas.length}>
+                              {formatDate(loc.checkOut)}
                             </TableCell>
                           </>
                         ) : null}

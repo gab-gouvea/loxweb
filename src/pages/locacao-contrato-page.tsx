@@ -683,7 +683,6 @@ export function LocacaoContratoPage() {
 
     // Validar placeholders não preenchidos — detecta [texto], [R$ valor], etc.
     // Ignora checkboxes [ x ] e [  ] do campo Obs
-    const placeholderRe = /\[[^\]]{2,}\]/
     const isCheckbox = (match: string) => /^\[\s*x?\s*\]$/i.test(match)
     if (isAnual) {
       const anualQuadroLabels = ["Locador", "Locatário"]

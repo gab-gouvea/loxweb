@@ -291,7 +291,6 @@ export function useAlerts() {
       // Pagamento locação — paga e mora: pagamento no dia da entrada de cada mês
       {
         const checkInParsed = parseISO(checkInDate)
-        const checkOutParsed = parseISO(checkOutDate)
         const todayParsed = parseISO(today)
         const isAvista = l.tipoPagamento === "avista"
 
@@ -310,7 +309,6 @@ export function useAlerts() {
         // Só alertar se a data de pagamento já chegou e não foi confirmado
         // Não alertar se pagDate >= checkOut (dia do checkout não tem pagamento)
         if (pagDate <= today && pagDate < checkOutDate && !recebidoSet.has(`${l.id}-${pagMes}-${pagAno}`)) {
-          const prop = propertyMap.get(l.propriedadeId)
           const valorBruto = isAvista ? (l.valorTotal ?? 0) : (l.valorMensal ?? 0)
           const comissao = valorBruto * (l.percentualComissao ?? 0) / 100
           const valorFormatado = comissao.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })

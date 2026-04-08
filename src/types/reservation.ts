@@ -22,6 +22,8 @@ export const despesaSchema = z.object({
   descricao: z.string().min(1, "Descrição é obrigatória"),
   valor: z.number().min(0),
   reembolsavel: z.boolean(),
+  mes: z.number().optional(),
+  ano: z.number().optional(),
 })
 
 export type Despesa = z.infer<typeof despesaSchema>

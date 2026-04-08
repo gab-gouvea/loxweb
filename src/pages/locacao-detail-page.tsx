@@ -53,7 +53,9 @@ import { LocacaoDialog } from "@/components/locacoes/locacao-dialog"
 import { formatDate, toLocalDateStr, getTodayStr, localDateToISO } from "@/lib/date-utils"
 import { formatCurrency, formatCpf } from "@/lib/constants"
 import { getErrorMessage } from "@/lib/api"
+import { ExpensesSection } from "@/components/shared/expenses-section"
 import type { Locacao, LocacaoFormData, LocacaoStatus } from "@/types/locacao"
+import type { Despesa } from "@/types/reservation"
 
 export function LocacaoDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -211,7 +213,6 @@ export function LocacaoDetailPage() {
 
         {(() => {
           const checkInDate = parseISO(toLocalDateStr(locacao.checkIn))
-          const checkOutDate = parseISO(toLocalDateStr(locacao.checkOut))
           const today = parseISO(getTodayStr())
           const recebimentoMap = new Map(recebimentos.map(r => [`${r.mes}-${r.ano}`, r]))
           const comissaoPct = locacao.percentualComissao ?? 0
@@ -226,9 +227,6 @@ export function LocacaoDetailPage() {
             cicloStart = addMonths(cicloStart, 1)
           }
           if (isBefore(today, checkInDate)) cicloStart = checkInDate
-          const nextCiclo = addMonths(cicloStart, 1)
-          const isUltimoCiclo = !isBefore(nextCiclo, checkOutDate)
-
           let pagMes: number, pagAno: number, valorBruto: number
           if (locacao.tipoPagamento === "avista") {
             pagMes = checkInDate.getMonth() + 1
@@ -943,6 +941,23 @@ export function LocacaoDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Despesas */}
+      <ExpensesSection
+        despesas={locacao.despesas ?? []}
+        title="Despesas Mensais"
+        showMonthSelector
+        onSave={(despesas: Despesa[], options) => {
+          updateMutation.mutate(
+            { id: locacao.id, data: { despesas } },
+            {
+              onSuccess: () => { toast.success("Locação atualizada"); options?.onSuccess?.() },
+              onError: (err) => toast.error(getErrorMessage(err)),
+            },
+          )
+        }}
+        isPending={updateMutation.isPending}
+      />
 
       {/* Notas */}
       <div className="space-y-3">

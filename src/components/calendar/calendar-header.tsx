@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
+import { ChevronLeft, ChevronRight, KeyRound, Plus } from "lucide-react"
 import { addDays, format } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
 import { Button } from "@/components/ui/button"
@@ -6,9 +6,10 @@ import { useCalendarStore } from "@/hooks/use-calendar-store"
 
 interface CalendarHeaderProps {
   onNewReservation: () => void
+  onNewLocacao: () => void
 }
 
-export function CalendarHeader({ onNewReservation }: CalendarHeaderProps) {
+export function CalendarHeader({ onNewReservation, onNewLocacao }: CalendarHeaderProps) {
   const { startDate, visibleDays, goForward, goBack, goToToday, showCheckoutsFaxinas, toggleCheckoutsFaxinas } = useCalendarStore()
 
   const endDate = addDays(startDate, visibleDays - 1)
@@ -41,6 +42,10 @@ export function CalendarHeader({ onNewReservation }: CalendarHeaderProps) {
       <Button onClick={onNewReservation}>
         <Plus className="mr-2 h-4 w-4" />
         Nova Reserva
+      </Button>
+      <Button onClick={onNewLocacao}>
+        <KeyRound className="mr-2 h-4 w-4" />
+        Nova Locação
       </Button>
       <Button
         variant={showCheckoutsFaxinas ? "default" : "outline"}

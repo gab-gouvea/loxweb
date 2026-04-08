@@ -1,5 +1,5 @@
 import { CalendarDays, Building2, List, FileText, Users, SprayCan, LayoutDashboard, Receipt, KeyRound } from "lucide-react"
-import { NavLink, Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +26,13 @@ const navItems = [
 ]
 
 export function AppSidebar() {
+  const { pathname } = useLocation()
+
+  function isItemActive(url: string) {
+    if (url === "/") return pathname === "/"
+    return pathname.startsWith(url)
+  }
+
   return (
     <Sidebar>
       <SidebarHeader>
@@ -41,16 +48,11 @@ export function AppSidebar() {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className={({ isActive }) =>
-                        isActive ? "font-semibold" : ""
-                      }
-                    >
+                  <SidebarMenuButton asChild isActive={isItemActive(item.url)}>
+                    <Link to={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </NavLink>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

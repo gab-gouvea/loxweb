@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react"
 import { Check, X } from "lucide-react"
-import { startOfMonth, endOfMonth, parseISO, format } from "date-fns"
+import { parseISO, format } from "date-fns"
 import { useNavigate } from "react-router-dom"
 import { MonthNavigation } from "@/components/shared/month-navigation"
 import { PropertyFilterSelect } from "@/components/shared/property-filter-select"
@@ -26,6 +26,7 @@ import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
 import { useLocacoes, useUpdateLocacao } from "@/hooks/use-locacoes"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { formatCurrency } from "@/lib/constants"
+import { toLocalDateStr } from "@/lib/date-utils"
 import { useFaxinaPagamentosMonthStore } from "@/hooks/use-month-store"
 
 interface FaxinaPagItem {
@@ -51,16 +52,14 @@ export function FaxinaPagamentosPage() {
   const { data: allReservations = [] } = useReservations()
   const { data: allLocacoes = [] } = useLocacoes()
 
-  const monthStart = startOfMonth(currentMonth)
-  const monthEnd = endOfMonth(currentMonth)
+  const reportYM = format(currentMonth, "yyyy-MM")
 
   // Filter empresa parceira faxinas from reservations + locações by checkout month
   const faxinas = useMemo(() => {
     const items: FaxinaPagItem[] = []
 
     for (const r of allReservations) {
-      const checkOut = parseISO(r.checkOut)
-      if (checkOut < monthStart || checkOut > monthEnd) continue
+      if (toLocalDateStr(r.checkOut).substring(0, 7) !== reportYM) continue
       if (r.status === "cancelada") continue
       if (r.faxinaPorMim !== false) continue
       if (!r.faxinaStatus || r.faxinaStatus === "nao_agendada") continue
@@ -74,8 +73,7 @@ export function FaxinaPagamentosPage() {
     }
 
     for (const l of allLocacoes) {
-      const checkOut = parseISO(l.checkOut)
-      if (checkOut < monthStart || checkOut > monthEnd) continue
+      if (toLocalDateStr(l.checkOut).substring(0, 7) !== reportYM) continue
       if (l.faxinaPorMim !== false) continue
       if (!l.faxinaStatus || l.faxinaStatus === "nao_agendada") continue
       if (propertyFilter !== "todos" && l.propriedadeId !== propertyFilter) continue
@@ -88,7 +86,7 @@ export function FaxinaPagamentosPage() {
     }
 
     return items.sort((a, b) => a.checkOut.localeCompare(b.checkOut) || a.id.localeCompare(b.id))
-  }, [allReservations, allLocacoes, monthStart, monthEnd, propertyFilter, pagoFilter])
+  }, [allReservations, allLocacoes, reportYM, propertyFilter, pagoFilter])
 
   const summary = useMemo(() => {
     const total = faxinas.reduce((sum, r) => sum + (r.custoEmpresaFaxina ?? 0), 0)

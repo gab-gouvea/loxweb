@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { startOfMonth, endOfMonth, parseISO, isSameDay, format } from "date-fns"
+import { parseISO, isSameDay, format } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
 import { useNavigate } from "react-router-dom"
 import { MonthNavigation } from "@/components/shared/month-navigation"
@@ -25,6 +25,7 @@ import { useLocacoes } from "@/hooks/use-locacoes"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { useProprietarioMap } from "@/hooks/use-proprietario-map"
 import { formatCurrency } from "@/lib/constants"
+import { toLocalDateStr } from "@/lib/date-utils"
 import { useFaxinaMonthStore } from "@/hooks/use-month-store"
 
 interface FaxinaItem {
@@ -49,8 +50,7 @@ export function FaxinaTerceirizadaPage() {
   const { data: allReservations = [] } = useReservations()
   const { data: allLocacoes = [] } = useLocacoes()
 
-  const monthStart = startOfMonth(currentMonth)
-  const monthEnd = endOfMonth(currentMonth)
+  const reportYM = format(currentMonth, "yyyy-MM")
 
   // Filter third-party cleanings from reservations + locações by checkout month
   const faxinas = useMemo(() => {
@@ -58,8 +58,7 @@ export function FaxinaTerceirizadaPage() {
 
     // Reservas
     for (const r of allReservations) {
-      const checkOut = parseISO(r.checkOut)
-      if (checkOut < monthStart || checkOut > monthEnd) continue
+      if (toLocalDateStr(r.checkOut).substring(0, 7) !== reportYM) continue
       if (r.status === "cancelada") continue
       if (r.faxinaPorMim !== false) continue
       if (!r.faxinaStatus || r.faxinaStatus === "nao_agendada") continue
@@ -78,8 +77,7 @@ export function FaxinaTerceirizadaPage() {
 
     // Locações
     for (const l of allLocacoes) {
-      const checkOut = parseISO(l.checkOut)
-      if (checkOut < monthStart || checkOut > monthEnd) continue
+      if (toLocalDateStr(l.checkOut).substring(0, 7) !== reportYM) continue
       if (l.faxinaPorMim !== false) continue
       if (!l.faxinaStatus || l.faxinaStatus === "nao_agendada") continue
       if (propertyFilter !== "todos" && l.propriedadeId !== propertyFilter) continue
@@ -96,7 +94,7 @@ export function FaxinaTerceirizadaPage() {
     }
 
     return items.sort((a, b) => a.checkOut.localeCompare(b.checkOut))
-  }, [allReservations, allLocacoes, monthStart, monthEnd, propertyFilter, statusFilter])
+  }, [allReservations, allLocacoes, reportYM, propertyFilter, statusFilter])
 
   // Check if there's a next check-in on the same day as checkout
   function hasNextCheckInToday(item: FaxinaItem): boolean {

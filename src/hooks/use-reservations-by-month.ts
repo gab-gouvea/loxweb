@@ -1,20 +1,19 @@
 import { useMemo } from "react"
-import { startOfMonth, endOfMonth, parseISO } from "date-fns"
+import { format } from "date-fns"
 import { useReservations } from "./use-reservations"
+import { toLocalDateStr } from "@/lib/date-utils"
 
 /** Filtra reservas cujo checkIn cai no mês informado */
 export function useReservationsByMonth(currentMonth: Date) {
   const { data: allReservations = [], ...rest } = useReservations()
 
-  const monthStart = startOfMonth(currentMonth)
-  const monthEnd = endOfMonth(currentMonth)
+  const reportYM = format(currentMonth, "yyyy-MM")
 
   const reservations = useMemo(() => {
     return allReservations.filter((r) => {
-      const checkIn = parseISO(r.checkIn)
-      return checkIn >= monthStart && checkIn <= monthEnd
+      return toLocalDateStr(r.checkIn).substring(0, 7) === reportYM
     })
-  }, [allReservations, monthStart, monthEnd])
+  }, [allReservations, reportYM])
 
   return { data: reservations, allReservations, ...rest }
 }

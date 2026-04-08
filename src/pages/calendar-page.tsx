@@ -9,11 +9,13 @@ import { useProprietarioMap } from "@/hooks/use-proprietario-map"
 import { CalendarHeader } from "@/components/calendar/calendar-header"
 import { CalendarGrid } from "@/components/calendar/calendar-grid"
 import { ReservationDialog } from "@/components/reservations/reservation-dialog"
+import { LocacaoDialog } from "@/components/locacoes/locacao-dialog"
 
 export function CalendarPage() {
   const navigate = useNavigate()
   const { startDate, visibleDays, selectedPropertyIds, showCheckoutsFaxinas } = useCalendarStore()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [locacaoDialogOpen, setLocacaoDialogOpen] = useState(false)
   const [defaultCheckIn, setDefaultCheckIn] = useState<Date | undefined>()
   const [defaultPropertyId, setDefaultPropertyId] = useState<string | undefined>()
 
@@ -79,7 +81,7 @@ export function CalendarPage() {
 
   return (
     <div className="space-y-4">
-      <CalendarHeader onNewReservation={handleNewReservation} />
+      <CalendarHeader onNewReservation={handleNewReservation} onNewLocacao={() => setLocacaoDialogOpen(true)} />
       <CalendarGrid
         startDate={startDate}
         visibleDays={visibleDays}
@@ -98,6 +100,11 @@ export function CalendarPage() {
         onOpenChange={handleDialogClose}
         defaultCheckIn={defaultCheckIn}
         defaultPropertyId={defaultPropertyId}
+      />
+
+      <LocacaoDialog
+        open={locacaoDialogOpen}
+        onOpenChange={setLocacaoDialogOpen}
       />
     </div>
   )

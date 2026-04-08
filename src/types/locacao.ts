@@ -1,5 +1,6 @@
 import { z } from "zod/v4"
 import { addMonths, parseISO } from "date-fns"
+import { despesaSchema } from "./reservation"
 
 export const locacaoStatuses = ["ativa", "encerrada"] as const
 export const garantiaTypes = ["caucao", "seguro_fianca"] as const
@@ -50,6 +51,7 @@ export const locacaoSchema = z.object({
   vistoriaSaidaNotas: z.string().optional(),
   vistoriaSaidaConcluida: z.boolean().optional(),
   clearVistoriaSaida: z.boolean().optional(),
+  despesas: z.array(despesaSchema).optional(),
   notas: z.string().optional(),
   status: z.enum(locacaoStatuses),
   criadoEm: z.string(),

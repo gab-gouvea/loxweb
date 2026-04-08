@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react"
 import { Pencil } from "lucide-react"
-import { startOfMonth, endOfMonth, addDays, addMonths, parseISO } from "date-fns"
+import { addDays, addMonths, format } from "date-fns"
 import { useNavigate } from "react-router-dom"
 import { MonthNavigation } from "@/components/shared/month-navigation"
 import { TabNavigation } from "@/components/shared/tab-navigation"
@@ -27,7 +27,7 @@ import {
 import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
 import { useLocacoes, useRecebimentosLocacao } from "@/hooks/use-locacoes"
 import { usePropertyMap } from "@/hooks/use-property-map"
-import { formatDate } from "@/lib/date-utils"
+import { formatDate, toLocalDateStr } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
 import { getErrorMessage } from "@/lib/api"
 import { toast } from "sonner"
@@ -55,20 +55,22 @@ export function ReportsPage() {
   const navigate = useNavigate()
   const updateReservation = useUpdateReservation()
 
-  const monthStart = startOfMonth(currentMonth)
-  const monthEnd = endOfMonth(currentMonth)
   const reportMes = currentMonth.getMonth() + 1
   const reportAno = currentMonth.getFullYear()
+  const reportYM = format(currentMonth, "yyyy-MM")
   const { data: locacaoRecebimentos = [] } = useRecebimentosLocacao(reportMes, reportAno)
   const locacaoRecebidoSet = useMemo(() => new Set(locacaoRecebimentos.map(r => r.locacaoId)), [locacaoRecebimentos])
 
   // Reserva pertence ao mês de (checkIn + 1 dia) — dia do recebimento
   const monthReservations = useMemo(() => {
     return allReservations.filter((r) => {
-      const dataRecebimento = addDays(parseISO(r.checkIn), 1)
-      return dataRecebimento >= monthStart && dataRecebimento <= monthEnd
+      const ciStr = toLocalDateStr(r.checkIn)
+      const [cy, cm, cd] = ciStr.split("-").map(Number)
+      const checkInLocal = new Date(cy, cm - 1, cd)
+      const dataRecebimento = addDays(checkInLocal, 1)
+      return format(dataRecebimento, "yyyy-MM") === reportYM
     })
-  }, [allReservations, monthStart, monthEnd])
+  }, [allReservations, reportYM])
 
   // Locações que geram recebimento neste mês (pagamento OU faxina de saída)
   const [monthLocacoes, locacaoInfoMap] = useMemo(() => {
@@ -78,17 +80,22 @@ export function ReportsPage() {
     for (const l of allLocacoes) {
       if (propertyFilter !== "todos" && l.propriedadeId !== propertyFilter) continue
 
-      const checkInDate = parseISO(l.checkIn)
-      const checkOutDate = parseISO(l.checkOut)
+      // Converter Instant para datas locais (evita shift de timezone)
+      const ciStr = toLocalDateStr(l.checkIn)
+      const coStr = toLocalDateStr(l.checkOut)
+      const [cy, cm, cd] = ciStr.split("-").map(Number)
+      const [oy, om, od] = coStr.split("-").map(Number)
+      const checkInLocal = new Date(cy, cm - 1, cd)
+      const checkOutLocal = new Date(oy, om - 1, od)
 
       let hasPayment = false
       if (l.tipoPagamento === "avista") {
-        hasPayment = checkInDate >= monthStart && checkInDate <= monthEnd
+        hasPayment = format(checkInLocal, "yyyy-MM") === reportYM
       } else {
         // Mensal: pagamento no dia da entrada de cada mês
-        let current = new Date(checkInDate)
-        while (current < checkOutDate) {
-          if (current >= monthStart && current <= monthEnd) {
+        let current = new Date(checkInLocal)
+        while (current < checkOutLocal) {
+          if (format(current, "yyyy-MM") === reportYM) {
             hasPayment = true
             break
           }
@@ -96,10 +103,21 @@ export function ReportsPage() {
         }
       }
 
+      // Faxina de saída aparece junto com o último pagamento (último ciclo antes do checkout)
       let hasFaxina = false
-      if (l.faxinaStatus === "agendada" && l.faxinaData) {
-        const faxinaDate = parseISO(l.faxinaData)
-        hasFaxina = faxinaDate >= monthStart && faxinaDate <= monthEnd
+      if (l.faxinaStatus === "agendada") {
+        if (l.tipoPagamento === "avista") {
+          hasFaxina = format(checkInLocal, "yyyy-MM") === reportYM
+        } else {
+          // Mensal: faxina aparece no mês do último pagamento (último ciclo antes do checkout)
+          let lastPayment = new Date(checkInLocal)
+          let current = new Date(checkInLocal)
+          while (current < checkOutLocal) {
+            lastPayment = new Date(current)
+            current = addMonths(current, 1)
+          }
+          hasFaxina = format(lastPayment, "yyyy-MM") === reportYM
+        }
       }
 
       if (hasPayment || hasFaxina) {
@@ -108,7 +126,7 @@ export function ReportsPage() {
       }
     }
     return [result, infoMap] as const
-  }, [allLocacoes, monthStart, monthEnd, propertyFilter])
+  }, [allLocacoes, reportYM, propertyFilter])
 
   // Calcular bruto da locação para este mês (só se tem pagamento no mês)
   function getLocacaoBruto(l: Locacao, hasPayment: boolean): number {
@@ -120,6 +138,16 @@ export function ReportsPage() {
   function getLocacaoComissao(l: Locacao, hasPayment: boolean): number {
     const bruto = getLocacaoBruto(l, hasPayment)
     return (bruto * (l.percentualComissao ?? 0)) / 100
+  }
+
+  // Despesas da locação filtradas pelo mês do relatório
+  function getLocacaoDespesas(l: Locacao) {
+    const all = l.despesas ?? []
+    const filtered = all.filter((d) => d.mes === reportMes && d.ano === reportAno)
+    return {
+      naoReembolsavel: filtered.filter((d) => !d.reembolsavel).reduce((s, d) => s + d.valor, 0),
+      reembolsavel: filtered.filter((d) => d.reembolsavel).reduce((s, d) => s + d.valor, 0),
+    }
   }
 
   function calcLocacaoFaxinaReceita(l: Locacao, property: { taxaLimpeza?: number } | undefined): number {
@@ -135,7 +163,8 @@ export function ReportsPage() {
       const property = propertyMap.get(l.propriedadeId)
       const comissao = getLocacaoComissao(l, info.hasPayment)
       const faxina = info.hasFaxina ? calcLocacaoFaxinaReceita(l, property) : 0
-      return sum + comissao + faxina
+      const { naoReembolsavel: despNaoReemb } = getLocacaoDespesas(l)
+      return sum + comissao + faxina - despNaoReemb
     }, 0)
   }, [monthLocacoes, locacaoInfoMap, propertyMap])
 
@@ -204,14 +233,16 @@ export function ReportsPage() {
       const comissao = getLocacaoComissao(l, info.hasPayment)
       const bruto = getLocacaoBruto(l, info.hasPayment)
       const faxina = info.hasFaxina ? calcLocacaoFaxinaReceita(l, property) : 0
-      const locTotal = comissao + faxina
+      const { naoReembolsavel: locDespNaoReemb } = getLocacaoDespesas(l)
+      const locTotal = comissao + faxina - locDespNaoReemb
       if (locacaoRecebidoSet.has(l.id)) {
         locacoesPago += locTotal
       } else {
         locacoesAReceber += locTotal
       }
-      // Líquido proprietário: bruto - comissão (faxina não sai do proprietário)
-      totalLiquido += bruto - comissao
+      // Líquido proprietário: bruto - comissão - despesas reembolsáveis
+      const { reembolsavel: locDespReemb } = getLocacaoDespesas(l)
+      totalLiquido += bruto - comissao - locDespReemb
     }
     totalRecebido += totalLocacoes
     totalPago += locacoesPago
@@ -300,7 +331,8 @@ export function ReportsPage() {
           const info = locacaoInfoMap.get(l.id)!
           const comissao = getLocacaoComissao(l, info.hasPayment)
           const faxina = info.hasFaxina ? calcLocacaoFaxinaReceita(l, propertyMap.get(l.propriedadeId)) : 0
-          return sum + comissao + faxina
+          const despNaoReemb = (l.despesas ?? []).filter((d) => !d.reembolsavel).reduce((s, d) => s + d.valor, 0)
+          return sum + comissao + faxina - despNaoReemb
         }, 0)
         const subtotalReservas = propReservations.reduce(
           (sum, r) => sum + calcTotalRecebido(r, property),
@@ -316,6 +348,12 @@ export function ReportsPage() {
             const valorComissao = (valorReserva * comissao) / 100
             const { reembolsavel } = calcDespesas(r)
             return sum + (valorReserva - valorComissao - reembolsavel)
+          }, 0) + propLocacoes.reduce((sum, l) => {
+            const info = locacaoInfoMap.get(l.id)!
+            const bruto = getLocacaoBruto(l, info.hasPayment)
+            const comissaoValor = getLocacaoComissao(l, info.hasPayment)
+            const { reembolsavel: locDespReemb } = getLocacaoDespesas(l)
+            return sum + bruto - comissaoValor - locDespReemb
           }, 0)
         const comissaoHeader = propReservations.find((r) => r.status !== "cancelada")?.percentualComissao ?? property.percentualComissao ?? 0
 
@@ -437,8 +475,9 @@ export function ReportsPage() {
                     const comissaoPercent = loc.percentualComissao ?? 0
                     const comissaoValor = getLocacaoComissao(loc, info.hasPayment)
                     const faxinaReceita = info.hasFaxina ? calcLocacaoFaxinaReceita(loc, property) : 0
-                    const liquido = bruto - comissaoValor
-                    const recebido = comissaoValor + faxinaReceita
+                    const { naoReembolsavel: locDespNaoReemb, reembolsavel: locDespReemb } = getLocacaoDespesas(loc)
+                    const liquido = bruto - comissaoValor - locDespReemb
+                    const recebido = comissaoValor + faxinaReceita - locDespNaoReemb
                     return (
                       <TableRow
                         key={`loc-${loc.id}`}
@@ -465,7 +504,13 @@ export function ReportsPage() {
                             <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell />
+                        <TableCell className="text-right whitespace-nowrap">
+                          {locDespNaoReemb > 0 ? (
+                            <span className="text-red-600">−{formatCurrency(locDespNaoReemb)}</span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right whitespace-nowrap font-semibold">{formatCurrency(recebido)}</TableCell>
                       </TableRow>
                     )

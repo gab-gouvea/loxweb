@@ -123,17 +123,17 @@ export function FaxinaTerceirizadaPage() {
       ]} />
 
       {/* Month navigation + property filter */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-4">
         <MonthNavigation currentMonth={currentMonth} onMonthChange={setCurrentMonth} />
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <PropertyFilterSelect
             value={propertyFilter}
             onValueChange={setPropertyFilter}
             properties={properties}
           />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px] min-h-[44px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -173,7 +173,7 @@ export function FaxinaTerceirizadaPage() {
                   const link = item.tipo === "reserva" ? `/reservas/${item.id}` : `/longatemporada/${item.id}`
 
                   return (
-                    <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(link)}>
+                    <TableRow key={item.id} className="cursor-pointer hover:bg-muted/50 [&>td]:py-3" onClick={() => navigate(link)}>
                       <TableCell className="font-medium">{property?.nome ?? "—"}</TableCell>
                       <TableCell>{owner?.nomeCompleto ?? "—"}</TableCell>
                       <TableCell>{item.nomeHospede}</TableCell>
@@ -211,7 +211,7 @@ export function FaxinaTerceirizadaPage() {
       <div className="space-y-3">
         <h3 className="text-lg font-semibold">Informações das Propriedades</h3>
         <div className="overflow-x-auto rounded-lg border text-xs">
-          <Table>
+          <Table className="min-w-[700px]">
             <TableHeader>
               <TableRow className="bg-yellow-100 hover:bg-yellow-100">
                 <TableHead className="font-bold text-black py-1 px-1 text-xs">PROPRIEDADE</TableHead>

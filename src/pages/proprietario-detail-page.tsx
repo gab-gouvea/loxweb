@@ -53,10 +53,10 @@ export function ProprietarioDetailPage() {
         </Button>
       </div>
 
-      <div className="rounded-lg border p-6">
-        <div className="flex items-start justify-between mb-4">
-          <h1 className="text-2xl font-bold">{proprietario.nomeCompleto}</h1>
-          <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)}>
+      <div className="rounded-lg border p-4 sm:p-6">
+        <div className="space-y-3 sm:space-y-0 sm:flex sm:items-start sm:justify-between mb-4">
+          <h1 className="text-xl sm:text-2xl font-bold">{proprietario.nomeCompleto}</h1>
+          <Button variant="outline" size="sm" className="min-h-[44px] sm:min-h-0 w-full sm:w-auto" onClick={() => setDialogOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" />
             Editar
           </Button>

@@ -48,8 +48,8 @@ export function ProprietariosPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Proprietários</h1>
-        <Button onClick={() => setDialogOpen(true)}>
+        <h1 className="text-xl sm:text-2xl font-bold">Proprietários</h1>
+        <Button onClick={() => setDialogOpen(true)} className="min-h-[44px] min-w-[44px]">
           <Plus className="mr-2 h-4 w-4" />
           Novo Proprietário
         </Button>
@@ -62,14 +62,14 @@ export function ProprietariosPage() {
           ))}
         </div>
       ) : (
-        <div className="rounded-lg border">
+        <div className="rounded-lg border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>CPF</TableHead>
-                <TableHead>E-mail</TableHead>
-                <TableHead>Profissão</TableHead>
+                <TableHead className="hidden sm:table-cell">CPF</TableHead>
+                <TableHead className="hidden md:table-cell">E-mail</TableHead>
+                <TableHead className="hidden lg:table-cell">Profissão</TableHead>
                 <TableHead className="text-center">Propriedades</TableHead>
                 <TableHead className="w-[100px]"></TableHead>
               </TableRow>
@@ -89,16 +89,16 @@ export function ProprietariosPage() {
                     onClick={() => navigate(`/proprietarios/${proprietario.id}`)}
                   >
                     <TableCell className="font-medium">{proprietario.nomeCompleto}</TableCell>
-                    <TableCell>{formatCpf(proprietario.cpf)}</TableCell>
-                    <TableCell>{proprietario.email || "—"}</TableCell>
-                    <TableCell>{proprietario.profissao || "—"}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{formatCpf(proprietario.cpf)}</TableCell>
+                    <TableCell className="hidden md:table-cell">{proprietario.email || "—"}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{proprietario.profissao || "—"}</TableCell>
                     <TableCell className="text-center">{propertyCountMap.get(proprietario.id) ?? 0}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
+                          className="h-11 w-11 sm:h-8 sm:w-8"
                           onClick={(e) => {
                             e.stopPropagation()
                             handleEdit(proprietario)
@@ -109,7 +109,7 @@ export function ProprietariosPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-destructive"
+                          className="h-11 w-11 sm:h-8 sm:w-8 text-destructive"
                           onClick={(e) => {
                             e.stopPropagation()
                             setDeletingProprietario(proprietario)

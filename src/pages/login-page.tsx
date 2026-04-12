@@ -74,7 +74,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-svh items-center justify-center bg-gradient-to-br from-muted/50 to-muted p-4">
+    <div className="flex flex-col min-h-svh items-center justify-center bg-gradient-to-br from-muted/50 to-muted px-4 py-8">
       <Card className="w-full max-w-sm shadow-lg">
         <CardHeader className="items-center text-center space-y-3">
           <img src="/lox.svg" alt="Lox" className="h-14 w-14 rounded-xl" />
@@ -122,7 +122,7 @@ export function LoginPage() {
                         <button
                           type="button"
                           tabIndex={-1}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-2"
                           onClick={() => setShowPassword(!showPassword)}
                         >
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -146,7 +146,7 @@ export function LoginPage() {
                   Lembrar meu e-mail
                 </Label>
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full min-h-[44px]" disabled={isLoading}>
                 {isLoading && <Loader2 className="animate-spin" />}
                 Entrar
               </Button>

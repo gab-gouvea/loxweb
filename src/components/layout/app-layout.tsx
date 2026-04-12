@@ -12,14 +12,14 @@ export function AppLayout() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b bg-background px-4">
+        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b bg-background px-3 md:px-4">
           <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-1" />
+            <SidebarTrigger className="-ml-1 h-9 w-9 md:h-7 md:w-7" />
             <Separator orientation="vertical" className="mr-2 !h-4" />
           </div>
           <AlertsDropdown />
         </header>
-        <main className="flex-1 overflow-x-auto p-4">
+        <main className="flex-1 overflow-x-auto p-3 md:p-4">
           <Outlet />
         </main>
       </SidebarInset>

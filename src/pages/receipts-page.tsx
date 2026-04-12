@@ -250,9 +250,9 @@ export function ReceiptsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-4">
         <Select value={selectedProprietarioId} onValueChange={setSelectedProprietarioId}>
-          <SelectTrigger className="w-[280px]">
+          <SelectTrigger className="w-full sm:w-[280px] min-h-[44px]">
             <SelectValue placeholder="Selecione o proprietário" />
           </SelectTrigger>
           <SelectContent>
@@ -267,7 +267,7 @@ export function ReceiptsPage() {
         <MonthNavigation currentMonth={currentMonth} onMonthChange={setCurrentMonth} />
 
         {rows.length > 0 && (
-          <Button onClick={exportPDF} variant="outline" className="ml-auto">
+          <Button onClick={exportPDF} variant="outline" className="sm:ml-auto min-h-[44px]">
             <Download className="mr-2 h-4 w-4" />
             Exportar PDF
           </Button>
@@ -283,7 +283,7 @@ export function ReceiptsPage() {
       )}
 
       {rows.length > 0 && (
-        <div className="rounded-lg border bg-white p-8 shadow-sm max-w-4xl mx-auto space-y-6">
+        <div className="rounded-lg border bg-white p-4 sm:p-8 shadow-sm max-w-4xl mx-auto space-y-6">
           {/* Título */}
           <h2 className="text-xl font-bold text-center underline">RECIBO</h2>
 
@@ -314,8 +314,8 @@ export function ReceiptsPage() {
           </div>
 
           {/* Tabela */}
-          <div className="rounded border">
-            <Table>
+          <div className="rounded border overflow-x-auto">
+            <Table className="min-w-[600px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-xs">LOCAL</TableHead>

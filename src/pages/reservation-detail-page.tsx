@@ -93,25 +93,25 @@ export function ReservationDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+      <div className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="ghost" size="sm" className="min-h-[44px] sm:min-h-0" onClick={() => navigate(-1)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{reservation.nomeHospede}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">{reservation.nomeHospede}</h1>
             <span className="translate-y-[1px]">
               <ReservationStatusBadge status={reservation.status} />
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           {(reservation.status === "pendente" || reservation.status === "cancelada") && (
             <Button
               size="sm"
               variant="ghost"
-              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+              className="min-h-[44px] sm:min-h-0 w-full sm:w-auto text-green-600 hover:text-green-700 hover:bg-green-50"
               onClick={handleConfirmarReserva}
               disabled={updateMutation.isPending}
             >
@@ -122,7 +122,7 @@ export function ReservationDetailPage() {
             <Button
               size="sm"
               variant="ghost"
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="min-h-[44px] sm:min-h-0 w-full sm:w-auto text-red-600 hover:text-red-700 hover:bg-red-50"
               onClick={handleCancelarReserva}
               disabled={updateMutation.isPending}
             >

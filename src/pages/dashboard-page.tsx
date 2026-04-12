@@ -114,7 +114,7 @@ export function DashboardPage() {
       </h1>
 
       {/* Cards de métricas */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <SummaryCard title="Imóveis" value={stats.imoveis} icon={Building2} onClick={() => navigate("/propriedades")} />
         <SummaryCard title="Total de Reservas" value={stats.reservasAtivas} icon={CalendarDays} onClick={() => navigate("/reservas")} />
         <SummaryCard title="Ver % de Ocupação" value={`${avgOccupancy}%`} icon={BarChart3} onClick={() => navigate("/ocupacao")} valueClassName={avgOccupancy >= 70 ? "text-green-600" : ""} />
@@ -124,16 +124,16 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Próximos Check-ins */}
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <LogIn className="h-4 w-4 text-green-600" />
+          <div className="flex items-center gap-2 flex-wrap">
+            <LogIn className="h-5 w-5 shrink-0 text-green-600" />
             <h2 className="text-lg font-semibold">Próximos Check-ins</h2>
             <span className="text-sm text-muted-foreground">(Próximos 7 dias)</span>
           </div>
           {stats.proximosCheckins.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum check-in nos próximos 7 dias</p>
           ) : (
-            <div className="rounded-lg border">
-              <Table className="table-fixed">
+            <div className="rounded-lg border overflow-x-auto">
+              <Table className="table-fixed min-w-[400px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Hóspede</TableHead>
@@ -145,12 +145,12 @@ export function DashboardPage() {
                   {stats.proximosCheckins.map((r) => (
                     <TableRow
                       key={r.id}
-                      className="cursor-pointer"
+                      className="cursor-pointer min-h-[44px]"
                       onClick={() => navigate(`/reservas/${r.id}`)}
                     >
-                      <TableCell className="font-medium max-w-[140px] truncate">{r.nomeHospede}</TableCell>
-                      <TableCell className="max-w-[140px] truncate">{propertyMap.get(r.propriedadeId)?.nome}</TableCell>
-                      <TableCell>{formatDate(r.checkIn)}</TableCell>
+                      <TableCell className="font-medium max-w-[140px] truncate py-3">{r.nomeHospede}</TableCell>
+                      <TableCell className="max-w-[140px] truncate py-3">{propertyMap.get(r.propriedadeId)?.nome}</TableCell>
+                      <TableCell className="py-3">{formatDate(r.checkIn)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -161,16 +161,16 @@ export function DashboardPage() {
 
         {/* Próximos Checkouts */}
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <LogOut className="h-4 w-4 text-red-600" />
+          <div className="flex items-center gap-2 flex-wrap">
+            <LogOut className="h-5 w-5 shrink-0 text-red-600" />
             <h2 className="text-lg font-semibold">Próximos Checkouts</h2>
             <span className="text-sm text-muted-foreground">(Próximos 7 dias)</span>
           </div>
           {stats.proximosCheckouts.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum checkout nos próximos 7 dias</p>
           ) : (
-            <div className="rounded-lg border">
-              <Table className="table-fixed">
+            <div className="rounded-lg border overflow-x-auto">
+              <Table className="table-fixed min-w-[400px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Hóspede</TableHead>
@@ -182,12 +182,12 @@ export function DashboardPage() {
                   {stats.proximosCheckouts.map((r) => (
                     <TableRow
                       key={r.id}
-                      className="cursor-pointer"
+                      className="cursor-pointer min-h-[44px]"
                       onClick={() => navigate(`/reservas/${r.id}`)}
                     >
-                      <TableCell className="font-medium max-w-[140px] truncate">{r.nomeHospede}</TableCell>
-                      <TableCell className="max-w-[140px] truncate">{propertyMap.get(r.propriedadeId)?.nome}</TableCell>
-                      <TableCell>{formatDate(r.checkOut)}</TableCell>
+                      <TableCell className="font-medium max-w-[140px] truncate py-3">{r.nomeHospede}</TableCell>
+                      <TableCell className="max-w-[140px] truncate py-3">{propertyMap.get(r.propriedadeId)?.nome}</TableCell>
+                      <TableCell className="py-3">{formatDate(r.checkOut)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -200,13 +200,13 @@ export function DashboardPage() {
       {/* Pagamentos Não Recebidos */}
       {stats.pagamentosNaoRecebidos.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <CircleDollarSign className="h-4 w-4 text-blue-600" />
+          <div className="flex items-center gap-2 flex-wrap">
+            <CircleDollarSign className="h-5 w-5 shrink-0 text-blue-600" />
             <h2 className="text-lg font-semibold">Pagamentos Não Recebidos</h2>
             <span className="text-sm text-muted-foreground">({stats.pagamentosNaoRecebidos.length})</span>
           </div>
-          <div className="rounded-lg border">
-            <Table className="table-fixed">
+          <div className="rounded-lg border overflow-x-auto">
+            <Table className="table-fixed min-w-[480px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Hóspede</TableHead>
@@ -223,15 +223,15 @@ export function DashboardPage() {
                   return (
                     <TableRow
                       key={r.id}
-                      className="cursor-pointer"
+                      className="cursor-pointer min-h-[44px]"
                       onClick={() => navigate(`/reservas/${r.id}`)}
                     >
-                      <TableCell className="font-medium max-w-[140px] truncate">{r.nomeHospede}</TableCell>
-                      <TableCell className="max-w-[140px] truncate">{prop?.nome}</TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium max-w-[140px] truncate py-3">{r.nomeHospede}</TableCell>
+                      <TableCell className="max-w-[140px] truncate py-3">{prop?.nome}</TableCell>
+                      <TableCell className="font-medium py-3">
                         {valorPagamento.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                       </TableCell>
-                      <TableCell>{formatDate(paymentDate)}</TableCell>
+                      <TableCell className="py-3">{formatDate(paymentDate)}</TableCell>
                     </TableRow>
                   )
                 })}
@@ -244,12 +244,12 @@ export function DashboardPage() {
       {/* Faxinas Pendentes */}
       {stats.faxinasPendentes.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <SprayCan className="h-4 w-4 text-yellow-600" />
+          <div className="flex items-center gap-2 flex-wrap">
+            <SprayCan className="h-5 w-5 shrink-0 text-yellow-600" />
             <h2 className="text-lg font-semibold">Agendamentos de Faxina Pendentes</h2>
           </div>
-          <div className="rounded-lg border">
-            <Table className="table-fixed">
+          <div className="rounded-lg border overflow-x-auto">
+            <Table className="table-fixed min-w-[480px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Hóspede</TableHead>
@@ -262,13 +262,13 @@ export function DashboardPage() {
                 {stats.faxinasPendentes.map((r) => (
                   <TableRow
                     key={r.id}
-                    className="cursor-pointer"
+                    className="cursor-pointer min-h-[44px]"
                     onClick={() => navigate(`/reservas/${r.id}`)}
                   >
-                    <TableCell className="font-medium max-w-[140px] truncate">{r.nomeHospede}</TableCell>
-                    <TableCell className="max-w-[140px] truncate">{propertyMap.get(r.propriedadeId)?.nome}</TableCell>
-                    <TableCell>{formatDate(r.checkOut)}</TableCell>
-                    <TableCell>
+                    <TableCell className="font-medium max-w-[140px] truncate py-3">{r.nomeHospede}</TableCell>
+                    <TableCell className="max-w-[140px] truncate py-3">{propertyMap.get(r.propriedadeId)?.nome}</TableCell>
+                    <TableCell className="py-3">{formatDate(r.checkOut)}</TableCell>
+                    <TableCell className="py-3">
                       <ReservationStatusBadge status={r.status as ReservationStatus} />
                     </TableCell>
                   </TableRow>
@@ -282,12 +282,12 @@ export function DashboardPage() {
       {/* Manutenções Atrasadas */}
       {stats.manutencoesAtrasadas.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Wrench className="h-4 w-4 text-red-600" />
+          <div className="flex items-center gap-2 flex-wrap">
+            <Wrench className="h-5 w-5 shrink-0 text-red-600" />
             <h2 className="text-lg font-semibold">Manutenções Atrasadas</h2>
           </div>
-          <div className="rounded-lg border">
-            <Table className="table-fixed">
+          <div className="rounded-lg border overflow-x-auto">
+            <Table className="table-fixed min-w-[480px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Serviço</TableHead>
@@ -300,13 +300,13 @@ export function DashboardPage() {
                 {stats.manutencoesAtrasadas.map((c) => (
                   <TableRow
                     key={c.id}
-                    className="cursor-pointer"
+                    className="cursor-pointer min-h-[44px]"
                     onClick={() => navigate(`/propriedades/${c.propriedadeId}`)}
                   >
-                    <TableCell className="font-medium max-w-[140px] truncate">{c.nome}</TableCell>
-                    <TableCell className="max-w-[140px] truncate">{propertyMap.get(c.propriedadeId)?.nome}</TableCell>
-                    <TableCell className="max-w-[100px] truncate">{c.prestador || "—"}</TableCell>
-                    <TableCell>
+                    <TableCell className="font-medium max-w-[140px] truncate py-3">{c.nome}</TableCell>
+                    <TableCell className="max-w-[140px] truncate py-3">{propertyMap.get(c.propriedadeId)?.nome}</TableCell>
+                    <TableCell className="max-w-[100px] truncate py-3">{c.prestador || "—"}</TableCell>
+                    <TableCell className="py-3">
                       {formatDate(c.proximaManutencao)}
                     </TableCell>
                   </TableRow>
@@ -320,13 +320,13 @@ export function DashboardPage() {
       {/* Próximas Manutenções Agendadas */}
       {stats.proximasManutencoes.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <CalendarClock className="h-4 w-4 text-blue-600" />
+          <div className="flex items-center gap-2 flex-wrap">
+            <CalendarClock className="h-5 w-5 shrink-0 text-blue-600" />
             <h2 className="text-lg font-semibold">Próximas Manutenções Agendadas</h2>
             <span className="text-sm text-muted-foreground">(Próximos 7 dias)</span>
           </div>
-          <div className="rounded-lg border">
-            <Table className="table-fixed">
+          <div className="rounded-lg border overflow-x-auto">
+            <Table className="table-fixed min-w-[480px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Serviço</TableHead>
@@ -339,13 +339,13 @@ export function DashboardPage() {
                 {stats.proximasManutencoes.map((sm) => (
                   <TableRow
                     key={sm.id}
-                    className="cursor-pointer"
+                    className="cursor-pointer min-h-[44px]"
                     onClick={() => navigate(`/propriedades/${sm.propriedadeId}`)}
                   >
-                    <TableCell className="font-medium max-w-[140px] truncate">{sm.nome}</TableCell>
-                    <TableCell className="max-w-[140px] truncate">{propertyMap.get(sm.propriedadeId)?.nome}</TableCell>
-                    <TableCell className="max-w-[100px] truncate">{sm.prestador || "—"}</TableCell>
-                    <TableCell>{formatDate(sm.dataPrevista)}</TableCell>
+                    <TableCell className="font-medium max-w-[140px] truncate py-3">{sm.nome}</TableCell>
+                    <TableCell className="max-w-[140px] truncate py-3">{propertyMap.get(sm.propriedadeId)?.nome}</TableCell>
+                    <TableCell className="max-w-[100px] truncate py-3">{sm.prestador || "—"}</TableCell>
+                    <TableCell className="py-3">{formatDate(sm.dataPrevista)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

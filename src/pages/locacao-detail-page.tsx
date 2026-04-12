@@ -134,20 +134,22 @@ export function LocacaoDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+      <div className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="ghost" size="sm" className="min-h-[44px] sm:min-h-0" onClick={() => navigate(-1)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
-          <h1 className="text-2xl font-bold">{locacao.nomeCompleto}</h1>
-          <LocacaoStatusBadge status={locacao.status as LocacaoStatus} />
-          <Badge variant="outline" className={isAnual ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-teal-50 text-teal-700 border-teal-200"}>
-            {isAnual ? "Anual" : "Longa Temporada"}
-          </Badge>
+          <h1 className="text-xl sm:text-2xl font-bold">{locacao.nomeCompleto}</h1>
+          <div className="flex items-center gap-2">
+            <LocacaoStatusBadge status={locacao.status as LocacaoStatus} />
+            <Badge variant="outline" className={isAnual ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-teal-50 text-teal-700 border-teal-200"}>
+              {isAnual ? "Anual" : "Longa Temporada"}
+            </Badge>
+          </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
+          <Button variant="outline" className="min-h-[44px] sm:min-h-0 w-full sm:w-auto" onClick={() => setEditDialogOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" />
             Editar
           </Button>
@@ -168,7 +170,7 @@ export function LocacaoDetailPage() {
       </div>
 
       {/* Info cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         <Card>
           <CardContent className="flex items-center gap-2 pt-3 pb-3">
             <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -490,7 +492,7 @@ export function LocacaoDetailPage() {
                         <div className="space-y-2 pt-1">
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-muted-foreground">Data:</span>
-                            <Input type="date" className="w-44 h-8" value={vistoriaEntradaData} onChange={(e) => setVistoriaEntradaData(e.target.value)} />
+                            <Input type="date" className="w-full sm:w-44 h-8" value={vistoriaEntradaData} onChange={(e) => setVistoriaEntradaData(e.target.value)} />
                           </div>
                           <div className="flex gap-2">
                             <Button size="sm" onClick={() => { if (vistoriaEntradaData) { handleMutate({ vistoriaEntradaData }); setEditingVistoriaEntrada(false) } }} disabled={updateMutation.isPending || !vistoriaEntradaData}>
@@ -605,7 +607,7 @@ export function LocacaoDetailPage() {
                         <div className="space-y-2 pt-1">
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-muted-foreground">Data:</span>
-                            <Input type="date" className="w-44 h-8" value={vistoriaSaidaData} onChange={(e) => setVistoriaSaidaData(e.target.value)} />
+                            <Input type="date" className="w-full sm:w-44 h-8" value={vistoriaSaidaData} onChange={(e) => setVistoriaSaidaData(e.target.value)} />
                           </div>
                           <div className="flex gap-2">
                             <Button size="sm" onClick={() => { if (vistoriaSaidaData) { handleMutate({ vistoriaSaidaData }); setEditingVistoriaSaida(false) } }} disabled={updateMutation.isPending || !vistoriaSaidaData}>
@@ -691,7 +693,7 @@ export function LocacaoDetailPage() {
                 <Input
                   type="number"
                   min={1}
-                  className="w-24 h-8"
+                  className="w-full sm:w-24 h-8"
                   value={faxinaIntervalo}
                   onChange={(e) => setFaxinaIntervalo(e.target.value)}
                   placeholder="Ex: 15"
@@ -819,20 +821,21 @@ export function LocacaoDetailPage() {
         {/* Não agendada */}
         {(!locacao.faxinaStatus || locacao.faxinaStatus === "nao_agendada") && (
           <div className="space-y-3">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
               <span className="text-sm text-muted-foreground">Data da faxina:</span>
               <Input
                 type="date"
-                className="w-44"
+                className="w-full sm:w-44"
                 value={faxinaDataSaida ?? locacao.checkOut.split("T")[0]}
                 onChange={(e) => setFaxinaDataSaida(e.target.value)}
               />
             </div>
             <p className="text-sm text-muted-foreground">Quem vai fazer a faxina?</p>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 variant="outline"
                 size="sm"
+                className="min-h-[44px] sm:min-h-0 w-full sm:w-auto"
                 onClick={() => {
                   const dateStr = faxinaDataSaida ?? locacao.checkOut.split("T")[0]
                   handleMutate({
@@ -847,14 +850,14 @@ export function LocacaoDetailPage() {
                 Eu faço
               </Button>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
                 <span className="text-sm text-muted-foreground">Custo empresa (R$):</span>
                 <Input
                   type="number"
                   min={0}
                   step={0.01}
-                  className="w-28"
+                  className="w-full sm:w-28"
                   value={custoEmpresa ?? ""}
                   onChange={(e) => setCustoEmpresa(e.target.value === "" ? null : Number(e.target.value))}
                 />
@@ -862,6 +865,7 @@ export function LocacaoDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
+                className="min-h-[44px] sm:min-h-0 w-full sm:w-auto"
                 onClick={() => {
                   const dateStr = faxinaDataSaida ?? locacao.checkOut.split("T")[0]
                   handleMutate({
@@ -998,14 +1002,14 @@ export function LocacaoDetailPage() {
       {/* Encerrar / Reativar Locação */}
       {locacao.status === "ativa" && (
         <div className="pt-6 border-t">
-          <Button variant="destructive" onClick={() => setConfirmEncerrar(true)}>
+          <Button variant="destructive" className="min-h-[44px] sm:min-h-0 w-full sm:w-auto" onClick={() => setConfirmEncerrar(true)}>
             Encerrar Locação
           </Button>
         </div>
       )}
       {locacao.status === "encerrada" && (
         <div className="pt-6 border-t">
-          <Button onClick={handleReativar}>
+          <Button className="min-h-[44px] sm:min-h-0 w-full sm:w-auto" onClick={handleReativar}>
             Reativar Locação
           </Button>
         </div>

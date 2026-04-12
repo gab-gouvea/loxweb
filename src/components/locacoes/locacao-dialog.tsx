@@ -56,7 +56,7 @@ export function LocacaoDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
+      <DialogContent className="w-full max-h-[100dvh] sm:max-h-[90vh] overflow-y-auto sm:max-w-[600px] p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Editar Locação" : "Nova Locação"}

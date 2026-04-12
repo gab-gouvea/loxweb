@@ -138,14 +138,14 @@ export function ExpensesReportPage() {
       ]} />
 
       {/* Month navigation + property filter */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-4">
         <MonthNavigation currentMonth={currentMonth} onMonthChange={setCurrentMonth} />
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <PropertyFilterSelect value={propertyFilter} onValueChange={setPropertyFilter} properties={properties} />
 
           <Select value={tipoFilter} onValueChange={setTipoFilter}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px] min-h-[44px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -177,7 +177,7 @@ export function ExpensesReportPage() {
             <h3 className="text-lg font-semibold">{property.nome}</h3>
 
             <div className="rounded-lg border overflow-x-auto">
-              <Table>
+              <Table className="min-w-[600px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Hóspede / Inquilino</TableHead>

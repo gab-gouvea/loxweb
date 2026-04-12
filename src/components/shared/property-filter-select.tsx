@@ -16,7 +16,7 @@ interface PropertyFilterSelectProps {
 export function PropertyFilterSelect({ value, onValueChange, properties }: PropertyFilterSelectProps) {
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className="w-[220px]">
+      <SelectTrigger className="w-full sm:w-[220px] min-h-[44px]">
         <SelectValue placeholder="Propriedade" />
       </SelectTrigger>
       <SelectContent>

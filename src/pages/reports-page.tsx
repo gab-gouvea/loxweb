@@ -304,14 +304,14 @@ export function ReportsPage() {
       ]} />
 
       {/* Month navigation + property filter */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-4">
         <MonthNavigation currentMonth={currentMonth} onMonthChange={setCurrentMonth} />
 
         <PropertyFilterSelect value={propertyFilter} onValueChange={setPropertyFilter} properties={properties} />
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <SummaryCard title="Recebido" value={formatCurrency(summaryTotals.totalPago)} valueClassName="text-green-600" />
         <SummaryCard title="Meu Total Líquido" value={formatCurrency(summaryTotals.totalRecebido)} />
         <SummaryCard title="Reservas no Período" value={summaryTotals.numReservas} />
@@ -519,7 +519,7 @@ export function ReportsPage() {
               </Table>
             </div>
 
-            <div className="flex justify-end gap-6 pr-4">
+            <div className="flex flex-col sm:flex-row sm:justify-end gap-1 sm:gap-6 pr-4">
               <p className="text-sm text-muted-foreground">
                 Total Líquido Proprietário: {formatCurrency(subtotalLiquido)}
               </p>

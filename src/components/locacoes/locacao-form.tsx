@@ -110,7 +110,7 @@ export function LocacaoForm({
           placeholder="Ex: João da Silva"
         />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="cpf"
@@ -145,7 +145,7 @@ export function LocacaoForm({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="dataNascimento"
@@ -198,7 +198,7 @@ export function LocacaoForm({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="estadoCivil"
@@ -267,7 +267,7 @@ export function LocacaoForm({
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="checkIn"
@@ -427,11 +427,11 @@ export function LocacaoForm({
           rows={3}
         />
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onCancel} className="min-h-[44px]">
             Cancelar
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="min-h-[44px]">
             {isSubmitting ? "Salvando..." : "Salvar"}
           </Button>
         </div>

@@ -80,7 +80,7 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4 -mx-2 px-2 sm:mx-0 sm:px-0">
       <CalendarHeader onNewReservation={handleNewReservation} onNewLocacao={() => setLocacaoDialogOpen(true)} />
       <CalendarGrid
         startDate={startDate}

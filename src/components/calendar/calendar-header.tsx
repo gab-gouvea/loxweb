@@ -24,36 +24,39 @@ export function CalendarHeader({ onNewReservation, onNewLocacao }: CalendarHeade
       : `${format(startDate, "MMM", { locale: ptBR })} – ${format(endDate, "MMM", { locale: ptBR })} ${year}`
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="icon" onClick={goBack}>
+        <Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px]" onClick={goBack}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <h2 className="min-w-[180px] text-center text-lg font-semibold capitalize">
+        <h2 className="min-w-[140px] sm:min-w-[180px] text-center text-base sm:text-lg font-semibold capitalize">
           {dateLabel}
         </h2>
-        <Button variant="outline" size="icon" onClick={goForward}>
+        <Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px]" onClick={goForward}>
           <ChevronRight className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="sm" onClick={goToToday}>
+        <Button variant="ghost" size="sm" className="min-h-[44px]" onClick={goToToday}>
           Hoje
         </Button>
       </div>
-      <Button onClick={onNewReservation}>
-        <Plus className="mr-2 h-4 w-4" />
-        Nova Reserva
-      </Button>
-      <Button onClick={onNewLocacao}>
-        <KeyRound className="mr-2 h-4 w-4" />
-        Nova Locação
-      </Button>
-      <Button
-        variant={showCheckoutsFaxinas ? "default" : "outline"}
-        size="sm"
-        onClick={toggleCheckoutsFaxinas}
-      >
-        Calendário Manutenção
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button className="min-h-[44px]" onClick={onNewReservation}>
+          <Plus className="mr-2 h-4 w-4" />
+          Nova Reserva
+        </Button>
+        <Button className="min-h-[44px]" onClick={onNewLocacao}>
+          <KeyRound className="mr-2 h-4 w-4" />
+          Nova Locação
+        </Button>
+        <Button
+          variant={showCheckoutsFaxinas ? "default" : "outline"}
+          size="sm"
+          className="min-h-[44px]"
+          onClick={toggleCheckoutsFaxinas}
+        >
+          Calendário Manutenção
+        </Button>
+      </div>
     </div>
   )
 }

@@ -31,7 +31,7 @@ export function OccupancyPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="sm" className="min-h-[44px] min-w-[44px]" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
@@ -44,10 +44,12 @@ export function OccupancyPage() {
         </div>
       </div>
 
-      <div className="rounded-lg border p-4 flex items-center gap-4">
-        <span className="text-sm text-muted-foreground">Média Geral</span>
-        <span className={`text-2xl font-bold ${getTextColor(avgOccupancy)}`}>{avgOccupancy}%</span>
-        <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
+      <div className="rounded-lg border p-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <span className="text-sm text-muted-foreground">Média Geral</span>
+          <span className={`text-2xl font-bold ${getTextColor(avgOccupancy)}`}>{avgOccupancy}%</span>
+        </div>
+        <div className="w-full sm:flex-1 h-3 rounded-full bg-muted overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-700 ease-out ${getBarColor(avgOccupancy)}`}
             style={{ width: animated ? `${avgOccupancy}%` : "0%" }}
@@ -55,11 +57,12 @@ export function OccupancyPage() {
         </div>
       </div>
 
+
       <div className="space-y-2">
         {occupancy.map((item) => (
           <div
             key={item.id}
-            className="rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+            className="rounded-lg border p-3 min-h-[44px] cursor-pointer hover:bg-muted/50 transition-colors"
             onClick={() => navigate(`/propriedades/${item.id}`)}
           >
             <div className="flex items-center justify-between mb-1.5">

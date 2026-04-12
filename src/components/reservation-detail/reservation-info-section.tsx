@@ -88,7 +88,7 @@ export function ReservationInfoSection({
       </div>
 
       {!editingInfo ? (
-        <div className={`grid gap-3 ${reservation.status === "cancelada" || !property ? "grid-cols-3 lg:grid-cols-5" : "grid-cols-3 lg:grid-cols-6"}`}>
+        <div className={`grid gap-3 grid-cols-1 sm:grid-cols-2 ${reservation.status === "cancelada" || !property ? "md:grid-cols-3 lg:grid-cols-5" : "md:grid-cols-3 lg:grid-cols-6"}`}>
           <Card className="overflow-hidden cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => property && navigate(`/propriedades/${property.id}`)}>
             <CardContent className="flex items-center gap-2 pt-3 pb-3">
               <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -166,7 +166,7 @@ export function ReservationInfoSection({
 
       ) : (
         <div className="space-y-4 rounded-lg border p-4">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Nome do Hóspede</label>
               <Input
@@ -194,7 +194,7 @@ export function ReservationInfoSection({
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Check-in</label>
               <Input
@@ -218,7 +218,7 @@ export function ReservationInfoSection({
               <Input
                 type="number"
                 min={1}
-                className="h-8 w-20"
+                className="h-8 w-full sm:w-20"
                 value={editNumHospedes ?? reservation.numHospedes}
                 onChange={(e) => setEditNumHospedes(e.target.value)}
               />
@@ -229,7 +229,7 @@ export function ReservationInfoSection({
                 type="number"
                 min={0}
                 step={0.01}
-                className="h-8 w-32"
+                className="h-8 w-full sm:w-32"
                 value={editPrecoTotal ?? reservation.precoTotal ?? ""}
                 onChange={(e) => setEditPrecoTotal(e.target.value)}
               />

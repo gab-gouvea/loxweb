@@ -105,10 +105,10 @@ export function FaxinaPagamentosPage() {
       ]} />
 
       {/* Month navigation + filters */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-4">
         <MonthNavigation currentMonth={currentMonth} onMonthChange={setCurrentMonth} />
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <PropertyFilterSelect
             value={propertyFilter}
             onValueChange={setPropertyFilter}
@@ -116,7 +116,7 @@ export function FaxinaPagamentosPage() {
           />
 
           <Select value={pagoFilter} onValueChange={setPagoFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px] min-h-[44px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -170,7 +170,7 @@ export function FaxinaPagamentosPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={`h-7 w-7 ${item.faxinaPaga ? "text-green-600" : "text-red-500"}`}
+                        className={`h-11 w-11 sm:h-7 sm:w-7 ${item.faxinaPaga ? "text-green-600" : "text-red-500"}`}
                         onClick={(e) => {
                           e.stopPropagation()
                           if (item.tipo === "reserva") {

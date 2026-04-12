@@ -126,7 +126,7 @@ export function AlertsDropdown() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative h-8 w-8">
+        <Button variant="ghost" size="icon" className="relative h-9 w-9 md:h-8 md:w-8">
           <Bell className="h-4 w-4" />
           {visibleCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
@@ -135,7 +135,7 @@ export function AlertsDropdown() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
+      <PopoverContent align="end" className="w-[calc(100vw-2rem)] max-w-sm md:w-80 p-0">
         <div className="border-b px-4 py-3">
           <h3 className="text-sm font-semibold">Alertas</h3>
           {visibleCount === 0 && (
@@ -152,7 +152,7 @@ export function AlertsDropdown() {
               return (
                 <div
                   key={alert.id}
-                  className="flex items-start gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer"
+                  className="flex items-start gap-3 px-4 py-3.5 md:py-2.5 hover:bg-muted/50 transition-colors cursor-pointer"
                   onClick={() => {
                     setOpen(false)
                     if (alert.link) navigate(alert.link)
@@ -167,23 +167,23 @@ export function AlertsDropdown() {
                       {alert.description}
                     </p>
                   </div>
-                  <div className="flex items-center gap-0.5 shrink-0">
+                  <div className="flex items-center gap-1 shrink-0">
                     {(alert.type === "checkin_hoje" || alert.type === "checkout_hoje") && (
                       <button
                         type="button"
-                        className="rounded p-1 text-green-600 hover:bg-green-100 transition-colors"
+                        className="rounded p-2 md:p-1 text-green-600 hover:bg-green-100 transition-colors"
                         title="Confirmar"
                         onClick={(e) => handleConfirmCheckinCheckout(e, alert)}
                       >
-                        <Check className="h-4 w-4" />
+                        <Check className="h-5 w-5 md:h-4 md:w-4" />
                       </button>
                     )}
                     <button
                       type="button"
-                      className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      className="rounded p-2 md:p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                       onClick={(e) => handleDismiss(e, alert.id)}
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-5 w-5 md:h-4 md:w-4" />
                     </button>
                   </div>
                 </div>

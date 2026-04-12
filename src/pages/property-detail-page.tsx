@@ -59,7 +59,7 @@ export function PropertyDetailPage() {
       {/* Header com foto de capa */}
       <div className="overflow-hidden rounded-lg border">
         {property.fotoCapa && (
-          <div className="h-56 w-full overflow-hidden print:h-40">
+          <div className="h-40 sm:h-56 w-full overflow-hidden print:h-40">
             <img
               src={property.fotoCapa}
               alt={property.nome}
@@ -68,17 +68,18 @@ export function PropertyDetailPage() {
           </div>
         )}
         <div className="p-4 space-y-2">
-          <div className="flex items-start justify-between">
+          <div className="space-y-3 sm:space-y-0 sm:flex sm:items-start sm:justify-between">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold">{property.nome}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold">{property.nome}</h1>
               {!property.ativo && (
                 <Badge variant="destructive">Inativa</Badge>
               )}
             </div>
-            <div className="flex items-center gap-2 print:hidden">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 print:hidden">
               <Button
                 variant={property.ativo ? "outline" : "default"}
                 size="sm"
+                className="min-h-[44px] sm:min-h-0"
                 onClick={() => setDeactivateDialogOpen(true)}
               >
                 {property.ativo ? (
@@ -93,7 +94,7 @@ export function PropertyDetailPage() {
                   </>
                 )}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)}>
+              <Button variant="outline" size="sm" className="min-h-[44px] sm:min-h-0" onClick={() => setDialogOpen(true)}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Editar
               </Button>

@@ -94,7 +94,7 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="tipo"
@@ -128,7 +128,7 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormNumberField<PropertyFormData>
             control={form.control}
             name="percentualComissao"
@@ -191,11 +191,11 @@ export function PropertyForm({ property, onSubmit, onCancel, isSubmitting }: Pro
           placeholder="Ex: MinhaRede123"
         />
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onCancel} className="min-h-[44px]">
             Cancelar
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="min-h-[44px]">
             {isSubmitting ? "Salvando..." : "Salvar"}
           </Button>
         </div>

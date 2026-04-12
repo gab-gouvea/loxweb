@@ -111,7 +111,7 @@ export function ReservationForm({
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="checkIn"
@@ -204,7 +204,7 @@ export function ReservationForm({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormNumberField<ReservationFormData>
             control={form.control}
             name="numHospedes"
@@ -244,48 +244,51 @@ export function ReservationForm({
 
             {fields.map((field, index) => (
               <div key={field.id} className="space-y-2 rounded border p-2">
-                <div className="flex items-start gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-2">
                   <FormField
                     control={form.control}
                     name={`despesas.${index}.descricao`}
                     render={({ field }) => (
                       <FormItem className="flex-1">
                         <FormControl>
-                          <Input placeholder="Nome do item ou descrição da despesa" {...field} />
+                          <Input placeholder="Nome do item ou descrição da despesa" className="min-h-[44px]" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name={`despesas.${index}.valor`}
-                    render={({ field }) => (
-                      <FormItem className="w-28">
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={0}
-                            step={0.01}
-                            placeholder="R$"
-                            {...field}
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 text-destructive"
-                    onClick={() => remove(index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-start gap-2">
+                    <FormField
+                      control={form.control}
+                      name={`despesas.${index}.valor`}
+                      render={({ field }) => (
+                        <FormItem className="w-full sm:w-28">
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0}
+                              step={0.01}
+                              placeholder="R$"
+                              className="min-h-[44px]"
+                              {...field}
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-11 w-11 min-h-[44px] min-w-[44px] text-destructive"
+                      onClick={() => remove(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <FormField
                   control={form.control}
@@ -315,11 +318,11 @@ export function ReservationForm({
           rows={3}
         />
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onCancel} className="min-h-[44px]">
             Cancelar
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="min-h-[44px]">
             {isSubmitting ? "Salvando..." : "Salvar"}
           </Button>
         </div>

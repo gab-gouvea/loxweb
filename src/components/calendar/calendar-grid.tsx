@@ -285,9 +285,9 @@ export function CalendarGrid({
   return (
     <div className="rounded-lg border overflow-hidden flex">
       {/* Property sidebar */}
-      <div className="shrink-0 w-[200px] border-r bg-muted/30">
+      <div className="shrink-0 w-[120px] sm:w-[200px] border-r bg-muted/30">
         <div
-          className="border-b flex items-center px-3 text-sm font-medium text-muted-foreground"
+          className="border-b flex items-center px-2 sm:px-3 text-xs sm:text-sm font-medium text-muted-foreground"
           style={{ height: HEADER_HEIGHT }}
         >
           Imóveis
@@ -297,22 +297,22 @@ export function CalendarGrid({
           return (
             <div
               key={prop.id}
-              className="border-b last:border-b-0 flex items-center gap-2 px-3"
+              className="border-b last:border-b-0 flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3"
               style={{ height: ROW_HEIGHT }}
             >
               {prop.fotoCapa ? (
                 <img
                   src={prop.fotoCapa}
                   alt={prop.nome}
-                  className="h-9 w-9 shrink-0 rounded-md object-cover"
+                  className="h-7 w-7 sm:h-9 sm:w-9 shrink-0 rounded-md object-cover"
                 />
               ) : (
-                <div className="h-9 w-9 shrink-0 rounded-md bg-muted" />
+                <div className="h-7 w-7 sm:h-9 sm:w-9 shrink-0 rounded-md bg-muted" />
               )}
               <div className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium leading-tight">{prop.nome}</span>
+                <span className="block truncate text-xs sm:text-sm font-medium leading-tight">{prop.nome}</span>
                 {owner && (
-                  <span className="block truncate text-[10px] text-muted-foreground/70 uppercase leading-tight">
+                  <span className="block truncate text-[10px] text-muted-foreground/70 uppercase leading-tight hidden sm:block">
                     {owner}
                   </span>
                 )}

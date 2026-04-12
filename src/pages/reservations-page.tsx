@@ -81,26 +81,26 @@ export function ReservationsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Reservas</h1>
-        <Button onClick={() => setDialogOpen(true)}>
+        <h1 className="text-xl sm:text-2xl font-bold">Reservas</h1>
+        <Button onClick={() => setDialogOpen(true)} className="min-h-[44px] min-w-[44px]">
           <Plus className="mr-2 h-4 w-4" />
           Nova Reserva
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar por hospede..."
             value={searchName}
             onChange={handleSearch}
-            className="w-[200px] pl-8"
+            className="w-full sm:w-[200px] pl-8 min-h-[44px]"
           />
         </div>
 
         <Select value={statusFilter} onValueChange={handleStatusFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full sm:w-40 min-h-[44px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -114,7 +114,7 @@ export function ReservationsPage() {
         </Select>
 
         <Select value={propertyFilter} onValueChange={handlePropertyFilter}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-full sm:w-[200px] min-h-[44px]">
             <SelectValue placeholder="Propriedade" />
           </SelectTrigger>
           <SelectContent>
@@ -128,7 +128,7 @@ export function ReservationsPage() {
         </Select>
 
         <Select value={sortBy} onValueChange={handleSortBy}>
-          <SelectTrigger className="w-[190px]">
+          <SelectTrigger className="w-full sm:w-[190px] min-h-[44px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -147,7 +147,7 @@ export function ReservationsPage() {
           ))}
         </div>
       ) : (
-        <div className="rounded-lg border">
+        <div className="rounded-lg border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -213,15 +213,15 @@ export function ReservationsPage() {
       )}
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            {filtered.length} reserva{filtered.length !== 1 ? "s" : ""} — Página {page} de {totalPages}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs sm:text-sm text-muted-foreground">
+            {filtered.length} reserva{filtered.length !== 1 ? "s" : ""} — Pág. {page}/{totalPages}
           </span>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-11 w-11 sm:h-8 sm:w-8"
               disabled={page <= 1}
               onClick={() => setPage(page - 1)}
             >
@@ -230,7 +230,7 @@ export function ReservationsPage() {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-11 w-11 sm:h-8 sm:w-8"
               disabled={page >= totalPages}
               onClick={() => setPage(page + 1)}
             >

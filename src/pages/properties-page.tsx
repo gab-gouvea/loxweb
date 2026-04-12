@@ -30,21 +30,21 @@ export function PropertiesPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Propriedades</h1>
-        <Button onClick={() => setDialogOpen(true)}>
+        <h1 className="text-xl sm:text-2xl font-bold">Propriedades</h1>
+        <Button onClick={() => setDialogOpen(true)} className="min-h-[44px] min-w-[44px]">
           <Plus className="mr-2 h-4 w-4" />
           Nova Propriedade
         </Button>
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-40 animate-pulse rounded-lg bg-muted" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {properties?.map((property) => (
             <PropertyCard
               key={property.id}

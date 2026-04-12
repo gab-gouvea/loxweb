@@ -620,14 +620,14 @@ export function LocacaoContratoPage() {
           <div className="space-y-2">
             <Textarea value={editQuadroText} onChange={e => setEditQuadroText(e.target.value)} rows={rows} className="text-sm" />
             <div className="flex gap-2">
-              <Button size="sm" onClick={saveQuadro}><Save className="h-3 w-3 mr-1" />Salvar</Button>
-              <Button size="sm" variant="ghost" onClick={() => setEditingQuadroIdx(null)}>Cancelar</Button>
+              <Button size="sm" className="min-h-[44px]" onClick={saveQuadro}><Save className="h-3 w-3 mr-1" />Salvar</Button>
+              <Button size="sm" className="min-h-[44px]" variant="ghost" onClick={() => setEditingQuadroIdx(null)}>Cancelar</Button>
             </div>
           </div>
         ) : (
           <div className="flex gap-2">
             <div className="flex-1">{renderQuadroLines(quadroText(idx))}</div>
-            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => startEditQuadro(idx)}>
+            <Button variant="ghost" size="icon" className="h-6 w-6 min-h-[44px] min-w-[44px] shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" onClick={() => startEditQuadro(idx)}>
               <Pencil className="h-3 w-3" />
             </Button>
           </div>
@@ -995,15 +995,15 @@ export function LocacaoContratoPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/longatemporada")}>
+          <Button variant="ghost" size="sm" className="min-h-[44px] min-w-[44px]" onClick={() => navigate("/longatemporada")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
-          <h1 className="text-2xl font-bold">{locacao.nomeCompleto}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold truncate">{locacao.nomeCompleto}</h1>
         </div>
-        <Button onClick={exportPDF} disabled={!contratoData}>
+        <Button className="min-h-[44px] w-full sm:w-auto" onClick={exportPDF} disabled={!contratoData}>
           <Download className="mr-2 h-4 w-4" />
           Exportar PDF
         </Button>
@@ -1024,7 +1024,7 @@ export function LocacaoContratoPage() {
 
       {/* Preview do contrato */}
       {contratoData && (
-        <div className="max-w-3xl space-y-0">
+        <div className="w-full md:max-w-3xl space-y-0">
 
           {isAnual ? (
             <>
@@ -1086,7 +1086,8 @@ export function LocacaoContratoPage() {
                   />
                 </div>
                 <p>PESSOAS AUTORIZADAS:</p>
-                <table className="w-full border-collapse border text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[500px] border-collapse border text-sm">
                   <thead>
                     <tr>
                       <th className="border p-1.5 text-left font-semibold">Nome Ocupante</th>
@@ -1131,7 +1132,8 @@ export function LocacaoContratoPage() {
                     ))}
                   </tbody>
                 </table>
-                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={addPessoa}>
+                </div>
+                <Button variant="ghost" size="sm" className="h-7 min-h-[44px] text-xs" onClick={addPessoa}>
                   + Adicionar pessoa
                 </Button>
               </div>
@@ -1157,7 +1159,7 @@ export function LocacaoContratoPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7"
+                    className="h-7 min-h-[44px] min-w-[44px]"
                     onClick={() => { setEditingIndex(i); setEditText(clausula.texto) }}
                   >
                     <Pencil className="h-3 w-3 mr-1" />
@@ -1175,11 +1177,11 @@ export function LocacaoContratoPage() {
                   />
                   <p className="text-xs text-muted-foreground">Use **texto** para negrito</p>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={handleSaveClausula}>
+                    <Button size="sm" className="min-h-[44px]" onClick={handleSaveClausula}>
                       <Save className="h-3 w-3 mr-1" />
                       Salvar
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setEditingIndex(null)}>
+                    <Button size="sm" className="min-h-[44px]" variant="outline" onClick={() => setEditingIndex(null)}>
                       Cancelar
                     </Button>
                   </div>
@@ -1200,7 +1202,7 @@ export function LocacaoContratoPage() {
                   <input
                     value={editLocalDataText}
                     onChange={e => setEditLocalDataText(e.target.value)}
-                    className="border rounded px-2 py-1 text-sm text-center w-80"
+                    className="border rounded px-2 py-1 text-sm text-center w-full sm:w-80"
                     autoFocus
                   />
                   <Button size="sm" onClick={saveLocalData}><Save className="h-3 w-3 mr-1" />Salvar</Button>
@@ -1236,7 +1238,7 @@ export function LocacaoContratoPage() {
             </div>
 
             {/* Testemunhas */}
-            <div className="grid grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
               {([0, 1] as const).map((i) => (
                 <div key={i} className="space-y-1">
                   <div className="border-b border-black w-full" />

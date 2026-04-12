@@ -136,10 +136,10 @@ export function ExpensesSection({
       {despesas.map((despesa, index) =>
         editingIndex === index && editingDespesa ? (
           <div key={index} className="space-y-2 rounded-lg border p-3">
-            <div className="flex items-start gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-2">
               <Input
                 placeholder="Nome do item ou descricao"
-                className="flex-1"
+                className="flex-1 min-h-[44px]"
                 value={editingDespesa.descricao}
                 onChange={(e) => setEditingDespesa({ ...editingDespesa, descricao: e.target.value })}
               />
@@ -148,15 +148,15 @@ export function ExpensesSection({
                 min={0}
                 step={0.01}
                 placeholder="R$"
-                className="w-28"
+                className="w-full sm:w-28 min-h-[44px]"
                 value={editingDespesa.valor}
                 onChange={(e) => setEditingDespesa({ ...editingDespesa, valor: e.target.value })}
               />
             </div>
             {showMonthSelector && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <Select value={String(editingDespesa.mes)} onValueChange={(v) => setEditingDespesa({ ...editingDespesa, mes: Number(v) })}>
-                  <SelectTrigger className="w-32 h-8 text-xs">
+                  <SelectTrigger className="w-full sm:w-32 h-10 sm:h-8 text-sm sm:text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -165,10 +165,10 @@ export function ExpensesSection({
                     ))}
                   </SelectContent>
                 </Select>
-                <Input type="number" className="w-20 h-8 text-xs" value={editingDespesa.ano} onChange={(e) => setEditingDespesa({ ...editingDespesa, ano: Number(e.target.value) })} />
+                <Input type="number" className="w-full sm:w-20 h-10 sm:h-8 text-sm sm:text-xs" value={editingDespesa.ano} onChange={(e) => setEditingDespesa({ ...editingDespesa, ano: Number(e.target.value) })} />
               </div>
             )}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   checked={editingDespesa.reembolsavel}
@@ -176,14 +176,15 @@ export function ExpensesSection({
                 />
                 <span className="text-xs">Reembolsavel</span>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleCancelEdit}>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button variant="outline" size="sm" onClick={handleCancelEdit} className="flex-1 sm:flex-none min-h-[44px] sm:min-h-0">
                   Cancelar
                 </Button>
                 <Button
                   size="sm"
                   onClick={handleSaveEdit}
                   disabled={!editingDespesa.descricao || !editingDespesa.valor || isPending}
+                  className="flex-1 sm:flex-none min-h-[44px] sm:min-h-0"
                 >
                   Salvar
                 </Button>
@@ -191,10 +192,10 @@ export function ExpensesSection({
             </div>
           </div>
         ) : (
-          <div key={index} className="flex items-center justify-between rounded-lg border p-3">
-            <div className="flex items-center gap-3">
-              <div>
-                <p className="text-sm font-medium">{despesa.descricao}</p>
+          <div key={index} className="flex items-start sm:items-center justify-between rounded-lg border p-3 gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{despesa.descricao}</p>
                 <p className="text-sm text-muted-foreground">
                   {formatCurrency(despesa.valor)}
                   {showMonthSelector && despesa.mes && despesa.ano && (
@@ -203,16 +204,16 @@ export function ExpensesSection({
                 </p>
               </div>
               {despesa.reembolsavel && (
-                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 shrink-0">
                   Reembolsavel
                 </Badge>
               )}
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-11 w-11 min-h-[44px] min-w-[44px]"
                 onClick={() => handleStartEdit(index)}
                 disabled={isPending || novaDespesa !== null}
               >
@@ -221,7 +222,7 @@ export function ExpensesSection({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-destructive"
+                className="h-11 w-11 min-h-[44px] min-w-[44px] text-destructive"
                 onClick={() => handleRemoveDespesa(index)}
                 disabled={isPending}
               >
@@ -235,10 +236,10 @@ export function ExpensesSection({
       {/* Nova despesa inline */}
       {novaDespesa && (
         <div className="space-y-2 rounded-lg border p-3">
-          <div className="flex items-start gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-2">
             <Input
               placeholder="Nome do item ou descricao"
-              className="flex-1"
+              className="flex-1 min-h-[44px]"
               value={novaDespesa.descricao}
               onChange={(e) => setNovaDespesa({ ...novaDespesa, descricao: e.target.value })}
             />
@@ -247,15 +248,15 @@ export function ExpensesSection({
               min={0}
               step={0.01}
               placeholder="R$"
-              className="w-28"
+              className="w-full sm:w-28 min-h-[44px]"
               value={novaDespesa.valor}
               onChange={(e) => setNovaDespesa({ ...novaDespesa, valor: e.target.value })}
             />
           </div>
           {showMonthSelector && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <Select value={String(novaDespesa.mes)} onValueChange={(v) => setNovaDespesa({ ...novaDespesa, mes: Number(v) })}>
-                <SelectTrigger className="w-32 h-8 text-xs">
+                <SelectTrigger className="w-full sm:w-32 h-10 sm:h-8 text-sm sm:text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -264,10 +265,10 @@ export function ExpensesSection({
                   ))}
                 </SelectContent>
               </Select>
-              <Input type="number" className="w-20 h-8 text-xs" value={novaDespesa.ano} onChange={(e) => setNovaDespesa({ ...novaDespesa, ano: Number(e.target.value) })} />
+              <Input type="number" className="w-full sm:w-20 h-10 sm:h-8 text-sm sm:text-xs" value={novaDespesa.ano} onChange={(e) => setNovaDespesa({ ...novaDespesa, ano: Number(e.target.value) })} />
             </div>
           )}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div className="flex items-center space-x-2">
               <Checkbox
                 checked={novaDespesa.reembolsavel}
@@ -275,14 +276,15 @@ export function ExpensesSection({
               />
               <span className="text-xs">Reembolsavel</span>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setNovaDespesa(null)}>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button variant="outline" size="sm" onClick={() => setNovaDespesa(null)} className="flex-1 sm:flex-none min-h-[44px] sm:min-h-0">
                 Cancelar
               </Button>
               <Button
                 size="sm"
                 onClick={handleAddDespesa}
                 disabled={!novaDespesa.descricao || !novaDespesa.valor || isPending}
+                className="flex-1 sm:flex-none min-h-[44px] sm:min-h-0"
               >
                 Salvar
               </Button>

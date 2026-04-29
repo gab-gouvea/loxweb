@@ -25,9 +25,11 @@ import {
   CheckCircle2,
   Wallet,
   ThumbsUp,
+  TrendingUp,
 } from "lucide-react"
 import { toast } from "sonner"
 import { addDays, addMonths, parseISO, isBefore, format } from "date-fns"
+import { calcProximoReajuste } from "@/lib/locacao-reajuste"
 import { ptBR } from "date-fns/locale/pt-BR"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -84,6 +86,7 @@ export function LocacaoDetailPage() {
   const [editingVistoriaSaida, setEditingVistoriaSaida] = useState<false | "agendar" | "concluir">(false)
   const [vistoriaSaidaNotas, setVistoriaSaidaNotas] = useState("")
   const [vistoriaSaidaData, setVistoriaSaidaData] = useState("")
+  const [novoValorMensal, setNovoValorMensal] = useState<number | "">("")
 
   if (isLoading) {
     return (
@@ -668,6 +671,133 @@ export function LocacaoDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Reajuste Anual — só anual */}
+      {isAnual && (() => {
+        const checkOutLocal = toLocalDateStr(locacao.checkOut)
+        const proxReajuste = calcProximoReajuste(locacao.checkIn, locacao.ultimoReajuste)
+        const dias = Math.ceil((parseISO(proxReajuste).getTime() - parseISO(getTodayStr()).getTime()) / (1000 * 60 * 60 * 24))
+        const isAtrasado = dias < 0
+        const isProximo = dias >= 0 && dias <= 30
+        const isAposCheckout = proxReajuste >= checkOutLocal
+        const cardClass = isAposCheckout ? "border-gray-200" : isAtrasado ? "border-red-300 bg-red-50/30" : isProximo ? "border-emerald-300 bg-emerald-50/30" : "border-gray-200"
+
+        return (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Reajuste Anual</h2>
+            <Card className={cardClass}>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
+                      isAtrasado ? "bg-red-100 text-red-600" : isProximo ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-600"
+                    }`}>
+                      <TrendingUp className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-sm">
+                        {locacao.ultimoReajuste ? "Próximo reajuste" : "Primeiro reajuste"}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {locacao.ultimoReajuste
+                          ? `Último em ${formatDate(locacao.ultimoReajuste)}`
+                          : `Baseado na entrada (${formatDate(locacao.checkIn)})`}
+                      </p>
+                    </div>
+                  </div>
+                  {!isAposCheckout && (
+                    <Badge variant="outline" className={
+                      isAtrasado ? "bg-red-100 text-red-700 border-red-200 shrink-0"
+                      : isProximo ? "bg-emerald-100 text-emerald-700 border-emerald-200 shrink-0"
+                      : "bg-gray-50 text-gray-600 border-gray-200 shrink-0"
+                    }>
+                      {isAtrasado
+                        ? `${Math.abs(dias)} dia${Math.abs(dias) > 1 ? "s" : ""} atrasado`
+                        : dias === 0 ? "Hoje"
+                        : `Em ${dias} dia${dias > 1 ? "s" : ""}`}
+                    </Badge>
+                  )}
+                  {isAposCheckout && (
+                    <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200 shrink-0">
+                      Após checkout
+                    </Badge>
+                  )}
+                </div>
+
+                <div className={`flex items-center gap-2 rounded-md px-3 py-2 ${
+                  isAtrasado ? "bg-red-50" : isProximo ? "bg-emerald-50" : "bg-gray-50"
+                }`}>
+                  <CalendarDays className={`h-4 w-4 ${isAtrasado ? "text-red-600" : isProximo ? "text-emerald-600" : "text-gray-600"}`} />
+                  <span className={`text-sm font-medium ${isAtrasado ? "text-red-800" : isProximo ? "text-emerald-800" : "text-gray-800"}`}>
+                    {formatDate(proxReajuste)}
+                  </span>
+                </div>
+
+                {locacao.status === "ativa" && !isAposCheckout && (
+                  <div className="space-y-3 pt-1 border-t">
+                    <div className="flex flex-col sm:flex-row sm:items-end gap-3 pt-3">
+                      <div className="flex-1 space-y-1">
+                        <label className="text-xs text-muted-foreground">Valor mensal atual</label>
+                        <div className="text-sm font-medium">{formatCurrency(locacao.valorMensal ?? 0)}</div>
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <label className="text-xs text-muted-foreground">Novo valor mensal (opcional)</label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          placeholder={String(locacao.valorMensal ?? 0)}
+                          value={novoValorMensal === "" ? "" : novoValorMensal}
+                          onChange={(e) => setNovoValorMensal(e.target.value === "" ? "" : Number(e.target.value))}
+                          className="h-9"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() => {
+                          const payload: Partial<LocacaoFormData & Locacao> = { ultimoReajuste: getTodayStr() }
+                          if (novoValorMensal !== "" && novoValorMensal !== locacao.valorMensal) {
+                            payload.valorMensal = Number(novoValorMensal)
+                          }
+                          updateMutation.mutate(
+                            { id: locacao.id, data: payload },
+                            {
+                              onSuccess: () => {
+                                toast.success("Reajuste confirmado")
+                                setNovoValorMensal("")
+                              },
+                              onError: (err) => toast.error(getErrorMessage(err)),
+                            },
+                          )
+                        }}
+                        disabled={updateMutation.isPending}
+                      >
+                        <Check className="mr-1 h-3.5 w-3.5" />
+                        Confirmar Reajuste
+                      </Button>
+                      {locacao.ultimoReajuste && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-muted-foreground"
+                          onClick={() => handleMutate({ clearUltimoReajuste: true })}
+                          disabled={updateMutation.isPending}
+                        >
+                          Desfazer último reajuste
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )
+      })()}
 
       {/* Faxina de Rotina — card igual component-table (só temporada) */}
       {!isAnual && <div className="space-y-4">

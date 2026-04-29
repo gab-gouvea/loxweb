@@ -12,6 +12,7 @@ import {
   Check,
   RefreshCw,
   Timer,
+  TrendingUp,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -57,6 +58,7 @@ const alertIcons: Record<AlertType, typeof Bell> = {
   locacao_pagamento_pendente: CircleDollarSign,
   locacao_expirando: Timer,
   locacao_expirando_urgente: Timer,
+  locacao_reajuste_anual: TrendingUp,
 }
 
 const alertColors: Record<AlertType, string> = {
@@ -76,6 +78,7 @@ const alertColors: Record<AlertType, string> = {
   locacao_pagamento_pendente: "text-blue-500",
   locacao_expirando: "text-orange-600",
   locacao_expirando_urgente: "text-red-600",
+  locacao_reajuste_anual: "text-emerald-600",
 }
 
 export function AlertsDropdown() {

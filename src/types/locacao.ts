@@ -51,6 +51,9 @@ export const locacaoSchema = z.object({
   vistoriaSaidaNotas: z.string().optional(),
   vistoriaSaidaConcluida: z.boolean().optional(),
   clearVistoriaSaida: z.boolean().optional(),
+  // Reajuste anual (só anual)
+  ultimoReajuste: z.string().optional(),
+  clearUltimoReajuste: z.boolean().optional(),
   despesas: z.array(despesaSchema).optional(),
   notas: z.string().optional(),
   status: z.enum(locacaoStatuses),

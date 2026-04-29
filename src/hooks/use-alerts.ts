@@ -6,6 +6,7 @@ import { usePropertyMap } from "./use-property-map"
 import { useAllPropertyComponents, useAllPendingScheduledMaintenances } from "./use-property-details"
 import { toLocalDateStr, getTodayStr } from "@/lib/date-utils"
 import { calcValorPagamento } from "@/lib/reservation-calculations"
+import { calcProximoReajuste, shouldAlertReajuste } from "@/lib/locacao-reajuste"
 
 export type AlertType =
   | "checkin_hoje"
@@ -24,6 +25,7 @@ export type AlertType =
   | "locacao_pagamento_pendente"
   | "locacao_expirando"
   | "locacao_expirando_urgente"
+  | "locacao_reajuste_anual"
 
 export interface Alert {
   id: string
@@ -51,6 +53,7 @@ const alertLabels: Record<AlertType, string> = {
   locacao_pagamento_pendente: "Pagamento Locação Pendente",
   locacao_expirando: "Locação Expirando",
   locacao_expirando_urgente: "Locação Expirando!",
+  locacao_reajuste_anual: "Reajuste Anual",
 }
 
 export function useAlerts() {
@@ -318,6 +321,27 @@ export function useAlerts() {
             type: "locacao_pagamento_pendente",
             title: pagDate === today ? "Pagamento Locação Hoje" : "Pagamento Locação Pendente",
             description: `${valorFormatado} — ${l.nomeCompleto} — ${propNome}`,
+            link: `/longatemporada/${l.id}`,
+          })
+        }
+      }
+
+      // Reajuste anual (só anual): 30 dias antes de cada ciclo de 12 meses
+      if (l.tipoLocacao === "anual") {
+        const proximoReajuste = calcProximoReajuste(l.checkIn, l.ultimoReajuste)
+        if (shouldAlertReajuste(proximoReajuste, l.checkOut, today)) {
+          const diasAteReajuste = differenceInDays(parseISO(proximoReajuste), new Date())
+          const dataFormatada = format(parseISO(proximoReajuste), "dd/MM/yyyy")
+          const title = diasAteReajuste < 0
+            ? `Reajuste atrasado (${Math.abs(diasAteReajuste)} dia${Math.abs(diasAteReajuste) > 1 ? "s" : ""})`
+            : diasAteReajuste === 0
+              ? "Reajuste hoje"
+              : `Reajuste em ${diasAteReajuste} dia${diasAteReajuste > 1 ? "s" : ""}`
+          result.push({
+            id: `loc-reajuste-${l.id}-${proximoReajuste}`,
+            type: "locacao_reajuste_anual",
+            title,
+            description: `${l.nomeCompleto} — ${propNome} — ${dataFormatada}`,
             link: `/longatemporada/${l.id}`,
           })
         }

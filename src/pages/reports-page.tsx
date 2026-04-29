@@ -60,6 +60,15 @@ export function ReportsPage() {
   const reportYM = format(currentMonth, "yyyy-MM")
   const { data: locacaoRecebimentos = [] } = useRecebimentosLocacao(reportMes, reportAno)
   const locacaoRecebidoSet = useMemo(() => new Set(locacaoRecebimentos.map(r => r.locacaoId)), [locacaoRecebimentos])
+  // Map locacaoId -> valorRecebido confirmado neste mês (preserva valor antes de reajustes)
+  const locacaoValorRecebidoMap = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const r of locacaoRecebimentos) {
+      // mes=99 é faxina, ignorar aqui
+      if (r.mes !== 99) m.set(r.locacaoId, r.valorRecebido)
+    }
+    return m
+  }, [locacaoRecebimentos])
 
   // Reserva pertence ao mês de (checkIn + 1 dia) — dia do recebimento
   const monthReservations = useMemo(() => {
@@ -129,13 +138,23 @@ export function ReportsPage() {
   }, [allLocacoes, reportYM, propertyFilter])
 
   // Calcular bruto da locação para este mês (só se tem pagamento no mês)
+  // Se já confirmado, deriva do valorRecebido armazenado (preserva valor antes de reajuste)
   function getLocacaoBruto(l: Locacao, hasPayment: boolean): number {
     if (!hasPayment) return 0
+    const valorRecebido = locacaoValorRecebidoMap.get(l.id)
+    if (valorRecebido != null) {
+      const pct = l.percentualComissao ?? 0
+      return pct > 0 ? (valorRecebido * 100) / pct : 0
+    }
     if (l.tipoPagamento === "avista") return l.valorTotal ?? 0
     return l.valorMensal ?? 0
   }
 
   function getLocacaoComissao(l: Locacao, hasPayment: boolean): number {
+    if (!hasPayment) return 0
+    // Se já confirmado, usar valor armazenado (preserva valor antes de reajuste)
+    const valorRecebido = locacaoValorRecebidoMap.get(l.id)
+    if (valorRecebido != null) return valorRecebido
     const bruto = getLocacaoBruto(l, hasPayment)
     return (bruto * (l.percentualComissao ?? 0)) / 100
   }

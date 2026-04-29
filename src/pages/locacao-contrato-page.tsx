@@ -343,11 +343,11 @@ function getDefaultClausulasAnual(data?: ContratoData | null): Clausula[] {
     },
     {
       titulo: "",
-      texto: `**CLÁUSULA TERCEIRA – DO VALOR E FORMA DE PAGAMENTO**\n\nO aluguel mensal será de ${valorMensalF} (${valorMensalExtenso}), a serem pagos pelo LOCATÁRIO até o dia ${diaVencimento} do mês subsequente ao vencido a ser pago diretamente ao LOCADOR, através de depósito na conta do LOCADOR no **[BANCO] AG [XXXX] CC: [XXXXXXX-X]**, servindo o comprovante de depósito como recibo de pagamento do aluguel.`,
+      texto: `**CLÁUSULA TERCEIRA – DO VALOR E FORMA DE PAGAMENTO**\n\nO aluguel mensal será de ${valorMensalF} (${valorMensalExtenso}), a serem pagos pelo LOCATÁRIO até o dia ${diaVencimento} do mês subsequente ao vencido, diretamente ao LOCADOR, através de depósito ou PIX na conta do LOCADOR no **[BANCO] AG [XXXX] CC: [XXXXXXX-X]**, servindo o comprovante como recibo de pagamento do aluguel.`,
     },
     {
       titulo: "",
-      texto: `**CLÁUSULA QUARTA - DESPESAS E TRIBUTOS**\n\nJuntamente com o aluguel estipulado o LOCATÁRIO pagará o IPTU, taxa de condomínio, água, luz, gás e internet; através de depósito na mesma conta do LOCADOR citada na (cláusula 3a), servindo o comprovante de depósito como recibo de pagamento dos encargos decorrentes da locação;\n\nParágrafo único: O pagamento do fundo de reserva do condomínio é de responsabilidade do LOCADOR e seu valor será abatido do LOCATÁRIO`,
+      texto: `**CLÁUSULA QUARTA - DESPESAS E TRIBUTOS**\n\nO IPTU e a taxa de condomínio do imóvel objeto deste contrato são, originariamente, de responsabilidade do LOCADOR, que efetuará o pagamento diretamente aos órgãos e entidades competentes nas datas de vencimento.\n\n§1º. O LOCATÁRIO obriga-se a reembolsar integralmente ao LOCADOR os valores referentes ao IPTU e à taxa de condomínio, bem como a arcar com as despesas de água, luz, gás e internet referentes ao seu período de uso, através de depósito na mesma conta do LOCADOR citada na cláusula terceira.\n\n§2º. O LOCADOR apresentará ao LOCATÁRIO os comprovantes ou faturas das despesas mencionadas, servindo o respectivo comprovante de pagamento ou reembolso como recibo de quitação dos encargos decorrentes da locação.\n\n§3º. Os valores referentes a água, luz, gás, internet e taxa de condomínio poderão variar mensalmente conforme o consumo efetivo e os reajustes aplicáveis, ficando o LOCATÁRIO ciente da obrigação de pagar/reembolsar o valor integral das faturas geradas.\n\n§4º. O inadimplemento de quaisquer dessas despesas será equiparado ao inadimplemento do próprio aluguel, autorizando a aplicação das penalidades previstas neste contrato, inclusive a rescisão por descumprimento.\n\n§5º. O pagamento do fundo de reserva do condomínio é de responsabilidade exclusiva do LOCADOR, não sendo repassado ao LOCATÁRIO.`,
     },
     {
       titulo: "",
@@ -391,7 +391,11 @@ function getDefaultClausulasAnual(data?: ContratoData | null): Clausula[] {
     },
     {
       titulo: "",
-      texto: `**CLÁUSULA DÉCIMA QUINTA – DO FORO**\n\nFica eleito o foro da comarca de Florianópolis/SC para dirimir quaisquer dúvidas oriundas deste contrato.\n\nE, por estarem de pleno acordo, firmam o presente CONTRATO DE LOCAÇÃO RESIDENCIAL, de forma eletrônica, com validade jurídica conforme a legislação vigente, especialmente nos termos da Medida Provisória nº 2.200-2/2001.`,
+      texto: `**CLÁUSULA DÉCIMA QUINTA – DO ABANDONO DO IMÓVEL**\n\nCaso o LOCATÁRIO abandone o imóvel antes do término do contrato, sem prévia comunicação por escrito ao LOCADOR, este ficará desde já autorizado a tomar posse do imóvel, retirando, à custa do LOCATÁRIO, eventuais bens deixados no local, sem prejuízo das demais sanções previstas neste contrato e na legislação aplicável.\n\n§1º. Considera-se abandono a desocupação do imóvel sem aviso prévio formal e sem o pagamento dos aluguéis e encargos vencidos por período superior a 30 (trinta) dias.\n\n§2º. Caracterizado o abandono, o LOCADOR poderá reaver o imóvel independentemente de notificação judicial, podendo dispor livremente dos bens nele encontrados após o decurso do prazo legal de armazenamento, conforme legislação aplicável.`,
+    },
+    {
+      titulo: "",
+      texto: `**CLÁUSULA DÉCIMA SEXTA – DO FORO**\n\nFica eleito o foro da comarca de Florianópolis/SC para dirimir quaisquer dúvidas oriundas deste contrato.\n\nE, por estarem de pleno acordo, firmam o presente CONTRATO DE LOCAÇÃO RESIDENCIAL, de forma eletrônica, com validade jurídica conforme a legislação vigente, especialmente nos termos da Medida Provisória nº 2.200-2/2001.`,
     },
   ]
 }

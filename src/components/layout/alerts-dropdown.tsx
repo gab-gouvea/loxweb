@@ -88,6 +88,7 @@ export function AlertsDropdown() {
   const [open, setOpen] = useState(false)
   const [dismissed, setDismissed] = useState<Map<string, number>>(loadDismissed)
 
+  const SNOOZE_7_DIAS = 7 * 24 * 60 * 60 * 1000
   const SNOOZE_2_DIAS = 2 * 24 * 60 * 60 * 1000
   const SNOOZE_1_DIA = 1 * 24 * 60 * 60 * 1000
 
@@ -103,6 +104,7 @@ export function AlertsDropdown() {
     if (a.type === "locacao_faxina_atrasada") return elapsed >= SNOOZE_2_DIAS
     if (a.type === "locacao_faxina_proxima") return elapsed >= SNOOZE_1_DIA
     if (a.type === "locacao_pagamento_pendente") return elapsed >= SNOOZE_1_DIA
+    if (a.type === "locacao_reajuste_anual") return elapsed >= SNOOZE_7_DIAS
     return false
   })
   const visibleCount = visibleAlerts.length

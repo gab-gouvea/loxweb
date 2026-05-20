@@ -218,6 +218,9 @@ export function FaxinaRecibosPage() {
 
   function exportPDF() {
     const doc = new jsPDF()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const bottomMargin = 20
+    const topMarginNewPage = 25
 
     // Título
     doc.setFontSize(18)
@@ -234,6 +237,10 @@ export function FaxinaRecibosPage() {
     const lineHeight = 6
     let textY = 50
     for (let i = 0; i < lines.length; i++) {
+      if (textY + lineHeight > pageHeight - bottomMargin) {
+        doc.addPage()
+        textY = topMarginNewPage
+      }
       const line = lines[i]
       const isLast = i === lines.length - 1 || line.trim() === "" || (lines[i + 1] != null && lines[i + 1].trim() === "")
       if (isLast || line.trim() === "") {
@@ -256,25 +263,40 @@ export function FaxinaRecibosPage() {
     }
 
     // Tabela
-    const tableTop = textY + 15
     const headers = ["LOCAL", "PROPRIETARIA", "HOSPEDE", "DATA PAGTO", "MES", "ANO", "VALOR", "STATUS"]
     const colWidths = [22, 24, 22, 22, 24, 14, 24, 18]
     const rowHeight = 8
-    let x = 20
 
-    doc.setFontSize(8)
-    doc.setFont("helvetica", "bold")
-    for (let i = 0; i < headers.length; i++) {
-      doc.rect(x, tableTop, colWidths[i], rowHeight)
-      doc.text(headers[i], x + 1.5, tableTop + 5.5)
-      x += colWidths[i]
+    let tableY = textY + 15
+    if (tableY + rowHeight * 2 > pageHeight - bottomMargin) {
+      doc.addPage()
+      tableY = topMarginNewPage
     }
 
-    doc.setFont("helvetica", "normal")
+    function drawTableHeader(y: number) {
+      doc.setFontSize(8)
+      doc.setFont("helvetica", "bold")
+      let hx = 20
+      for (let i = 0; i < headers.length; i++) {
+        doc.rect(hx, y, colWidths[i], rowHeight)
+        doc.text(headers[i], hx + 1.5, y + 5.5)
+        hx += colWidths[i]
+      }
+      doc.setFont("helvetica", "normal")
+    }
+
+    drawTableHeader(tableY)
+    let rowY = tableY + rowHeight
+
     for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+      if (rowY + rowHeight > pageHeight - bottomMargin) {
+        doc.addPage()
+        rowY = topMarginNewPage
+        drawTableHeader(rowY)
+        rowY += rowHeight
+      }
       const row = rows[rowIdx]
-      const y = tableTop + rowHeight * (rowIdx + 1)
-      x = 20
+      let cx = 20
       const values = [
         row.local.substring(0, 12),
         row.proprietaria.substring(0, 12),
@@ -286,14 +308,20 @@ export function FaxinaRecibosPage() {
         row.status,
       ]
       for (let i = 0; i < values.length; i++) {
-        doc.rect(x, y, colWidths[i], rowHeight)
-        doc.text(values[i], x + 1.5, y + 5.5)
-        x += colWidths[i]
+        doc.rect(cx, rowY, colWidths[i], rowHeight)
+        doc.text(values[i], cx + 1.5, rowY + 5.5)
+        cx += colWidths[i]
       }
+      rowY += rowHeight
     }
 
-    // Rodapé
-    const footerY = tableTop + rowHeight * (rows.length + 1) + 20
+    // Rodapé + assinatura precisam de espaço (gap + texto + assinatura ~ 32mm)
+    const footerBlockHeight = 32
+    let footerY = rowY + 20
+    if (footerY + footerBlockHeight > pageHeight - bottomMargin) {
+      doc.addPage()
+      footerY = topMarginNewPage
+    }
     doc.setFontSize(11)
     doc.text(`Florianopolis, ${ultimoDia} de ${dataAssinaturaMes} de ${ano}.`, 20, footerY)
 

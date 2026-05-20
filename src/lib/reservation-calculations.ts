@@ -31,6 +31,12 @@ export function calcValorPagamento(reservation: Reservation, property: Property 
   return valorComissao + taxaLimpeza
 }
 
+/** Valor líquido que entra no recibo = pagamento do proprietário - despesas não-reembolsáveis */
+export function calcValorRecibo(reservation: Reservation, property: Property | undefined): number {
+  const { naoReembolsavel } = calcDespesas(reservation)
+  return calcValorPagamento(reservation, property) - naoReembolsavel
+}
+
 export function calcTotalRecebido(reservation: Reservation, property: Property | undefined): number {
   if (reservation.status === "cancelada") {
     return reservation.valorRecebidoCancelamento ?? 0

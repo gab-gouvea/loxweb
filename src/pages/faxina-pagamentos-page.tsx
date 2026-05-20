@@ -102,6 +102,7 @@ export function FaxinaPagamentosPage() {
       <TabNavigation tabs={[
         { label: "Faxinas", to: "/faxina-terceirizada" },
         { label: "Pagamentos", to: "/faxina-terceirizada/pagamentos" },
+        { label: "Recibos", to: "/faxina-terceirizada/recibos" },
       ]} />
 
       {/* Month navigation + filters */}

@@ -14,6 +14,7 @@ import { ProprietariosPage } from "@/pages/proprietarios-page"
 import { ProprietarioDetailPage } from "@/pages/proprietario-detail-page"
 import { FaxinaTerceirizadaPage } from "@/pages/faxina-terceirizada-page"
 import { FaxinaPagamentosPage } from "@/pages/faxina-pagamentos-page"
+import { FaxinaRecibosPage } from "@/pages/faxina-recibos-page"
 import { DashboardPage } from "@/pages/dashboard-page"
 import { OccupancyPage } from "@/pages/occupancy-page"
 import { ReceiptsPage } from "@/pages/receipts-page"
@@ -47,6 +48,7 @@ const router = createBrowserRouter([
           { path: "relatorios/despesas", element: <ExpensesReportPage /> },
           { path: "faxina-terceirizada", element: <FaxinaTerceirizadaPage /> },
           { path: "faxina-terceirizada/pagamentos", element: <FaxinaPagamentosPage /> },
+          { path: "faxina-terceirizada/recibos", element: <FaxinaRecibosPage /> },
           { path: "recibos", element: <ReceiptsPage /> },
           { path: "longatemporada", element: <LocacoesPage /> },
           { path: "longatemporada/:id", element: <LocacaoDetailPage /> },

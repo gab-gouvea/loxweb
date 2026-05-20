@@ -1,8 +1,9 @@
+import { useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { format, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, UserCheck, X } from "lucide-react"
 import {
   locacaoFormSchema,
   type LocacaoFormData,
@@ -28,8 +29,13 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { useProperties } from "@/hooks/use-properties"
+import { useLocacoes } from "@/hooks/use-locacoes"
 import { cn } from "@/lib/utils"
 import { FormTextField, FormNumberField, FormTextareaField } from "@/components/shared/form-fields"
+
+function digitsOnly(s: string): string {
+  return s.replace(/\D/g, "")
+}
 
 interface LocacaoFormProps {
   locacao?: Locacao
@@ -45,6 +51,9 @@ export function LocacaoForm({
   isSubmitting,
 }: LocacaoFormProps) {
   const { data: properties } = useProperties()
+  const { data: allLocacoes = [] } = useLocacoes()
+  const isCreating = !locacao
+  const [dismissedCpfs, setDismissedCpfs] = useState<Set<string>>(new Set())
 
   const form = useForm<LocacaoFormData>({
     resolver: zodResolver(locacaoFormSchema),
@@ -72,6 +81,46 @@ export function LocacaoForm({
   })
 
   const tipoPagamento = form.watch("tipoPagamento")
+  const cpfValue = form.watch("cpf")
+
+  // Map de inquilinos únicos por CPF (mais recente prevalece)
+  const inquilinosByCpf = useMemo(() => {
+    const map = new Map<string, Locacao>()
+    const sorted = [...allLocacoes].sort((a, b) =>
+      (b.criadoEm ?? "").localeCompare(a.criadoEm ?? ""),
+    )
+    for (const loc of sorted) {
+      const key = digitsOnly(loc.cpf ?? "")
+      if (key.length === 11 && !map.has(key)) {
+        map.set(key, loc)
+      }
+    }
+    return map
+  }, [allLocacoes])
+
+  const matchedInquilino = useMemo(() => {
+    if (!isCreating) return null
+    const key = digitsOnly(cpfValue ?? "")
+    if (key.length !== 11) return null
+    if (dismissedCpfs.has(key)) return null
+    return inquilinosByCpf.get(key) ?? null
+  }, [isCreating, cpfValue, dismissedCpfs, inquilinosByCpf])
+
+  function preencherInquilino(loc: Locacao) {
+    form.setValue("nomeCompleto", loc.nomeCompleto ?? "", { shouldValidate: true })
+    form.setValue("cpf", loc.cpf ?? "", { shouldValidate: true })
+    form.setValue("rg", loc.rg ?? "")
+    form.setValue("dataNascimento", loc.dataNascimento ?? "")
+    form.setValue("profissao", loc.profissao ?? "")
+    form.setValue("estadoCivil", loc.estadoCivil ?? "")
+    form.setValue("endereco", loc.endereco ?? "")
+    form.setValue("email", loc.email ?? "")
+    setDismissedCpfs((prev) => new Set(prev).add(digitsOnly(loc.cpf ?? "")))
+  }
+
+  function ignorarInquilino(cpf: string) {
+    setDismissedCpfs((prev) => new Set(prev).add(digitsOnly(cpf)))
+  }
 
   return (
     <Form {...form}>
@@ -145,6 +194,40 @@ export function LocacaoForm({
           />
         </div>
 
+        {matchedInquilino && (
+          <div className="rounded-md border border-blue-200 bg-blue-50 p-3 flex items-start gap-3">
+            <UserCheck className="h-5 w-5 text-blue-700 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-blue-900">
+                Inquilino encontrado: {matchedInquilino.nomeCompleto}
+              </p>
+              <p className="text-xs text-blue-700 mt-0.5">
+                Já existe uma locação com este CPF. Deseja preencher os dados automaticamente?
+              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => preencherInquilino(matchedInquilino)}
+                  className="h-8"
+                >
+                  Preencher dados
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => ignorarInquilino(matchedInquilino.cpf ?? "")}
+                  className="h-8"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Ignorar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -205,7 +288,7 @@ export function LocacaoForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Estado Civil</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value ?? ""}>
+                <Select onValueChange={field.onChange} value={field.value ?? ""}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione..." />

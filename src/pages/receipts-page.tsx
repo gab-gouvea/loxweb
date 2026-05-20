@@ -186,7 +186,10 @@ export function ReceiptsPage() {
     }
 
     const onlyName = filtered.length === 1 ? filtered[0].nome : null
-    const single = buildGroup("single", onlyName, filtered, allReservations)
+    // Chave do localStorage: usa o id do imóvel quando filtrado, "todos" quando agrega
+    // Isso garante que a descrição editada de cada imóvel fique isolada
+    const singleKey = selectedPropertyId === "todos" ? "todos" : selectedPropertyId
+    const single = buildGroup(singleKey, onlyName, filtered, allReservations)
     return single.rows.length > 0 ? [single] : []
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [

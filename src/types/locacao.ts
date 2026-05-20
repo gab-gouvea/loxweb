@@ -31,6 +31,7 @@ export const locacaoSchema = z.object({
   tipoPagamento: z.enum(tipoPagamentoTypes).optional(),
   valorTotal: z.number().min(0).optional(),
   percentualComissao: z.number().min(0).max(100).optional(),
+  taxaLimpeza: z.number().min(0).nullable().optional(),
   garantia: z.enum(garantiaTypes).optional(),
   // Faxina de rotina (gerenciado via card na detail page — só temporada)
   faxinaIntervaloDias: z.number().int().min(1).optional(),

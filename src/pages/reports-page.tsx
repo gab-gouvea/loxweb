@@ -171,7 +171,7 @@ export function ReportsPage() {
 
   function calcLocacaoFaxinaReceita(l: Locacao, property: { taxaLimpeza?: number } | undefined): number {
     if (l.faxinaStatus !== "agendada") return 0
-    const taxaLimpeza = property?.taxaLimpeza ?? 0
+    const taxaLimpeza = l.taxaLimpeza ?? property?.taxaLimpeza ?? 0
     if (l.faxinaPorMim) return taxaLimpeza
     return taxaLimpeza - (l.custoEmpresaFaxina ?? 0)
   }
@@ -230,7 +230,7 @@ export function ReportsPage() {
           totalPago += recebido
         }
       } else {
-        const taxaLimpeza = property?.taxaLimpeza ?? 0
+        const taxaLimpeza = r.taxaLimpeza ?? property?.taxaLimpeza ?? 0
         const valorReserva = (r.precoTotal ?? 0) - taxaLimpeza
         const comissao = r.percentualComissao ?? property?.percentualComissao ?? 0
         const valorComissao = (valorReserva * comissao) / 100
@@ -361,7 +361,7 @@ export function ReportsPage() {
             if (r.status === "cancelada") {
               return sum + (r.valorLiquidoCancelamento ?? 0)
             }
-            const taxaLimpeza = property.taxaLimpeza ?? 0
+            const taxaLimpeza = r.taxaLimpeza ?? property.taxaLimpeza ?? 0
             const valorReserva = (r.precoTotal ?? 0) - taxaLimpeza
             const comissao = r.percentualComissao ?? property.percentualComissao ?? 0
             const valorComissao = (valorReserva * comissao) / 100
@@ -405,7 +405,7 @@ export function ReportsPage() {
                   {propReservations.map((reservation) => {
                     const isCancelada = reservation.status === "cancelada"
                     const comissaoPercent = reservation.percentualComissao ?? property.percentualComissao ?? 0
-                    const taxaLimpeza = property.taxaLimpeza ?? 0
+                    const taxaLimpeza = reservation.taxaLimpeza ?? property.taxaLimpeza ?? 0
                     const valorSemLimpeza = (reservation.precoTotal ?? 0) - taxaLimpeza
                     const valorComissao = isCancelada
                       ? 0

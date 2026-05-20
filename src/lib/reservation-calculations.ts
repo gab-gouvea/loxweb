@@ -5,7 +5,7 @@ export function calcFaxinaReceita(reservation: Reservation, property: Property |
   if (reservation.status === "cancelada") return 0
   const status = reservation.faxinaStatus ?? "nao_agendada"
   if (status === "nao_agendada") return 0
-  const taxaLimpeza = property?.taxaLimpeza ?? 0
+  const taxaLimpeza = reservation.taxaLimpeza ?? property?.taxaLimpeza ?? 0
   if (reservation.faxinaPorMim) return taxaLimpeza
   return taxaLimpeza - (reservation.custoEmpresaFaxina ?? 0)
 }
@@ -24,7 +24,7 @@ export function calcDespesas(reservation: Reservation): { reembolsavel: number; 
 /** Valor que o proprietário paga ao gestor = comissão + taxaLimpeza */
 export function calcValorPagamento(reservation: Reservation, property: Property | undefined): number {
   const precoTotal = reservation.precoTotal ?? 0
-  const taxaLimpeza = property?.taxaLimpeza ?? 0
+  const taxaLimpeza = reservation.taxaLimpeza ?? property?.taxaLimpeza ?? 0
   const baseComissao = Math.max(0, precoTotal - taxaLimpeza)
   const comissaoPercent = reservation.percentualComissao ?? property?.percentualComissao ?? 0
   const valorComissao = (baseComissao * comissaoPercent) / 100
@@ -36,7 +36,7 @@ export function calcTotalRecebido(reservation: Reservation, property: Property |
     return reservation.valorRecebidoCancelamento ?? 0
   }
   const precoTotal = reservation.precoTotal ?? 0
-  const taxaLimpeza = property?.taxaLimpeza ?? 0
+  const taxaLimpeza = reservation.taxaLimpeza ?? property?.taxaLimpeza ?? 0
   const baseComissao = Math.max(0, precoTotal - taxaLimpeza)
   const comissaoPercent = reservation.percentualComissao ?? property?.percentualComissao ?? 0
   const valorComissao = (baseComissao * comissaoPercent) / 100

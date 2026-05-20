@@ -221,7 +221,7 @@ export function LocacaoDetailPage() {
           const today = parseISO(getTodayStr())
           const recebimentoMap = new Map(recebimentos.map(r => [`${r.mes}-${r.ano}`, r]))
           const comissaoPct = locacao.percentualComissao ?? 0
-          const taxaLimpeza = property?.taxaLimpeza ?? 0
+          const taxaLimpeza = locacao.taxaLimpeza ?? property?.taxaLimpeza ?? 0
 
           // Receita líquida de faxina pro gestor: taxa inteira (por mim) ou taxa - custo empresa (terceirizada)
           const faxinaReceita = locacao.faxinaPorMim ? taxaLimpeza : taxaLimpeza - (locacao.custoEmpresaFaxina ?? 0)
@@ -942,11 +942,16 @@ export function LocacaoDetailPage() {
           </Badge>
         </div>
 
-        {property?.taxaLimpeza != null && property.taxaLimpeza > 0 && (
-          <p className="text-sm text-muted-foreground">
-            Taxa de limpeza da propriedade: <span className="font-medium text-foreground">{formatCurrency(property.taxaLimpeza)}</span>
-          </p>
-        )}
+        {(() => {
+          const taxa = locacao.taxaLimpeza ?? property?.taxaLimpeza ?? 0
+          if (taxa <= 0) return null
+          const isLocked = locacao.taxaLimpeza != null
+          return (
+            <p className="text-sm text-muted-foreground">
+              Taxa de limpeza{isLocked ? " (travada na locação)" : " da propriedade"}: <span className="font-medium text-foreground">{formatCurrency(taxa)}</span>
+            </p>
+          )
+        })()}
 
         {/* Não agendada */}
         {(!locacao.faxinaStatus || locacao.faxinaStatus === "nao_agendada") && (
@@ -1037,14 +1042,14 @@ export function LocacaoDetailPage() {
             </div>
             {locacao.faxinaPorMim ? (
               <p className="text-xs text-muted-foreground">
-                Receita: <span className="font-medium text-green-700">{formatCurrency(property?.taxaLimpeza ?? 0)}</span>
+                Receita: <span className="font-medium text-green-700">{formatCurrency(locacao.taxaLimpeza ?? property?.taxaLimpeza ?? 0)}</span>
               </p>
             ) : (
               <>
                 <p className="text-xs text-muted-foreground">
                   Custo empresa: {formatCurrency(locacao.custoEmpresaFaxina ?? 0)}
                   {" — "}
-                  Receita líquida: <span className="font-medium text-green-700">{formatCurrency((property?.taxaLimpeza ?? 0) - (locacao.custoEmpresaFaxina ?? 0))}</span>
+                  Receita líquida: <span className="font-medium text-green-700">{formatCurrency((locacao.taxaLimpeza ?? property?.taxaLimpeza ?? 0) - (locacao.custoEmpresaFaxina ?? 0))}</span>
                 </p>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Pagamento:</span>

@@ -251,7 +251,7 @@ export function CalendarGrid({
       // Último pagamento (1 mês antes do checkout) inclui faxina
       const prop = propertyMap.get(l.propriedadeId)
       const comissaoPct = l.percentualComissao ?? 0
-      const taxaLimpeza = prop?.taxaLimpeza ?? 0
+      const taxaLimpeza = l.taxaLimpeza ?? prop?.taxaLimpeza ?? 0
       const isAvista = l.tipoPagamento === "avista"
       let payDate = checkIn
       while (payDate < checkOut) {

@@ -495,7 +495,7 @@ export function LocacaoContratoPage() {
       ? (locacao.valorTotal ?? 0)
       : (locacao.valorMensal ?? 0) * meses
     const valorLabel = "TOTAL DA TEMPORADA"
-    const taxaLimpezaNum = property.taxaLimpeza ?? 0
+    const taxaLimpezaNum = locacao.taxaLimpeza ?? property.taxaLimpeza ?? 0
     const valorMensal = locacao.valorMensal ?? 0
     // Caução default: mensal = 3x aluguel; à vista = valor total. Editável no quadro.
     const caucaoValor = locacao.tipoPagamento === "avista" ? (locacao.valorTotal ?? 0) : valorMensal * 3

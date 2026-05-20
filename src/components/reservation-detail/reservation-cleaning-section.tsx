@@ -35,7 +35,7 @@ export function ReservationCleaningSection({
   const [faxinaData, setFaxinaData] = useState<string | null>(null)
 
   const faxinaStatus: FaxinaStatus = reservation.faxinaStatus ?? "nao_agendada"
-  const taxaLimpeza = property?.taxaLimpeza ?? 0
+  const taxaLimpeza = reservation.taxaLimpeza ?? property?.taxaLimpeza ?? 0
 
   function handleAgendarFaxina(porMim: boolean) {
     const dateStr = faxinaData ?? reservation.faxinaData?.split("T")[0] ?? reservation.checkOut.split("T")[0]
@@ -100,7 +100,7 @@ export function ReservationCleaningSection({
 
       {taxaLimpeza > 0 && (
         <p className="text-sm text-muted-foreground">
-          Taxa de limpeza da propriedade: <span className="font-medium text-foreground">{formatCurrency(taxaLimpeza)}</span>
+          Taxa de limpeza{reservation.taxaLimpeza != null ? " (travada na reserva)" : " da propriedade"}: <span className="font-medium text-foreground">{formatCurrency(taxaLimpeza)}</span>
         </p>
       )}
 

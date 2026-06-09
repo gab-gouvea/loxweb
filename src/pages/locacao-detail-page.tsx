@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate, useParams, Link } from "react-router-dom"
 import {
   ArrowLeft,
@@ -26,6 +26,8 @@ import {
   Wallet,
   ThumbsUp,
   TrendingUp,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import { toast } from "sonner"
 import { addDays, addMonths, parseISO, isBefore, format } from "date-fns"
@@ -87,6 +89,9 @@ export function LocacaoDetailPage() {
   const [vistoriaSaidaNotas, setVistoriaSaidaNotas] = useState("")
   const [vistoriaSaidaData, setVistoriaSaidaData] = useState("")
   const [novoValorMensal, setNovoValorMensal] = useState<number | "">("")
+  // Navegação de mês no card de comissão (null = segue o mês atual; número = ciclo selecionado manualmente)
+  const [cicloIndex, setCicloIndex] = useState<number | null>(null)
+  useEffect(() => { setCicloIndex(null) }, [id])
 
   if (isLoading) {
     return (
@@ -218,38 +223,59 @@ export function LocacaoDetailPage() {
 
         {(() => {
           const checkInDate = parseISO(toLocalDateStr(locacao.checkIn))
+          const checkOutDate = parseISO(toLocalDateStr(locacao.checkOut))
           const today = parseISO(getTodayStr())
+          const todayYM = format(today, "yyyy-MM")
           const recebimentoMap = new Map(recebimentos.map(r => [`${r.mes}-${r.ano}`, r]))
           const comissaoPct = locacao.percentualComissao ?? 0
           const taxaLimpeza = locacao.taxaLimpeza ?? property?.taxaLimpeza ?? 0
+          const isAvista = locacao.tipoPagamento === "avista"
 
           // Receita líquida de faxina pro gestor: taxa inteira (por mim) ou taxa - custo empresa (terceirizada)
           const faxinaReceita = locacao.faxinaPorMim ? taxaLimpeza : taxaLimpeza - (locacao.custoEmpresaFaxina ?? 0)
 
-          // Ciclo atual baseado no dia de entrada
-          let cicloStart = checkInDate
-          while (isBefore(addMonths(cicloStart, 1), today) || addMonths(cicloStart, 1).getTime() === today.getTime()) {
-            cicloStart = addMonths(cicloStart, 1)
+          // Todos os ciclos de pagamento da locação (mensal: um por mês até o checkout; à vista: um só no checkIn).
+          // O dia do checkout não tem pagamento, por isso `isBefore(c, checkOutDate)`.
+          const ciclos: Date[] = []
+          if (isAvista) {
+            ciclos.push(checkInDate)
+          } else {
+            let c = checkInDate
+            while (isBefore(c, checkOutDate)) {
+              ciclos.push(c)
+              c = addMonths(c, 1)
+            }
+            if (ciclos.length === 0) ciclos.push(checkInDate)
           }
-          if (isBefore(today, checkInDate)) cicloStart = checkInDate
+
+          // Índice padrão = ciclo do mês de calendário atual (mesmo critério do relatório de recebimentos).
+          // cicloIndex (estado) permite navegar ◄ ► e confirmar/desmarcar meses passados ou futuros.
+          let defaultIdx = 0
+          while (defaultIdx < ciclos.length - 1 && format(ciclos[defaultIdx], "yyyy-MM") < todayYM) {
+            defaultIdx++
+          }
+          const effectiveIdx = Math.min(Math.max(cicloIndex ?? defaultIdx, 0), ciclos.length - 1)
+          const selectedCiclo = ciclos[effectiveIdx]
+
           let pagMes: number, pagAno: number, valorBruto: number
-          if (locacao.tipoPagamento === "avista") {
+          if (isAvista) {
             pagMes = checkInDate.getMonth() + 1
             pagAno = checkInDate.getFullYear()
             valorBruto = locacao.valorTotal ?? 0
           } else {
-            pagMes = cicloStart.getMonth() + 1
-            pagAno = cicloStart.getFullYear()
+            pagMes = selectedCiclo.getMonth() + 1
+            pagAno = selectedCiclo.getFullYear()
             valorBruto = locacao.valorMensal ?? 0
           }
 
           const valorComissao = valorBruto * comissaoPct / 100
-
           const pagKey = `${pagMes}-${pagAno}`
           const recebido = recebimentoMap.has(pagKey)
+          const mesLabel = format(selectedCiclo, "MMMM yyyy", { locale: ptBR })
 
-          // Faxina — card separado com confirmação independente (mes=99 como marcador)
-          const faxinaKey = `99-${pagAno}`
+          // Faxina — card separado, mes=99 como marcador. Ano fixo no ciclo do mês atual (não muda ao navegar os meses)
+          const faxinaAno = ciclos[defaultIdx].getFullYear()
+          const faxinaKey = `99-${faxinaAno}`
           const faxinaRecebida = recebimentoMap.has(faxinaKey)
 
           return (
@@ -266,36 +292,69 @@ export function LocacaoDetailPage() {
                   </div>
                 </CardContent>
               </Card>
-              {/* Comissão — A Receber / Recebido */}
-              <Card className={`relative transition-colors ${recebido ? "border-green-300 bg-green-50" : ""}`}>
-                <Button
-                  variant={recebido ? "default" : "outline"}
-                  size="icon"
-                  className={`absolute top-1.5 right-1.5 h-6 w-6 ${recebido ? "bg-green-600 hover:bg-green-700" : ""}`}
-                  onClick={() => {
-                    if (recebido) {
-                      deleteRecebimento.mutate({ locacaoId: locacao.id, mes: pagMes, ano: pagAno }, {
-                        onSuccess: () => toast.success("Pagamento desmarcado"),
-                        onError: (err) => toast.error(getErrorMessage(err)),
-                      })
-                    } else {
-                      upsertRecebimento.mutate({ locacaoId: locacao.id, mes: pagMes, ano: pagAno, valorRecebido: valorComissao }, {
-                        onSuccess: () => toast.success("Pagamento confirmado"),
-                        onError: (err) => toast.error(getErrorMessage(err)),
-                      })
-                    }
-                  }}
-                  disabled={upsertRecebimento.isPending || deleteRecebimento.isPending}
-                >
-                  {recebido ? <Check className="h-3 w-3" /> : <ThumbsUp className="h-3 w-3" />}
-                </Button>
-                <CardContent className="flex items-center gap-2 pt-3 pb-3">
-                  <Wallet className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      {recebido ? "Recebido" : "A Receber"}
-                    </p>
-                    <p className="text-sm font-medium">{formatCurrency(valorComissao)}</p>
+              {/* Comissão — A Receber / Recebido (com navegação de mês) */}
+              <Card className={`relative transition-colors gap-0 py-0 ${recebido ? "border-green-300 bg-green-50" : ""}`}>
+                <CardContent className="space-y-2 px-3 py-3">
+                  {/* Navegação de mês + confirmar */}
+                  <div className="flex items-center justify-between gap-1">
+                    {isAvista ? (
+                      <span className="text-xs font-medium capitalize">{mesLabel}</span>
+                    ) : (
+                      <div className="flex items-center gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 shrink-0"
+                          onClick={() => setCicloIndex(Math.max(effectiveIdx - 1, 0))}
+                          disabled={effectiveIdx <= 0}
+                          aria-label="Mês anterior"
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                        </Button>
+                        <span className="text-xs font-medium capitalize text-center min-w-[80px] whitespace-nowrap">{mesLabel}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 shrink-0"
+                          onClick={() => setCicloIndex(Math.min(effectiveIdx + 1, ciclos.length - 1))}
+                          disabled={effectiveIdx >= ciclos.length - 1}
+                          aria-label="Próximo mês"
+                        >
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )}
+                    <Button
+                      variant={recebido ? "default" : "outline"}
+                      size="icon"
+                      className={`h-6 w-6 shrink-0 ${recebido ? "bg-green-600 hover:bg-green-700" : ""}`}
+                      onClick={() => {
+                        if (recebido) {
+                          deleteRecebimento.mutate({ locacaoId: locacao.id, mes: pagMes, ano: pagAno }, {
+                            onSuccess: () => toast.success("Pagamento desmarcado"),
+                            onError: (err) => toast.error(getErrorMessage(err)),
+                          })
+                        } else {
+                          upsertRecebimento.mutate({ locacaoId: locacao.id, mes: pagMes, ano: pagAno, valorRecebido: valorComissao }, {
+                            onSuccess: () => toast.success("Pagamento confirmado"),
+                            onError: (err) => toast.error(getErrorMessage(err)),
+                          })
+                        }
+                      }}
+                      disabled={upsertRecebimento.isPending || deleteRecebimento.isPending}
+                    >
+                      {recebido ? <Check className="h-3 w-3" /> : <ThumbsUp className="h-3 w-3" />}
+                    </Button>
+                  </div>
+                  {/* Valor da comissão */}
+                  <div className="flex items-center gap-2">
+                    <Wallet className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        {recebido ? "Recebido" : "A Receber"}
+                      </p>
+                      <p className="text-sm font-medium">{formatCurrency(valorComissao)}</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -307,12 +366,12 @@ export function LocacaoDetailPage() {
                   className={`absolute top-1.5 right-1.5 h-6 w-6 ${faxinaRecebida ? "bg-green-600 hover:bg-green-700" : ""}`}
                   onClick={() => {
                     if (faxinaRecebida) {
-                      deleteRecebimento.mutate({ locacaoId: locacao.id, mes: 99, ano: pagAno }, {
+                      deleteRecebimento.mutate({ locacaoId: locacao.id, mes: 99, ano: faxinaAno }, {
                         onSuccess: () => toast.success("Faxina desmarcada"),
                         onError: (err) => toast.error(getErrorMessage(err)),
                       })
                     } else {
-                      upsertRecebimento.mutate({ locacaoId: locacao.id, mes: 99, ano: pagAno, valorRecebido: faxinaReceita }, {
+                      upsertRecebimento.mutate({ locacaoId: locacao.id, mes: 99, ano: faxinaAno, valorRecebido: faxinaReceita }, {
                         onSuccess: () => toast.success("Faxina confirmada"),
                         onError: (err) => toast.error(getErrorMessage(err)),
                       })

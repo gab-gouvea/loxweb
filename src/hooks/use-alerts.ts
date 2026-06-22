@@ -1,7 +1,9 @@
 import { useMemo } from "react"
+import { useQueries } from "@tanstack/react-query"
 import { addDays, addMonths, differenceInDays, format, isBefore, parseISO } from "date-fns"
 import { useReservations } from "./use-reservations"
 import { useLocacoes, useRecebimentosLocacao } from "./use-locacoes"
+import { locacaoService } from "@/services/locacao-service"
 import { usePropertyMap } from "./use-property-map"
 import { useAllPropertyComponents, useAllPendingScheduledMaintenances } from "./use-property-details"
 import { toLocalDateStr, getTodayStr } from "@/lib/date-utils"
@@ -73,9 +75,36 @@ export function useAlerts() {
   const { data: recebimentosCur = [] } = useRecebimentosLocacao(curMes, curAno)
   const { data: recebimentosPrev = [] } = useRecebimentosLocacao(prevMes, prevAno)
 
+  // Locações à vista: o pagamento fica ancorado no mês do checkIn, que pode ser muitos
+  // meses atrás. As queries de mês atual/anterior não cobrem esse caso, então buscamos
+  // todos os recebimentos de cada locação à vista ativa para detectar a confirmação
+  // histórica (mesma queryKey de useRecebimentosByLocacao — compartilha cache e é
+  // invalidada igual). Sem isso o alerta de pagamento dispara para sempre mesmo já recebido.
+  const avistaLocacoes = locacoes.filter(
+    (l) => l.status === "ativa" && l.tipoPagamento === "avista"
+  )
+  const avistaRecebimentosQueries = useQueries({
+    queries: avistaLocacoes.map((l) => ({
+      queryKey: ["recebimentos-locacao", "by-locacao", l.id],
+      queryFn: () => locacaoService.getRecebimentosByLocacao(l.id),
+      enabled: !!l.id,
+    })),
+  })
+  const avistaSig = avistaRecebimentosQueries
+    .map((q) => (q.data ?? []).map((r) => `${r.locacaoId}-${r.mes}-${r.ano}`).join("|"))
+    .join("||")
+  const avistaRecebidoSet = useMemo(() => {
+    const s = new Set<string>()
+    for (const q of avistaRecebimentosQueries) {
+      for (const r of q.data ?? []) s.add(`${r.locacaoId}-${r.mes}-${r.ano}`)
+    }
+    return s
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avistaSig])
+
   const alerts = useMemo(() => {
     // Set de recebimentos confirmados: "locacaoId-mes-ano"
-    const recebidoSet = new Set<string>()
+    const recebidoSet = new Set<string>(avistaRecebidoSet)
     for (const r of [...recebimentosCur, ...recebimentosPrev]) {
       recebidoSet.add(`${r.locacaoId}-${r.mes}-${r.ano}`)
     }
@@ -372,7 +401,7 @@ export function useAlerts() {
     }
 
     return result
-  }, [reservations, locacoes, components, pendingMaintenances, propertyMap, recebimentosCur, recebimentosPrev])
+  }, [reservations, locacoes, components, pendingMaintenances, propertyMap, recebimentosCur, recebimentosPrev, avistaRecebidoSet])
 
   return { alerts, count: alerts.length }
 }

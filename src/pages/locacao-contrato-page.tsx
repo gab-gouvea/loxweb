@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef, Fragment } from "react"
 import { useNavigate, useParams, Link } from "react-router-dom"
 import { toast } from "sonner"
-import { ArrowLeft, Download, Pencil, Save } from "lucide-react"
+import { ArrowLeft, Download, FileText, Pencil, Save } from "lucide-react"
 import { format, parseISO, differenceInDays, addMonths } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
 import jsPDF from "jspdf"
@@ -139,6 +139,54 @@ function renderClauseTextJsx(text: string) {
 
     return <p key={idx} className="text-justify">{renderBoldMarkers(line)}</p>
   })
+}
+
+// ==================== WORD (HTML) TEXT RENDERING HELPERS ====================
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+}
+
+// Converte marcadores **negrito** para <strong>, escapando o restante
+function boldMarkersToHtml(line: string): string {
+  return line
+    .split(/(\*\*[^*]+\*\*)/g)
+    .map((part) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return `<strong>${escapeHtml(part.slice(2, -2))}</strong>`
+      }
+      return escapeHtml(part)
+    })
+    .join("")
+}
+
+// Mesma lógica de renderClauseTextJsx, mas gerando HTML (CLÁUSULA bold+underline, PARÁGRAFO bold)
+function clauseLineToHtml(line: string): string {
+  if (!line.trim()) return `<p style="margin:0;line-height:8px">&nbsp;</p>`
+
+  const cm = line.match(/^(CL[ÁA]USULA\s+[\wÀ-ÿ]+(?:\s*[–-]\s*[^:]+)?:)\s*/)
+  if (cm) {
+    return `<p style="margin:0 0 4px;text-align:justify"><strong><u>${escapeHtml(cm[1])}</u></strong> ${boldMarkersToHtml(line.slice(cm[0].length))}</p>`
+  }
+
+  const pm = line.match(/^(PAR[ÁA]GRAFO\s+[\wÀ-ÿ]+\s*[–-]\s*[A-ZÁÀÂÃÊÍÓÔÕÚÇ][A-ZÁÀÂÃÊÍÓÔÕÚÇ\s]+:|PAR[ÁA]GRAFO\s+[\wÀ-ÿ]+:|PAR[ÁA]GRAFO\s+[\wÀ-ÿ]+\s*[–-])\s*/)
+  if (pm) {
+    return `<p style="margin:0 0 4px;text-align:justify"><strong>${escapeHtml(pm[1])}</strong> ${boldMarkersToHtml(line.slice(pm[0].length))}</p>`
+  }
+
+  return `<p style="margin:0 0 4px;text-align:justify">${boldMarkersToHtml(line)}</p>`
+}
+
+function clauseTextToHtml(text: string): string {
+  return text.split("\n").map(clauseLineToHtml).join("")
+}
+
+// Texto do quadro (só marcadores **negrito**, uma linha por <p>)
+function quadroTextToHtml(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => `<p style="margin:0;text-align:justify">${boldMarkersToHtml(line)}</p>`)
+    .join("")
 }
 
 // ==================== PDF TEXT RENDERING HELPERS ====================
@@ -680,13 +728,11 @@ export function LocacaoContratoPage() {
     saveMoradores({ ...moradores, pessoas: updated })
   }
 
-  // ==================== PDF EXPORT ====================
+  // ==================== VALIDAÇÃO DE PLACEHOLDERS ====================
 
-  function exportPDF() {
-    if (!contratoData || !locacao) return
-
-    // Validar placeholders não preenchidos — detecta [texto], [R$ valor], etc.
-    // Ignora checkboxes [ x ] e [  ] do campo Obs
+  // Valida placeholders não preenchidos — detecta [texto], [R$ valor], etc.
+  // Ignora checkboxes [ x ] e [  ] do campo Obs. Compartilhado entre PDF e Word.
+  function validatePlaceholders(): boolean {
     const isCheckbox = (match: string) => /^\[\s*x?\s*\]$/i.test(match)
     if (isAnual) {
       const anualQuadroLabels = ["Locador", "Locatário"]
@@ -696,7 +742,7 @@ export function LocacaoContratoPage() {
           toast.error("Preencha todos os campos entre [colchetes] antes de exportar", {
             description: `Verifique a seção "${anualQuadroLabels[qi]}"`,
           })
-          return
+          return false
         }
       }
     } else {
@@ -707,7 +753,7 @@ export function LocacaoContratoPage() {
           toast.error("Preencha todos os campos entre [colchetes] antes de exportar", {
             description: `Verifique a seção "${quadroLabels[qi]}"`,
           })
-          return
+          return false
         }
       }
     }
@@ -720,9 +766,17 @@ export function LocacaoContratoPage() {
         toast.error("Preencha todos os campos entre [colchetes] nas cláusulas antes de exportar", {
           description: `Verifique: ${clausulaLabel}`,
         })
-        return
+        return false
       }
     }
+    return true
+  }
+
+  // ==================== PDF EXPORT ====================
+
+  function exportPDF() {
+    if (!contratoData || !locacao) return
+    if (!validatePlaceholders()) return
 
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
@@ -974,6 +1028,103 @@ export function LocacaoContratoPage() {
     doc.save(nomeArquivo)
   }
 
+  // ==================== WORD EXPORT ====================
+
+  // Monta o HTML do contrato (mesma estrutura do preview) para gerar o .doc
+  function buildContratoHtml(): string {
+    if (!contratoData || !locacao) return ""
+    const d = contratoData
+    const cellStyle = "border:1px solid #000;padding:6px;font-size:10pt;text-align:justify"
+    let body = ""
+
+    if (isAnual) {
+      // ---- ANUAL: texto corrido, sem quadro bordado ----
+      body += `<h2 style="text-align:center;font-size:13pt;font-weight:bold;margin:0 0 16px">CONTRATO DE LOCAÇÃO RESIDENCIAL</h2>`
+      body += `<p style="text-align:justify;margin:0 0 8px">Pelo presente instrumento particular, de um lado, como LOCADOR:</p>`
+      body += `<div style="margin:0 0 12px">${quadroTextToHtml(quadroText(0))}</div>`
+      body += `<p style="text-align:justify;margin:0 0 8px">E, de outro lado, como LOCATÁRIO:</p>`
+      body += `<div style="margin:0 0 12px">${quadroTextToHtml(quadroText(1))}</div>`
+      body += `<p style="text-align:justify;margin:0 0 16px">Têm justo e contratado o que segue:</p>`
+    } else {
+      // ---- TEMPORADA: quadro bordado como tabela ----
+      body += `<table style="width:100%;border-collapse:collapse;margin:0 0 12px">`
+      body += `<tr><td style="border:1px solid #000;padding:6px;text-align:center;font-weight:bold;font-size:12pt">CONTRATO DE LOCAÇÃO DE TEMPORADA</td></tr>`
+      for (const idx of [0, 1, 2, 3, 4, 5, 6]) {
+        body += `<tr><td style="${cellStyle}">${quadroTextToHtml(quadroText(idx))}</td></tr>`
+      }
+
+      // Moradores + pessoas autorizadas (tabela aninhada)
+      let mor = `<p style="margin:0 0 4px">NÚMERO MÁXIMO DE PESSOAS: ${moradores.maxPessoas}.</p>`
+      mor += `<p style="margin:0 0 4px">PESSOAS AUTORIZADAS:</p>`
+      mor += `<table style="width:100%;border-collapse:collapse">`
+      mor += `<tr><th style="border:1px solid #000;padding:3px;text-align:left">Nome Ocupante</th><th style="border:1px solid #000;padding:3px;text-align:left">CPF</th><th style="border:1px solid #000;padding:3px;text-align:left">Data de Nascimento</th></tr>`
+      const minRows = Math.max(moradores.pessoas.length, 3)
+      for (let r = 0; r < minRows; r++) {
+        const p = moradores.pessoas[r]
+        mor += `<tr><td style="border:1px solid #000;padding:3px">${escapeHtml(p?.nome || "")}</td><td style="border:1px solid #000;padding:3px">${escapeHtml(p?.cpf || "")}</td><td style="border:1px solid #000;padding:3px">${escapeHtml(p?.dataNascimento || "")}</td></tr>`
+      }
+      mor += `</table>`
+      body += `<tr><td style="${cellStyle}">${mor}</td></tr>`
+
+      // Observações
+      body += `<tr><td style="${cellStyle}">${quadroTextToHtml(quadroText(7))}</td></tr>`
+      body += `</table>`
+
+      body += `<p style="text-align:justify;margin:0 0 16px">Pelo presente instrumento particular de contrato de locação de imóvel para temporada, que entre si fazem a LOCADORA e LOCATÁRIA acima qualificadas, ajustam e contratam, mediante as seguintes cláusulas e condições</p>`
+    }
+
+    // Cláusulas
+    for (const clausula of clausulas) {
+      if (clausula.titulo) {
+        body += `<p style="font-weight:bold;text-decoration:underline;margin:12px 0 6px;font-size:10pt">${escapeHtml(clausula.titulo)}</p>`
+      }
+      body += clauseTextToHtml(clausula.texto)
+      body += `<div style="height:8px"></div>`
+    }
+
+    // Local e data
+    body += `<p style="text-align:center;margin:32px 0 24px">${escapeHtml(localDataText)}</p>`
+
+    // Assinaturas (locadora e locatária empilhadas)
+    const sig = (name: string, cpf: string) =>
+      `<div style="margin:0 0 28px"><div style="border-top:1px solid #000;width:300px;margin-bottom:4px">&nbsp;</div><p style="margin:0;font-weight:bold;font-size:10pt">${escapeHtml(name)}</p><p style="margin:0;font-size:9pt">CPF: ${escapeHtml(cpf)}</p></div>`
+    body += sig(`${d.locadoraNome.toUpperCase()},`, d.locadoraCpf)
+    body += sig(d.locatariaNome.toUpperCase(), d.locatariaCpf)
+
+    // Testemunhas (lado a lado)
+    body += `<table style="width:100%;margin-top:16px"><tr>`
+    for (const i of [0, 1] as const) {
+      body += `<td style="width:50%;vertical-align:top;padding-right:20px"><div style="border-top:1px solid #000;margin-bottom:4px">&nbsp;</div><p style="margin:0;font-size:9pt;font-weight:bold">TESTEMUNHA</p><p style="margin:0;font-size:9pt">NOME: ${escapeHtml(testemunhas[i].nome)}</p><p style="margin:0;font-size:9pt">CPF: ${escapeHtml(testemunhas[i].cpf)}</p></td>`
+    }
+    body += `</tr></table>`
+
+    return body
+  }
+
+  function exportWord() {
+    if (!contratoData || !locacao) return
+    if (!validatePlaceholders()) return
+
+    const body = buildContratoHtml()
+    const html = `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Contrato</title><!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]--><style>@page{size:21cm 29.7cm;margin:2cm}body{font-family:'Times New Roman',serif;font-size:11pt;color:#000}p{line-height:1.3}</style></head><body>${body}</body></html>`
+
+    const blob = new Blob(["﻿", html], { type: "application/msword" })
+    const nomeProprietario = contratoData.locadoraNome.replace(/\s+/g, "_")
+    const nomeInquilino = locacao.nomeCompleto.replace(/\s+/g, "_")
+    const nomeArquivo = isAnual
+      ? `Contrato_de_locação_Residencial_${nomeProprietario}_${nomeInquilino}.doc`
+      : `Contrato_de_locação_de_Temporada_${nomeProprietario}_e_${nomeInquilino}.doc`
+
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = nomeArquivo
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   // ==================== RENDER ====================
 
   if (isLoading) {
@@ -1007,10 +1158,16 @@ export function LocacaoContratoPage() {
           </Button>
           <h1 className="text-xl sm:text-2xl font-bold truncate">{locacao.nomeCompleto}</h1>
         </div>
-        <Button className="min-h-[44px] w-full sm:w-auto" onClick={exportPDF} disabled={!contratoData}>
-          <Download className="mr-2 h-4 w-4" />
-          Exportar PDF
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button variant="outline" className="min-h-[44px] w-full sm:w-auto" onClick={exportWord} disabled={!contratoData}>
+            <FileText className="mr-2 h-4 w-4" />
+            Exportar Word
+          </Button>
+          <Button className="min-h-[44px] w-full sm:w-auto" onClick={exportPDF} disabled={!contratoData}>
+            <Download className="mr-2 h-4 w-4" />
+            Exportar PDF
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}

@@ -20,6 +20,8 @@ const QUADRO_KEY_PREFIX = "lox_contrato_quadro_"
 const MORADORES_KEY_PREFIX = "lox_contrato_moradores_"
 const ANUAL_STORAGE_KEY_PREFIX = "lox_contrato_anual_clausulas_"
 const ANUAL_QUADRO_KEY_PREFIX = "lox_contrato_anual_quadro_"
+const TEXTOS_KEY_PREFIX = "lox_contrato_textos_"
+const ANUAL_TEXTOS_KEY_PREFIX = "lox_contrato_anual_textos_"
 
 interface PessoaAutorizada {
   nome: string
@@ -461,16 +463,21 @@ export function LocacaoContratoPage() {
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editText, setEditText] = useState("")
+  const [editTitulo, setEditTitulo] = useState("")
 
   const storageKey = isAnual ? `${ANUAL_STORAGE_KEY_PREFIX}${id}` : `${STORAGE_KEY_PREFIX}${id}`
   const testemunhasKey = `${TESTEMUNHAS_KEY_PREFIX}${id}`
   const quadroKey = isAnual ? `${ANUAL_QUADRO_KEY_PREFIX}${id}` : `${QUADRO_KEY_PREFIX}${id}`
   const moradoresKey = `${MORADORES_KEY_PREFIX}${id}`
+  const textosKey = isAnual ? `${ANUAL_TEXTOS_KEY_PREFIX}${id}` : `${TEXTOS_KEY_PREFIX}${id}`
   const [savedClausulas, setSavedClausulas] = useState<Clausula[] | null>(null)
   const [testemunhas, setTestemunhas] = useState<[Testemunha, Testemunha]>(DEFAULT_TESTEMUNHAS)
   const [savedQuadro, setSavedQuadro] = useState<(string | null)[]>(Array(8).fill(null))
   const [editingQuadroIdx, setEditingQuadroIdx] = useState<number | null>(null)
   const [editQuadroText, setEditQuadroText] = useState("")
+  const [savedTextos, setSavedTextos] = useState<Record<string, string>>({})
+  const [editingTextoKey, setEditingTextoKey] = useState<string | null>(null)
+  const [editTextoValue, setEditTextoValue] = useState("")
   const [moradoresData, setMoradoresData] = useState<MoradoresData | null>(null)
   const localDataKey = `lox_contrato_localdata_${id}`
   const [localData, setLocalData] = useState<string | null>(null)
@@ -507,9 +514,15 @@ export function LocacaoContratoPage() {
       if (savedLD) {
         setLocalData(savedLD)
       }
+      const savedTx = localStorage.getItem(textosKey)
+      if (savedTx) {
+        try { setSavedTextos(JSON.parse(savedTx)) } catch { setSavedTextos({}) }
+      } else {
+        setSavedTextos({})
+      }
       loadedRef.current = true
     }
-  }, [storageKey, testemunhasKey, quadroKey, moradoresKey, localDataKey])
+  }, [storageKey, testemunhasKey, quadroKey, moradoresKey, localDataKey, textosKey])
 
   const defaultLocalData = `Florianópolis, ${format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}.`
   const localDataText = localData ?? defaultLocalData
@@ -598,9 +611,89 @@ export function LocacaoContratoPage() {
   function handleSaveClausula() {
     if (editingIndex === null) return
     const updated = [...clausulas]
-    updated[editingIndex] = { ...updated[editingIndex], texto: editText }
+    updated[editingIndex] = { ...updated[editingIndex], titulo: editTitulo, texto: editText }
     saveClausulas(updated)
     setEditingIndex(null)
+  }
+
+  // ==================== TEXTOS FIXOS EDITÁVEIS (título, introdução) ====================
+
+  function getTextoDefault(key: string): string {
+    switch (key) {
+      case "titulo":
+        return isAnual ? "CONTRATO DE LOCAÇÃO RESIDENCIAL" : "CONTRATO DE LOCAÇÃO DE TEMPORADA"
+      case "intro":
+        return "Pelo presente instrumento particular de contrato de locação de imóvel para temporada, que entre si fazem a LOCADORA e LOCATÁRIA acima qualificadas, ajustam e contratam, mediante as seguintes cláusulas e condições"
+      case "anualIntro1":
+        return "Pelo presente instrumento particular, de um lado, como LOCADOR:"
+      case "anualIntro2":
+        return "E, de outro lado, como LOCATÁRIO:"
+      case "anualIntro3":
+        return "Têm justo e contratado o que segue:"
+      default:
+        return ""
+    }
+  }
+
+  function textoValue(key: string): string {
+    return savedTextos[key] ?? getTextoDefault(key)
+  }
+
+  function startEditTexto(key: string) {
+    setEditTextoValue(textoValue(key))
+    setEditingTextoKey(key)
+  }
+
+  function saveTexto() {
+    if (editingTextoKey === null) return
+    const updated = { ...savedTextos, [editingTextoKey]: editTextoValue }
+    setSavedTextos(updated)
+    localStorage.setItem(textosKey, JSON.stringify(updated))
+    setEditingTextoKey(null)
+  }
+
+  function renderTextoEditor(multiline: boolean, rows = 3) {
+    return (
+      <div className="space-y-2">
+        {multiline ? (
+          <Textarea value={editTextoValue} onChange={e => setEditTextoValue(e.target.value)} rows={rows} className="text-sm" autoFocus />
+        ) : (
+          <input value={editTextoValue} onChange={e => setEditTextoValue(e.target.value)} className="w-full border rounded px-2 py-2 text-sm font-bold text-center" autoFocus />
+        )}
+        <p className="text-xs text-muted-foreground">Use **texto** para negrito</p>
+        <div className="flex gap-2 justify-center">
+          <Button size="sm" className="min-h-[44px]" onClick={saveTexto}><Save className="h-3 w-3 mr-1" />Salvar</Button>
+          <Button size="sm" className="min-h-[44px]" variant="ghost" onClick={() => setEditingTextoKey(null)}>Cancelar</Button>
+        </div>
+      </div>
+    )
+  }
+
+  function renderEditableTitulo(bordered: boolean) {
+    const borderCls = bordered ? "border border-b-0" : ""
+    if (editingTextoKey === "titulo") {
+      return <div className={`${borderCls} p-3`}>{renderTextoEditor(false)}</div>
+    }
+    return (
+      <div className={`relative ${borderCls} py-3 group`}>
+        <h2 className="text-lg font-bold text-center px-10">{renderBoldMarkers(textoValue("titulo"))}</h2>
+        <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 min-h-[44px] min-w-[44px] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" onClick={() => startEditTexto("titulo")}>
+          <Pencil className="h-3 w-3" />
+        </Button>
+      </div>
+    )
+  }
+
+  function renderEditableParagraph(key: string, rows = 3) {
+    if (editingTextoKey === key) return renderTextoEditor(true, rows)
+    return (
+      <div className="flex gap-2 group">
+        <p className="flex-1">{renderBoldMarkers(textoValue(key))}</p>
+        <Button variant="ghost" size="icon" className="h-6 w-6 min-h-[44px] min-w-[44px] shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" onClick={() => startEditTexto(key)}>
+          <Pencil className="h-3 w-3" />
+        </Button>
+      </div>
+    )
   }
 
   // ==================== QUADRO EDITABLE SECTIONS ====================
@@ -769,6 +862,18 @@ export function LocacaoContratoPage() {
         return false
       }
     }
+    const textoKeys = isAnual
+      ? [["titulo", "Título"], ["anualIntro1", "Introdução (Locador)"], ["anualIntro2", "Introdução (Locatário)"], ["anualIntro3", "Introdução (fecho)"]]
+      : [["titulo", "Título"], ["intro", "Introdução"]]
+    for (const [key, label] of textoKeys) {
+      const matches = textoValue(key).match(/\[[^\]]{2,}\]/g) ?? []
+      if (matches.some(m => !isCheckbox(m))) {
+        toast.error("Preencha todos os campos entre [colchetes] antes de exportar", {
+          description: `Verifique: ${label}`,
+        })
+        return false
+      }
+    }
     return true
   }
 
@@ -813,14 +918,13 @@ export function LocacaoContratoPage() {
       // Title
       doc.setFontSize(12)
       doc.setFont("helvetica", "bold")
-      doc.text("CONTRATO DE LOCAÇÃO RESIDENCIAL", pageWidth / 2, y + 6, { align: "center" })
+      doc.text(textoValue("titulo"), pageWidth / 2, y + 6, { align: "center" })
       y += 16
 
       // Intro text
       doc.setFontSize(9)
       doc.setFont("helvetica", "normal")
-      const intro1 = "Pelo presente instrumento particular, de um lado, como LOCADOR:"
-      y = pdfRenderSegments(doc, [{ text: intro1, bold: false }], margin, y, maxWidth, LH)
+      y = pdfRenderSegments(doc, parsePdfSegments(textoValue("anualIntro1")), margin, y, maxWidth, LH)
       y += 2
 
       // Locador details
@@ -834,8 +938,7 @@ export function LocacaoContratoPage() {
 
       // "E, de outro lado..."
       doc.setFont("helvetica", "normal")
-      const intro2 = "E, de outro lado, como LOCATÁRIO:"
-      y = pdfRenderSegments(doc, [{ text: intro2, bold: false }], margin, y, maxWidth, LH)
+      y = pdfRenderSegments(doc, parsePdfSegments(textoValue("anualIntro2")), margin, y, maxWidth, LH)
       y += 2
 
       // Locatário details
@@ -848,9 +951,8 @@ export function LocacaoContratoPage() {
 
       // "Têm justo e contratado..."
       doc.setFont("helvetica", "normal")
-      const intro3 = "Têm justo e contratado o que segue:"
-      doc.text(intro3, margin, y)
-      y += LH + 8
+      y = pdfRenderSegments(doc, parsePdfSegments(textoValue("anualIntro3")), margin, y, maxWidth, LH)
+      y += 8
     } else {
       // ---- TEMPORADA: Bordered "quadro inicial" ----
       const boxStartY = y
@@ -859,7 +961,7 @@ export function LocacaoContratoPage() {
       // Title
       doc.setFontSize(12)
       doc.setFont("helvetica", "bold")
-      doc.text("CONTRATO DE LOCAÇÃO DE TEMPORADA", pageWidth / 2, y + 6, { align: "center" })
+      doc.text(textoValue("titulo"), pageWidth / 2, y + 6, { align: "center" })
       y += 12
       sections.push(y)
 
@@ -938,9 +1040,11 @@ export function LocacaoContratoPage() {
       // "Pelo presente instrumento..."
       doc.setFontSize(9)
       doc.setFont("helvetica", "normal")
-      const peloPresente = "Pelo presente instrumento particular de contrato de locação de imóvel para temporada, que entre si fazem a LOCADORA e LOCATÁRIA acima qualificadas, ajustam e contratam, mediante as seguintes cláusulas e condições"
       checkPage(30)
-      y = pdfRenderSegments(doc, [{ text: peloPresente, bold: false }], margin, y, maxWidth, LH)
+      for (const line of textoValue("intro").split("\n")) {
+        if (!line.trim()) { y += 2; continue }
+        y = pdfRenderSegments(doc, parsePdfSegments(line), margin, y, maxWidth, LH)
+      }
       y += 6
     }
 
@@ -1039,16 +1143,16 @@ export function LocacaoContratoPage() {
 
     if (isAnual) {
       // ---- ANUAL: texto corrido, sem quadro bordado ----
-      body += `<h2 style="text-align:center;font-size:13pt;font-weight:bold;margin:0 0 16px">CONTRATO DE LOCAÇÃO RESIDENCIAL</h2>`
-      body += `<p style="text-align:justify;margin:0 0 8px">Pelo presente instrumento particular, de um lado, como LOCADOR:</p>`
+      body += `<h2 style="text-align:center;font-size:13pt;font-weight:bold;margin:0 0 16px">${boldMarkersToHtml(textoValue("titulo"))}</h2>`
+      body += `<div style="text-align:justify;margin:0 0 8px">${quadroTextToHtml(textoValue("anualIntro1"))}</div>`
       body += `<div style="margin:0 0 12px">${quadroTextToHtml(quadroText(0))}</div>`
-      body += `<p style="text-align:justify;margin:0 0 8px">E, de outro lado, como LOCATÁRIO:</p>`
+      body += `<div style="text-align:justify;margin:0 0 8px">${quadroTextToHtml(textoValue("anualIntro2"))}</div>`
       body += `<div style="margin:0 0 12px">${quadroTextToHtml(quadroText(1))}</div>`
-      body += `<p style="text-align:justify;margin:0 0 16px">Têm justo e contratado o que segue:</p>`
+      body += `<div style="text-align:justify;margin:0 0 16px">${quadroTextToHtml(textoValue("anualIntro3"))}</div>`
     } else {
       // ---- TEMPORADA: quadro bordado como tabela ----
       body += `<table style="width:100%;border-collapse:collapse;margin:0 0 12px">`
-      body += `<tr><td style="border:1px solid #000;padding:6px;text-align:center;font-weight:bold;font-size:12pt">CONTRATO DE LOCAÇÃO DE TEMPORADA</td></tr>`
+      body += `<tr><td style="border:1px solid #000;padding:6px;text-align:center;font-weight:bold;font-size:12pt">${boldMarkersToHtml(textoValue("titulo"))}</td></tr>`
       for (const idx of [0, 1, 2, 3, 4, 5, 6]) {
         body += `<tr><td style="${cellStyle}">${quadroTextToHtml(quadroText(idx))}</td></tr>`
       }
@@ -1070,7 +1174,7 @@ export function LocacaoContratoPage() {
       body += `<tr><td style="${cellStyle}">${quadroTextToHtml(quadroText(7))}</td></tr>`
       body += `</table>`
 
-      body += `<p style="text-align:justify;margin:0 0 16px">Pelo presente instrumento particular de contrato de locação de imóvel para temporada, que entre si fazem a LOCADORA e LOCATÁRIA acima qualificadas, ajustam e contratam, mediante as seguintes cláusulas e condições</p>`
+      body += `<div style="text-align:justify;margin:0 0 16px">${quadroTextToHtml(textoValue("intro"))}</div>`
     }
 
     // Cláusulas
@@ -1190,18 +1294,16 @@ export function LocacaoContratoPage() {
           {isAnual ? (
             <>
               {/* ===== ANNUAL: Flowing text, no bordered quadro ===== */}
-              <h2 className="text-lg font-bold text-center py-3">
-                CONTRATO DE LOCAÇÃO RESIDENCIAL
-              </h2>
+              {renderEditableTitulo(false)}
 
               <div className="text-sm text-justify space-y-4 pb-4">
-                <p>Pelo presente instrumento particular, de um lado, como LOCADOR:</p>
+                {renderEditableParagraph("anualIntro1", 2)}
                 {renderQuadroBox(0, "p-0", 3)}
 
-                <p>E, de outro lado, como LOCATÁRIO:</p>
+                {renderEditableParagraph("anualIntro2", 2)}
                 {renderQuadroBox(1, "p-0", 3)}
 
-                <p>Têm justo e contratado o que segue:</p>
+                {renderEditableParagraph("anualIntro3", 2)}
               </div>
             </>
           ) : (
@@ -1209,9 +1311,7 @@ export function LocacaoContratoPage() {
               {/* ===== TEMPORADA: QUADRO COM BORDAS ===== */}
 
               {/* Título */}
-              <h2 className="text-lg font-bold text-center py-3 border border-b-0">
-                CONTRATO DE LOCAÇÃO DE TEMPORADA
-              </h2>
+              {renderEditableTitulo(true)}
 
               {/* Locadora */}
               {renderQuadroBox(0, "border")}
@@ -1302,9 +1402,9 @@ export function LocacaoContratoPage() {
               {/* Observações */}
               {renderQuadroBox(7, "border border-t-0", 5)}
 
-              {/* "Pelo presente instrumento..." — fora da caixa */}
+              {/* "Pelo presente instrumento..." — fora da caixa, editável */}
               <div className="pt-6 pb-4 text-sm text-justify">
-                <p>Pelo presente instrumento particular de contrato de locação de imóvel para temporada, que entre si fazem a LOCADORA e LOCATÁRIA acima qualificadas, ajustam e contratam, mediante as seguintes cláusulas e condições</p>
+                {renderEditableParagraph("intro", 4)}
               </div>
             </>
           )}
@@ -1321,7 +1421,7 @@ export function LocacaoContratoPage() {
                     variant="ghost"
                     size="sm"
                     className="h-7 min-h-[44px] min-w-[44px]"
-                    onClick={() => { setEditingIndex(i); setEditText(clausula.texto) }}
+                    onClick={() => { setEditingIndex(i); setEditText(clausula.texto); setEditTitulo(clausula.titulo) }}
                   >
                     <Pencil className="h-3 w-3 mr-1" />
                     Editar
@@ -1330,6 +1430,12 @@ export function LocacaoContratoPage() {
               </div>
               {editingIndex === i ? (
                 <div className="space-y-2">
+                  <input
+                    value={editTitulo}
+                    onChange={(e) => setEditTitulo(e.target.value)}
+                    placeholder="Título da seção (deixe vazio para nenhum)"
+                    className="w-full border rounded px-2 py-2 text-sm font-bold"
+                  />
                   <Textarea
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}

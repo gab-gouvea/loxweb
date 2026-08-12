@@ -37,6 +37,32 @@ export function calcValorRecibo(reservation: Reservation, property: Property | u
   return calcValorPagamento(reservation, property) - naoReembolsavel
 }
 
+/**
+ * Parcela do recibo referente à reserva original (sem as extensões), já descontando
+ * despesas não-reembolsáveis. Usada para separar o pagamento no mês do check-in,
+ * diferente das extensões, que a Airbnb paga no mês em que cada extensão começa.
+ */
+export function calcValorReciboBase(reservation: Reservation, property: Property | undefined): number {
+  const totalExtensoes = (reservation.extensoes ?? []).reduce((sum, e) => sum + e.valor, 0)
+  const precoTotal = (reservation.precoTotal ?? 0) - totalExtensoes
+  const taxaLimpeza = reservation.taxaLimpeza ?? property?.taxaLimpeza ?? 0
+  const baseComissao = Math.max(0, precoTotal - taxaLimpeza)
+  const comissaoPercent = reservation.percentualComissao ?? property?.percentualComissao ?? 0
+  const valorComissao = (baseComissao * comissaoPercent) / 100
+  const { naoReembolsavel } = calcDespesas(reservation)
+  return valorComissao + taxaLimpeza - naoReembolsavel
+}
+
+/** Parcela do recibo referente a uma extensão específica (mesma comissão, sem taxa de limpeza). */
+export function calcValorReciboExtensao(
+  reservation: Reservation,
+  property: Property | undefined,
+  valorExtensao: number,
+): number {
+  const comissaoPercent = reservation.percentualComissao ?? property?.percentualComissao ?? 0
+  return (valorExtensao * comissaoPercent) / 100
+}
+
 export function calcTotalRecebido(reservation: Reservation, property: Property | undefined): number {
   if (reservation.status === "cancelada") {
     return reservation.valorRecebidoCancelamento ?? 0

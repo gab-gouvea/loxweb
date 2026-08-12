@@ -11,6 +11,7 @@ import { ReservationStatusBadge } from "@/components/reservations/reservation-st
 import { ReservationInfoSection } from "@/components/reservation-detail/reservation-info-section"
 import { ReservationCleaningSection } from "@/components/reservation-detail/reservation-cleaning-section"
 import { ReservationExpensesSection } from "@/components/reservation-detail/reservation-expenses-section"
+import { ReservationExtensionsSection } from "@/components/reservation-detail/reservation-extensions-section"
 import { ReservationNotesSection } from "@/components/reservation-detail/reservation-notes-section"
 import { sourceLabels } from "@/lib/constants"
 import { type ReservationStatus } from "@/types/reservation"
@@ -163,6 +164,19 @@ export function ReservationDetailPage() {
         onMutate={handleMutate}
         isPending={updateMutation.isPending}
       />
+
+      {reservation.fonte === "airbnb" && (
+        <>
+          <Separator />
+
+          {/* Extensões */}
+          <ReservationExtensionsSection
+            reservation={reservation}
+            onMutate={handleMutate}
+            isPending={updateMutation.isPending}
+          />
+        </>
+      )}
 
       <Separator />
 

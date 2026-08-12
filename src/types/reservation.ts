@@ -28,6 +28,13 @@ export const despesaSchema = z.object({
 
 export type Despesa = z.infer<typeof despesaSchema>
 
+export const extensaoSchema = z.object({
+  dataInicio: z.string(),
+  valor: z.number().min(0),
+})
+
+export type Extensao = z.infer<typeof extensaoSchema>
+
 export const reservationSchema = z.object({
   id: z.string(),
   propriedadeId: z.string(),
@@ -45,6 +52,7 @@ export const reservationSchema = z.object({
   faxinaPaga: z.boolean().optional(),
   faxinaData: z.string().optional(),
   despesas: z.array(despesaSchema).optional(),
+  extensoes: z.array(extensaoSchema).optional(),
   valorRecebidoCancelamento: z.number().min(0).optional(),
   valorLiquidoCancelamento: z.number().min(0).optional(),
   pagamentoRecebido: z.boolean().optional(),

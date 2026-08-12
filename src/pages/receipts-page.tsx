@@ -24,7 +24,7 @@ import { useProprietarioMap } from "@/hooks/use-proprietario-map"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { useReservations } from "@/hooks/use-reservations"
 import { useRecibosMonthStore } from "@/hooks/use-month-store"
-import { calcValorRecibo } from "@/lib/reservation-calculations"
+import { calcValorReciboBase, calcValorReciboExtensao } from "@/lib/reservation-calculations"
 import { toLocalDateStr } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
 import { valorPorExtenso } from "@/lib/valor-por-extenso"
@@ -135,26 +135,52 @@ export function ReceiptsPage() {
       if (r.fonte !== "airbnb") continue
       if (!targetIds.has(r.propriedadeId)) continue
 
-      const paymentDateStr = addDaysToDateStr(toLocalDateStr(r.checkIn), 1)
-      if (paymentDateStr < periodStartStr || paymentDateStr > periodEndStr) continue
-
       const prop = propertyMap.get(r.propriedadeId)
-      const valor = calcValorRecibo(r, prop)
-      total += valor
-      usedIds.add(r.propriedadeId)
+      const hospedeNome = r.nomeHospede.split(" ")[0]?.toUpperCase() ?? ""
+      const status = r.pagamentoRecebido ? "OK" : "PENDENTE"
 
-      const mNum = Number(paymentDateStr.split("-")[1])
+      // Reserva original: Airbnb repassa no dia seguinte ao check-in
+      const paymentDateStr = addDaysToDateStr(toLocalDateStr(r.checkIn), 1)
+      if (paymentDateStr >= periodStartStr && paymentDateStr <= periodEndStr) {
+        const valor = calcValorReciboBase(r, prop)
+        total += valor
+        usedIds.add(r.propriedadeId)
+        const mNum = Number(paymentDateStr.split("-")[1])
 
-      rows.push({
-        local: prop?.nome ?? "",
-        proprietaria: primeiroNome,
-        hospede: r.nomeHospede.split(" ")[0]?.toUpperCase() ?? "",
-        dataPagto: formatDateBR(paymentDateStr),
-        mes: mesesExtenso[mNum - 1].toUpperCase(),
-        ano,
-        valor,
-        status: r.pagamentoRecebido ? "OK" : "PENDENTE",
-      })
+        rows.push({
+          local: prop?.nome ?? "",
+          proprietaria: primeiroNome,
+          hospede: hospedeNome,
+          dataPagto: formatDateBR(paymentDateStr),
+          mes: mesesExtenso[mNum - 1].toUpperCase(),
+          ano,
+          valor,
+          status,
+        })
+      }
+
+      // Extensões: Airbnb repassa no dia seguinte ao início de cada extensão,
+      // podendo cair em um mês diferente do da reserva original
+      for (const ext of r.extensoes ?? []) {
+        const extPaymentDateStr = addDaysToDateStr(toLocalDateStr(ext.dataInicio), 1)
+        if (extPaymentDateStr < periodStartStr || extPaymentDateStr > periodEndStr) continue
+
+        const valor = calcValorReciboExtensao(r, prop, ext.valor)
+        total += valor
+        usedIds.add(r.propriedadeId)
+        const mNum = Number(extPaymentDateStr.split("-")[1])
+
+        rows.push({
+          local: prop?.nome ?? "",
+          proprietaria: primeiroNome,
+          hospede: `${hospedeNome} (EXT)`,
+          dataPagto: formatDateBR(extPaymentDateStr),
+          mes: mesesExtenso[mNum - 1].toUpperCase(),
+          ano,
+          valor,
+          status,
+        })
+      }
     }
 
     rows.sort((a, b) => {

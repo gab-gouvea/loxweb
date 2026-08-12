@@ -4,6 +4,8 @@ import {
   calcDespesas,
   calcValorPagamento,
   calcTotalRecebido,
+  calcValorReciboBase,
+  calcValorReciboExtensao,
 } from "../reservation-calculations"
 import type { Reservation } from "@/types/reservation"
 import type { Property } from "@/types/property"
@@ -221,5 +223,77 @@ describe("calcTotalRecebido", () => {
     // despesas NR = 0
     // total = 270
     expect(calcTotalRecebido(r, p)).toBe(270)
+  })
+})
+
+// --------------- calcValorReciboBase / calcValorReciboExtensao ---------------
+
+describe("calcValorReciboBase e calcValorReciboExtensao", () => {
+  it("sem extensões, calcValorReciboBase é igual ao valor total do recibo", () => {
+    const r = makeReservation({ precoTotal: 1000, percentualComissao: 20 })
+    const p = makeProperty({ taxaLimpeza: 150, percentualComissao: 20 })
+    // baseComissao = 850, 20% = 170, + 150 = 320
+    expect(calcValorReciboBase(r, p)).toBe(320)
+  })
+
+  it("desconta o valor das extensões do precoTotal antes de calcular a comissão da base", () => {
+    const r = makeReservation({
+      precoTotal: 1300,
+      percentualComissao: 20,
+      extensoes: [{ dataInicio: "2026-04-10T03:00:00Z", valor: 300 }],
+    })
+    const p = makeProperty({ taxaLimpeza: 150, percentualComissao: 20 })
+    // precoTotal base = 1300 - 300 = 1000, baseComissao = 850, 20% = 170, + 150 = 320
+    expect(calcValorReciboBase(r, p)).toBe(320)
+  })
+
+  it("soma todas as extensões ao calcular a base", () => {
+    const r = makeReservation({
+      precoTotal: 1500,
+      percentualComissao: 20,
+      extensoes: [
+        { dataInicio: "2026-04-10T03:00:00Z", valor: 300 },
+        { dataInicio: "2026-05-01T03:00:00Z", valor: 200 },
+      ],
+    })
+    const p = makeProperty({ taxaLimpeza: 150, percentualComissao: 20 })
+    // precoTotal base = 1500 - 500 = 1000, baseComissao = 850, 20% = 170, + 150 = 320
+    expect(calcValorReciboBase(r, p)).toBe(320)
+  })
+
+  it("desconta despesas não-reembolsáveis da base", () => {
+    const r = makeReservation({
+      precoTotal: 1300,
+      percentualComissao: 20,
+      extensoes: [{ dataInicio: "2026-04-10T03:00:00Z", valor: 300 }],
+      despesas: [{ descricao: "Lampada", valor: 30, reembolsavel: false }],
+    })
+    const p = makeProperty({ taxaLimpeza: 150, percentualComissao: 20 })
+    // 320 (calculado acima) - 30 = 290
+    expect(calcValorReciboBase(r, p)).toBe(290)
+  })
+
+  it("calcValorReciboExtensao aplica só a comissão, sem taxa de limpeza", () => {
+    const r = makeReservation({ percentualComissao: 20 })
+    const p = makeProperty({ taxaLimpeza: 150, percentualComissao: 20 })
+    expect(calcValorReciboExtensao(r, p, 300)).toBe(60)
+  })
+
+  it("calcValorReciboExtensao usa fallback de comissão da propriedade", () => {
+    const r = makeReservation({ percentualComissao: null })
+    const p = makeProperty({ percentualComissao: 15 })
+    expect(calcValorReciboExtensao(r, p, 200)).toBe(30)
+  })
+
+  it("base + extensões soma o mesmo total de calcValorPagamento", () => {
+    const r = makeReservation({
+      precoTotal: 1300,
+      percentualComissao: 20,
+      extensoes: [{ dataInicio: "2026-04-10T03:00:00Z", valor: 300 }],
+    })
+    const p = makeProperty({ taxaLimpeza: 150, percentualComissao: 20 })
+    const base = calcValorReciboBase(r, p)
+    const extensao = calcValorReciboExtensao(r, p, 300)
+    expect(base + extensao).toBe(calcValorPagamento(r, p))
   })
 })

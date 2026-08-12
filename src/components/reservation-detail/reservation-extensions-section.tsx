@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { formatCurrency } from "@/lib/constants"
 import { formatDate, localDateToISO, toLocalDateStr } from "@/lib/date-utils"
+import { cn } from "@/lib/utils"
 import type { Reservation, Extensao } from "@/types/reservation"
 
 function addDaysToDateStr(dateStr: string, days: number): string {
@@ -27,6 +28,7 @@ export function ReservationExtensionsSection({
   const [novaExtensao, setNovaExtensao] = useState<{ dataInicio: string; valor: string } | null>(null)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editingExtensao, setEditingExtensao] = useState<{ dataInicio: string; valor: string } | null>(null)
+  const [removingIndex, setRemovingIndex] = useState<number | null>(null)
 
   const totalExtensoes = (reservation.extensoes ?? []).reduce((sum, e) => sum + e.valor, 0)
 
@@ -65,12 +67,16 @@ export function ReservationExtensionsSection({
   }
 
   function handleRemoveExtensao(index: number) {
-    const extensoes = [...(reservation.extensoes ?? [])]
-    extensoes.splice(index, 1)
-    onMutate(
-      { extensoes },
-      { onSuccess: () => toast.success("Extensão removida") },
-    )
+    setRemovingIndex(index)
+    setTimeout(() => {
+      const extensoes = [...(reservation.extensoes ?? [])]
+      extensoes.splice(index, 1)
+      onMutate(
+        { extensoes },
+        { onSuccess: () => toast.success("Extensão removida") },
+      )
+      setRemovingIndex(null)
+    }, 180)
   }
 
   function handleStartEdit(index: number) {
@@ -168,7 +174,13 @@ export function ReservationExtensionsSection({
             </div>
           </div>
         ) : (
-          <div key={index} className="flex items-center justify-between rounded-lg border p-3">
+          <div
+            key={index}
+            className={cn(
+              "flex items-center justify-between rounded-lg border p-3 transition-all duration-200",
+              removingIndex === index && "animate-out fade-out slide-out-to-right-4 pointer-events-none",
+            )}
+          >
             <div>
               <p className="text-sm font-medium">{formatCurrency(extensao.valor)}</p>
               <p className="text-sm text-muted-foreground">

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { formatCurrency } from "@/lib/constants"
+import { cn } from "@/lib/utils"
 import type { Reservation, Despesa } from "@/types/reservation"
 
 interface ReservationExpensesSectionProps {
@@ -22,6 +23,7 @@ export function ReservationExpensesSection({
   const [novaDespesa, setNovaDespesa] = useState<{ descricao: string; valor: string; reembolsavel: boolean } | null>(null)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editingDespesa, setEditingDespesa] = useState<{ descricao: string; valor: string; reembolsavel: boolean } | null>(null)
+  const [removingIndex, setRemovingIndex] = useState<number | null>(null)
 
   const totalDespesas = (reservation.despesas ?? []).reduce((sum, d) => sum + d.valor, 0)
   const totalReembolsavel = (reservation.despesas ?? []).filter((d) => d.reembolsavel).reduce((sum, d) => sum + d.valor, 0)
@@ -44,12 +46,16 @@ export function ReservationExpensesSection({
   }
 
   function handleRemoveDespesa(index: number) {
-    const despesas = [...(reservation.despesas ?? [])]
-    despesas.splice(index, 1)
-    onMutate(
-      { despesas },
-      { onSuccess: () => toast.success("Despesa removida") },
-    )
+    setRemovingIndex(index)
+    setTimeout(() => {
+      const despesas = [...(reservation.despesas ?? [])]
+      despesas.splice(index, 1)
+      onMutate(
+        { despesas },
+        { onSuccess: () => toast.success("Despesa removida") },
+      )
+      setRemovingIndex(null)
+    }, 180)
   }
 
   function handleStartEdit(index: number) {
@@ -152,7 +158,13 @@ export function ReservationExpensesSection({
             </div>
           </div>
         ) : (
-          <div key={index} className="flex items-center justify-between rounded-lg border p-3">
+          <div
+            key={index}
+            className={cn(
+              "flex items-center justify-between rounded-lg border p-3 transition-all duration-200",
+              removingIndex === index && "animate-out fade-out slide-out-to-right-4 pointer-events-none",
+            )}
+          >
             <div className="flex items-center gap-3">
               <div>
                 <p className="text-sm font-medium">{despesa.descricao}</p>

@@ -140,7 +140,7 @@ export function ReservationInfoSection({
           </Card>
           {reservation.status !== "cancelada" && property && (
             <Card
-              className={`relative transition-colors ${reservation.pagamentoRecebido ? "border-green-300 bg-green-50" : ""}`}
+              className={`relative overflow-hidden transition-colors duration-300 ${reservation.pagamentoRecebido ? "border-green-300 bg-green-50" : ""}`}
             >
               <Button
                 variant={reservation.pagamentoRecebido ? "default" : "outline"}
@@ -149,11 +149,13 @@ export function ReservationInfoSection({
                 onClick={(e) => { e.stopPropagation(); onMutate({ pagamentoRecebido: !reservation.pagamentoRecebido }) }}
                 disabled={isPending}
               >
-                {reservation.pagamentoRecebido ? <Check className="h-3 w-3" /> : <ThumbsUp className="h-3 w-3" />}
+                <span key={String(reservation.pagamentoRecebido)} className="animate-in zoom-in-50 spin-in-45 duration-300">
+                  {reservation.pagamentoRecebido ? <Check className="h-3 w-3" /> : <ThumbsUp className="h-3 w-3" />}
+                </span>
               </Button>
               <CardContent className="flex items-center gap-2 pt-3 pb-3">
                 <Wallet className="h-4 w-4 text-muted-foreground" />
-                <div>
+                <div key={String(reservation.pagamentoRecebido)} className="animate-in fade-in slide-in-from-left-1 duration-300">
                   <p className="text-xs text-muted-foreground">{reservation.pagamentoRecebido ? "Recebido" : "A Receber"}</p>
                   <p className="text-sm font-medium">
                     {formatCurrency(calcValorPagamento(reservation, property))}

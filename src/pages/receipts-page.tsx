@@ -1,8 +1,9 @@
 import { useMemo, useState, useEffect } from "react"
 import { endOfMonth, endOfYear, startOfYear, addYears, subYears } from "date-fns"
-import { Download, Pencil, Check, ChevronLeft, ChevronRight } from "lucide-react"
+import { Download, Pencil, Check, ChevronLeft, ChevronRight, Receipt } from "lucide-react"
 import jsPDF from "jspdf"
 import { MonthNavigation } from "@/components/shared/month-navigation"
+import { EmptyState } from "@/components/shared/empty-state"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -481,13 +482,15 @@ export function ReceiptsPage() {
       </div>
 
       {!selectedProprietarioId && (
-        <p className="text-muted-foreground text-sm">Selecione um proprietário para gerar o recibo.</p>
+        <EmptyState icon={Receipt} title="Selecione um proprietário para gerar o recibo." />
       )}
 
       {selectedProprietarioId && groups.length === 0 && (
-        <p className="text-muted-foreground text-sm">
-          Nenhuma reserva Airbnb encontrada para este proprietário no período selecionado.
-        </p>
+        <EmptyState
+          icon={Receipt}
+          title="Nenhuma reserva Airbnb encontrada"
+          description="Não há reservas para este proprietário no período selecionado."
+        />
       )}
 
       {groups.map((group) => {

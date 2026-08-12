@@ -150,7 +150,7 @@ export function MaintenanceReportPage() {
                 </span>
               )}
             </div>
-            <div className="rounded-lg border overflow-x-auto">
+            <div className="rounded-lg border shadow-sm overflow-x-auto">
               <Table className="min-w-[600px]">
                 <TableHeader>
                   <TableRow>

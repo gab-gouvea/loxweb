@@ -13,6 +13,7 @@ import {
   CircleDollarSign,
 } from "lucide-react"
 import { SummaryCard } from "@/components/shared/summary-card"
+import { EmptyState } from "@/components/shared/empty-state"
 import {
   Table,
   TableBody,
@@ -130,9 +131,9 @@ export function DashboardPage() {
             <span className="text-sm text-muted-foreground">(Próximos 7 dias)</span>
           </div>
           {stats.proximosCheckins.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum check-in nos próximos 7 dias</p>
+            <EmptyState icon={LogIn} title="Nenhum check-in nos próximos 7 dias" />
           ) : (
-            <div className="rounded-lg border overflow-x-auto">
+            <div className="rounded-lg border shadow-sm overflow-x-auto">
               <Table className="table-fixed min-w-[400px]">
                 <TableHeader>
                   <TableRow>
@@ -167,9 +168,9 @@ export function DashboardPage() {
             <span className="text-sm text-muted-foreground">(Próximos 7 dias)</span>
           </div>
           {stats.proximosCheckouts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum checkout nos próximos 7 dias</p>
+            <EmptyState icon={LogOut} title="Nenhum checkout nos próximos 7 dias" />
           ) : (
-            <div className="rounded-lg border overflow-x-auto">
+            <div className="rounded-lg border shadow-sm overflow-x-auto">
               <Table className="table-fixed min-w-[400px]">
                 <TableHeader>
                   <TableRow>
@@ -205,7 +206,7 @@ export function DashboardPage() {
             <h2 className="text-lg font-semibold">Pagamentos Não Recebidos</h2>
             <span className="text-sm text-muted-foreground">({stats.pagamentosNaoRecebidos.length})</span>
           </div>
-          <div className="rounded-lg border overflow-x-auto">
+          <div className="rounded-lg border shadow-sm overflow-x-auto">
             <Table className="table-fixed min-w-[480px]">
               <TableHeader>
                 <TableRow>
@@ -248,7 +249,7 @@ export function DashboardPage() {
             <SprayCan className="h-5 w-5 shrink-0 text-yellow-600" />
             <h2 className="text-lg font-semibold">Agendamentos de Faxina Pendentes</h2>
           </div>
-          <div className="rounded-lg border overflow-x-auto">
+          <div className="rounded-lg border shadow-sm overflow-x-auto">
             <Table className="table-fixed min-w-[480px]">
               <TableHeader>
                 <TableRow>
@@ -286,7 +287,7 @@ export function DashboardPage() {
             <Wrench className="h-5 w-5 shrink-0 text-red-600" />
             <h2 className="text-lg font-semibold">Manutenções Atrasadas</h2>
           </div>
-          <div className="rounded-lg border overflow-x-auto">
+          <div className="rounded-lg border shadow-sm overflow-x-auto">
             <Table className="table-fixed min-w-[480px]">
               <TableHeader>
                 <TableRow>
@@ -325,7 +326,7 @@ export function DashboardPage() {
             <h2 className="text-lg font-semibold">Próximas Manutenções Agendadas</h2>
             <span className="text-sm text-muted-foreground">(Próximos 7 dias)</span>
           </div>
-          <div className="rounded-lg border overflow-x-auto">
+          <div className="rounded-lg border shadow-sm overflow-x-auto">
             <Table className="table-fixed min-w-[480px]">
               <TableHeader>
                 <TableRow>

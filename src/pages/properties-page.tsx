@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react"
-import { Plus } from "lucide-react"
+import { Plus, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useProperties } from "@/hooks/use-properties"
 import { useProprietarioMap } from "@/hooks/use-proprietario-map"
 import { PropertyCard } from "@/components/properties/property-card"
 import { PropertyDialog } from "@/components/properties/property-dialog"
+import { EmptyState } from "@/components/shared/empty-state"
 import type { Property } from "@/types/property"
 
 export function PropertiesPage() {
@@ -43,6 +44,12 @@ export function PropertiesPage() {
             <div key={i} className="h-40 animate-pulse rounded-lg bg-muted" />
           ))}
         </div>
+      ) : properties?.length === 0 ? (
+        <EmptyState
+          icon={Building2}
+          title="Nenhuma propriedade cadastrada"
+          description="Cadastre seu primeiro imóvel para começar a gerenciar reservas."
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {properties?.map((property) => (

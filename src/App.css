@@ -124,6 +124,16 @@
   body {
     @apply bg-background text-foreground;
   }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]):not([data-disabled]),
+  [role="menuitem"]:not([data-disabled]),
+  [role="option"]:not([data-disabled]),
+  [role="tab"]:not([data-disabled]),
+  [role="checkbox"]:not([data-disabled]),
+  [role="switch"]:not([data-disabled]),
+  a[href] {
+    cursor: pointer;
+  }
 }
 
 /* ===== Inventário PDF layout (used by html2canvas) ===== */

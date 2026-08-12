@@ -7,6 +7,12 @@ import { formatCurrency } from "@/lib/constants"
 import { formatDate, localDateToISO, toLocalDateStr } from "@/lib/date-utils"
 import type { Reservation, Extensao } from "@/types/reservation"
 
+function addDaysToDateStr(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number)
+  const date = new Date(y, m - 1, d + days)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+}
+
 interface ReservationExtensionsSectionProps {
   reservation: Reservation
   onMutate: (data: Record<string, unknown>, options?: { onSuccess?: () => void }) => void
@@ -24,8 +30,25 @@ export function ReservationExtensionsSection({
 
   const totalExtensoes = (reservation.extensoes ?? []).reduce((sum, e) => sum + e.valor, 0)
 
+  /** Menor data de início permitida: dia seguinte ao checkout (ou à última extensão já cadastrada). */
+  function getMinDataInicio(excludeIndex: number | null = null): string {
+    const extensoes = (reservation.extensoes ?? []).filter((_, i) => i !== excludeIndex)
+    const latestDate = extensoes.reduce(
+      (max, e) => {
+        const d = toLocalDateStr(e.dataInicio)
+        return d > max ? d : max
+      },
+      toLocalDateStr(reservation.checkOut),
+    )
+    return addDaysToDateStr(latestDate, 1)
+  }
+
   function handleAddExtensao() {
     if (!novaExtensao || !novaExtensao.dataInicio || Number(novaExtensao.valor) <= 0) return
+    if (novaExtensao.dataInicio < getMinDataInicio()) {
+      toast.error(`A extensão só pode começar a partir de ${formatDate(localDateToISO(getMinDataInicio()))}`)
+      return
+    }
     const extensoes: Extensao[] = [
       ...(reservation.extensoes ?? []),
       { dataInicio: localDateToISO(novaExtensao.dataInicio), valor: Number(novaExtensao.valor) },
@@ -65,6 +88,10 @@ export function ReservationExtensionsSection({
 
   function handleSaveEdit() {
     if (editingIndex === null || !editingExtensao || !editingExtensao.dataInicio || Number(editingExtensao.valor) <= 0) return
+    if (editingExtensao.dataInicio < getMinDataInicio(editingIndex)) {
+      toast.error(`A extensão só pode começar a partir de ${formatDate(localDateToISO(getMinDataInicio(editingIndex)))}`)
+      return
+    }
     const extensoes = [...(reservation.extensoes ?? [])]
     extensoes[editingIndex] = {
       dataInicio: localDateToISO(editingExtensao.dataInicio),
@@ -83,18 +110,13 @@ export function ReservationExtensionsSection({
 
   function handleStartAdd() {
     handleCancelEdit()
-    setNovaExtensao({ dataInicio: "", valor: "" })
+    setNovaExtensao({ dataInicio: getMinDataInicio(), valor: "" })
   }
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Extensões</h2>
-          <p className="text-xs text-muted-foreground">
-            Dias extras pagos pelo hóspede além da reserva original. A Airbnb repassa cada extensão no mês seguinte ao início dela, não no mês do check-in.
-          </p>
-        </div>
+        <h2 className="text-lg font-semibold">Extensões</h2>
         {!novaExtensao && editingIndex === null && (
           <Button variant="outline" size="sm" onClick={handleStartAdd}>
             <Plus className="mr-1 h-3 w-3" />
@@ -115,6 +137,7 @@ export function ReservationExtensionsSection({
                 <label className="text-xs text-muted-foreground mb-1 block">Início da extensão</label>
                 <Input
                   type="date"
+                  min={getMinDataInicio(editingIndex)}
                   value={editingExtensao.dataInicio}
                   onChange={(e) => setEditingExtensao({ ...editingExtensao, dataInicio: e.target.value })}
                 />
@@ -184,6 +207,7 @@ export function ReservationExtensionsSection({
               <label className="text-xs text-muted-foreground mb-1 block">Início da extensão</label>
               <Input
                 type="date"
+                min={getMinDataInicio()}
                 value={novaExtensao.dataInicio}
                 onChange={(e) => setNovaExtensao({ ...novaExtensao, dataInicio: e.target.value })}
               />

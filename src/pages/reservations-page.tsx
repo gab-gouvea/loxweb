@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
-import { Plus, Trash2, Search, ChevronLeft, ChevronRight } from "lucide-react"
+import { Plus, Trash2, Search, ChevronLeft, ChevronRight, CalendarX } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -23,6 +23,7 @@ import { usePropertyMap } from "@/hooks/use-property-map"
 import { ReservationDialog } from "@/components/reservations/reservation-dialog"
 import { ReservationDeleteDialog } from "@/components/reservations/reservation-delete-dialog"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
+import { EmptyState } from "@/components/shared/empty-state"
 import { formatDate } from "@/lib/date-utils"
 import { sourceLabels, formatCurrency } from "@/lib/constants"
 import type { Reservation, ReservationStatus } from "@/types/reservation"
@@ -147,7 +148,7 @@ export function ReservationsPage() {
           ))}
         </div>
       ) : (
-        <div className="rounded-lg border overflow-x-auto">
+        <div className="rounded-lg border shadow-sm overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -164,8 +165,8 @@ export function ReservationsPage() {
             <TableBody>
               {paginatedReservations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                    Nenhuma reserva encontrada
+                  <TableCell colSpan={8}>
+                    <EmptyState icon={CalendarX} title="Nenhuma reserva encontrada" />
                   </TableCell>
                 </TableRow>
               ) : (

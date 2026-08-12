@@ -176,7 +176,7 @@ export function ExpensesReportPage() {
           <div key={propertyId} className="space-y-3">
             <h3 className="text-lg font-semibold">{property.nome}</h3>
 
-            <div className="rounded-lg border overflow-x-auto">
+            <div className="rounded-lg border shadow-sm overflow-x-auto">
               <Table className="min-w-[600px]">
                 <TableHeader>
                   <TableRow>

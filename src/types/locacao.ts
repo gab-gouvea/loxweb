@@ -24,6 +24,16 @@ export const locacaoSchema = z.object({
   estadoCivil: z.string().optional(),
   endereco: z.string().optional(),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
+  // Cônjuge (locação anual) — por lei, ambos devem constar no contrato quando casados
+  incluirConjuge: z.boolean().optional(),
+  conjugeNome: z.string().optional(),
+  conjugeCpf: z.string().optional(),
+  conjugeRg: z.string().optional(),
+  conjugeDataNascimento: z.string().optional(),
+  conjugeProfissao: z.string().optional(),
+  conjugeEstadoCivil: z.string().optional(),
+  conjugeEndereco: z.string().optional(),
+  conjugeEmail: z.string().optional(),
   checkIn: z.string(),
   checkOut: z.string(),
   numMoradores: z.number().int().min(1).optional(),
@@ -75,6 +85,15 @@ export const locacaoFormSchema = z.object({
   estadoCivil: z.string().optional(),
   endereco: z.string().optional(),
   email: z.string().optional(),
+  incluirConjuge: z.boolean().optional(),
+  conjugeNome: z.string().optional(),
+  conjugeCpf: z.string().optional(),
+  conjugeRg: z.string().optional(),
+  conjugeDataNascimento: z.string().optional(),
+  conjugeProfissao: z.string().optional(),
+  conjugeEstadoCivil: z.string().optional(),
+  conjugeEndereco: z.string().optional(),
+  conjugeEmail: z.string().optional(),
   checkIn: z.string().min(1, "Data de entrada é obrigatória"),
   checkOut: z.string().min(1, "Data de saída é obrigatória"),
   numMoradores: z.number({ message: "Mínimo 1 morador" }).int().min(1, "Mínimo 1 morador"),
@@ -88,11 +107,11 @@ export const locacaoFormSchema = z.object({
   if (!data.checkIn || !data.checkOut) return true
   return data.checkOut > data.checkIn
 }, { message: "Data de saída deve ser depois da data de entrada", path: ["checkOut"] }).refine((data) => {
-  // Temporada: máximo 3 meses. Anual: máximo 30 meses.
+  // Temporada: máximo 3 meses (90 dias). Anual: máximo 36 meses.
   if (data.tipoLocacao === "anual") {
     if (!data.checkIn || !data.checkOut) return true
     const checkIn = parseISO(data.checkIn)
-    const maxDate = addMonths(checkIn, 30)
+    const maxDate = addMonths(checkIn, 36)
     return parseISO(data.checkOut) <= maxDate
   }
   if (!data.checkIn || !data.checkOut) return true
@@ -105,7 +124,10 @@ export const locacaoFormSchema = z.object({
 }, { message: "Informe o valor mensal", path: ["valorMensal"] }).refine((data) => {
   if (data.tipoPagamento === "avista") return data.valorTotal !== "" && data.valorTotal != null
   return true
-}, { message: "Informe o valor total", path: ["valorTotal"] })
+}, { message: "Informe o valor total", path: ["valorTotal"] }).refine((data) => {
+  if (!data.incluirConjuge) return true
+  return !!data.conjugeNome && data.conjugeNome.trim().length > 0
+}, { message: "Informe o nome do cônjuge", path: ["conjugeNome"] })
 
 export type LocacaoFormData = z.infer<typeof locacaoFormSchema>
 

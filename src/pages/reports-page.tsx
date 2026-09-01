@@ -31,13 +31,121 @@ import { formatDate, toLocalDateStr } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
 import { getErrorMessage } from "@/lib/api"
 import { toast } from "sonner"
-import { calcFaxinaReceita, calcDespesas, calcTotalRecebido } from "@/lib/reservation-calculations"
+import { calcFaxinaReceita, calcDespesas, calcRecebidoBase, calcRecebidoExtensao } from "@/lib/reservation-calculations"
 import { groupByProperty } from "@/lib/collection-utils"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
 import { KeyRound } from "lucide-react"
 import type { Reservation } from "@/types/reservation"
 import type { Locacao } from "@/types/locacao"
+import type { Property } from "@/types/property"
 import { useReportsMonthStore } from "@/hooks/use-month-store"
+
+/** Uma linha do relatório: a reserva original (base) ou uma extensão específica dela. */
+interface ReportLine {
+  key: string
+  propriedadeId: string
+  reservation: Reservation
+  isExtension: boolean
+  isCancelada: boolean
+  dataLinha: string
+  dataOut: string | null
+  bruto: number
+  comissaoPercent: number
+  comissaoValor: number
+  liquido: number
+  faxina: number
+  despesasNaoReemb: number
+  recebido: number
+}
+
+// Mês de recebimento = dia seguinte ao check-in (reserva base) ou ao início da extensão —
+// a Airbnb repassa cada valor no dia seguinte, podendo cair em meses diferentes.
+function recebimentoMonth(dateStr: string): string {
+  const localStr = toLocalDateStr(dateStr)
+  const [y, m, d] = localStr.split("-").map(Number)
+  const local = new Date(y, m - 1, d)
+  return format(addDays(local, 1), "yyyy-MM")
+}
+
+function buildReportLines(
+  reservations: Reservation[],
+  propertyMap: Map<string, Property>,
+  reportYM: string,
+): ReportLine[] {
+  const lines: ReportLine[] = []
+  for (const r of reservations) {
+    if (r.status === "cancelada") {
+      if (recebimentoMonth(r.checkIn) !== reportYM) continue
+      lines.push({
+        key: r.id,
+        propriedadeId: r.propriedadeId,
+        reservation: r,
+        isExtension: false,
+        isCancelada: true,
+        dataLinha: r.checkIn,
+        dataOut: r.checkOut,
+        bruto: r.precoTotal ?? 0,
+        comissaoPercent: 0,
+        comissaoValor: 0,
+        liquido: r.valorLiquidoCancelamento ?? 0,
+        faxina: 0,
+        despesasNaoReemb: 0,
+        recebido: r.valorRecebidoCancelamento ?? 0,
+      })
+      continue
+    }
+
+    const property = propertyMap.get(r.propriedadeId)
+    const taxaLimpeza = r.taxaLimpeza ?? property?.taxaLimpeza ?? 0
+    const comissaoPercent = r.percentualComissao ?? property?.percentualComissao ?? 0
+    const { reembolsavel, naoReembolsavel } = calcDespesas(r)
+    const totalExtensoes = (r.extensoes ?? []).reduce((sum, e) => sum + e.valor, 0)
+
+    if (recebimentoMonth(r.checkIn) === reportYM) {
+      const baseBruto = (r.precoTotal ?? 0) - totalExtensoes
+      const valorSemLimpeza = baseBruto - taxaLimpeza
+      const comissaoValor = (valorSemLimpeza * comissaoPercent) / 100
+      lines.push({
+        key: r.id,
+        propriedadeId: r.propriedadeId,
+        reservation: r,
+        isExtension: false,
+        isCancelada: false,
+        dataLinha: r.checkIn,
+        dataOut: r.checkOut,
+        bruto: baseBruto,
+        comissaoPercent,
+        comissaoValor,
+        liquido: valorSemLimpeza - comissaoValor - reembolsavel,
+        faxina: calcFaxinaReceita(r, property),
+        despesasNaoReemb: naoReembolsavel,
+        recebido: calcRecebidoBase(r, property),
+      })
+    }
+
+    for (const [idx, ext] of (r.extensoes ?? []).entries()) {
+      if (recebimentoMonth(ext.dataInicio) !== reportYM) continue
+      const comissaoValor = (ext.valor * comissaoPercent) / 100
+      lines.push({
+        key: `${r.id}-ext-${idx}`,
+        propriedadeId: r.propriedadeId,
+        reservation: r,
+        isExtension: true,
+        isCancelada: false,
+        dataLinha: ext.dataInicio,
+        dataOut: null,
+        bruto: ext.valor,
+        comissaoPercent,
+        comissaoValor,
+        liquido: ext.valor - comissaoValor,
+        faxina: 0,
+        despesasNaoReemb: 0,
+        recebido: calcRecebidoExtensao(r, property, ext.valor),
+      })
+    }
+  }
+  return lines
+}
 
 export function ReportsPage() {
   const { currentMonth, setCurrentMonth } = useReportsMonthStore()
@@ -70,16 +178,11 @@ export function ReportsPage() {
     return m
   }, [locacaoRecebimentos])
 
-  // Reserva pertence ao mês de (checkIn + 1 dia) — dia do recebimento
-  const monthReservations = useMemo(() => {
-    return allReservations.filter((r) => {
-      const ciStr = toLocalDateStr(r.checkIn)
-      const [cy, cm, cd] = ciStr.split("-").map(Number)
-      const checkInLocal = new Date(cy, cm - 1, cd)
-      const dataRecebimento = addDays(checkInLocal, 1)
-      return format(dataRecebimento, "yyyy-MM") === reportYM
-    })
-  }, [allReservations, reportYM])
+  // Uma linha por reserva base + uma linha por extensão, cada uma no mês do seu próprio recebimento
+  const reportLines = useMemo(
+    () => buildReportLines(allReservations, propertyMap, reportYM),
+    [allReservations, propertyMap, reportYM],
+  )
 
   // Locações que geram recebimento neste mês (pagamento OU faxina de saída)
   const [monthLocacoes, locacaoInfoMap] = useMemo(() => {
@@ -187,17 +290,17 @@ export function ReportsPage() {
     }, 0)
   }, [monthLocacoes, locacaoInfoMap, propertyMap])
 
-  const filteredReservations = useMemo(() => {
-    let result = monthReservations
+  const filteredLines = useMemo(() => {
+    let result = reportLines
 
     if (propertyFilter !== "todos") {
-      result = result.filter((r) => r.propriedadeId === propertyFilter)
+      result = result.filter((l) => l.propriedadeId === propertyFilter)
     }
 
-    return result.sort((a, b) => a.checkIn.localeCompare(b.checkIn))
-  }, [monthReservations, propertyFilter])
+    return result.sort((a, b) => a.dataLinha.localeCompare(b.dataLinha))
+  }, [reportLines, propertyFilter])
 
-  const grouped = useMemo(() => groupByProperty(filteredReservations), [filteredReservations])
+  const grouped = useMemo(() => groupByProperty(filteredLines), [filteredLines])
 
   // Agrupar locações por propriedade
   const locacoesByProperty = useMemo(() => {
@@ -220,26 +323,22 @@ export function ReportsPage() {
     let totalLiquido = 0
     let totalPago = 0
     let totalAReceber = 0
-    for (const r of filteredReservations) {
-      const property = propertyMap.get(r.propriedadeId)
-      const recebido = calcTotalRecebido(r, property)
-      totalRecebido += recebido
-      if (r.status === "cancelada") {
-        totalLiquido += r.valorLiquidoCancelamento ?? 0
-        if (recebido > 0) {
-          totalPago += recebido
+    let canceladas = 0
+    const reservaIds = new Set<string>()
+    for (const line of filteredLines) {
+      totalRecebido += line.recebido
+      totalLiquido += line.liquido
+      if (line.isCancelada) {
+        canceladas++
+        if (line.recebido > 0) {
+          totalPago += line.recebido
         }
       } else {
-        const taxaLimpeza = r.taxaLimpeza ?? property?.taxaLimpeza ?? 0
-        const valorReserva = (r.precoTotal ?? 0) - taxaLimpeza
-        const comissao = r.percentualComissao ?? property?.percentualComissao ?? 0
-        const valorComissao = (valorReserva * comissao) / 100
-        const { reembolsavel } = calcDespesas(r)
-        totalLiquido += valorReserva - valorComissao - reembolsavel
-        if (r.pagamentoRecebido) {
-          totalPago += recebido
+        reservaIds.add(line.reservation.id)
+        if (line.reservation.pagamentoRecebido) {
+          totalPago += line.recebido
         } else {
-          totalAReceber += recebido
+          totalAReceber += line.recebido
         }
       }
     }
@@ -267,18 +366,17 @@ export function ReportsPage() {
     totalPago += locacoesPago
     totalAReceber += locacoesAReceber
 
-    const canceladas = filteredReservations.filter((r) => r.status === "cancelada").length
     return {
       totalRecebido,
       totalLiquido,
       totalPago,
       totalAReceber,
-      numReservas: filteredReservations.length - canceladas,
+      numReservas: reservaIds.size,
       canceladas,
       totalLocacoes,
       numLocacoes: monthLocacoes.length,
     }
-  }, [filteredReservations, propertyMap, totalLocacoes, monthLocacoes, locacaoInfoMap, locacaoRecebidoSet])
+  }, [filteredLines, propertyMap, totalLocacoes, monthLocacoes, locacaoInfoMap, locacaoRecebidoSet])
 
 
 
@@ -344,7 +442,7 @@ export function ReportsPage() {
         const property = propertyMap.get(propertyId)
         if (!property) return null
 
-        const propReservations = grouped.get(propertyId) || []
+        const propLines = grouped.get(propertyId) || []
         const propLocacoes = locacoesByProperty.get(propertyId) ?? []
         const subtotalLocProp = propLocacoes.reduce((sum, l) => {
           const info = locacaoInfoMap.get(l.id)!
@@ -353,28 +451,15 @@ export function ReportsPage() {
           const despNaoReemb = (l.despesas ?? []).filter((d) => !d.reembolsavel).reduce((s, d) => s + d.valor, 0)
           return sum + comissao + faxina - despNaoReemb
         }, 0)
-        const subtotalReservas = propReservations.reduce(
-          (sum, r) => sum + calcTotalRecebido(r, property),
-          0,
-        ) + subtotalLocProp
-        const subtotalLiquido = propReservations.reduce((sum, r) => {
-            if (r.status === "cancelada") {
-              return sum + (r.valorLiquidoCancelamento ?? 0)
-            }
-            const taxaLimpeza = r.taxaLimpeza ?? property.taxaLimpeza ?? 0
-            const valorReserva = (r.precoTotal ?? 0) - taxaLimpeza
-            const comissao = r.percentualComissao ?? property.percentualComissao ?? 0
-            const valorComissao = (valorReserva * comissao) / 100
-            const { reembolsavel } = calcDespesas(r)
-            return sum + (valorReserva - valorComissao - reembolsavel)
-          }, 0) + propLocacoes.reduce((sum, l) => {
+        const subtotalReservas = propLines.reduce((sum, l) => sum + l.recebido, 0) + subtotalLocProp
+        const subtotalLiquido = propLines.reduce((sum, l) => sum + l.liquido, 0) + propLocacoes.reduce((sum, l) => {
             const info = locacaoInfoMap.get(l.id)!
             const bruto = getLocacaoBruto(l, info.hasPayment)
             const comissaoValor = getLocacaoComissao(l, info.hasPayment)
             const { reembolsavel: locDespReemb } = getLocacaoDespesas(l)
             return sum + bruto - comissaoValor - locDespReemb
           }, 0)
-        const comissaoHeader = propReservations.find((r) => r.status !== "cancelada")?.percentualComissao ?? property.percentualComissao ?? 0
+        const comissaoHeader = propLines.find((l) => !l.isCancelada)?.comissaoPercent ?? property.percentualComissao ?? 0
 
         return (
           <div key={propertyId} className="space-y-3">
@@ -402,37 +487,31 @@ export function ReportsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {propReservations.map((reservation) => {
-                    const isCancelada = reservation.status === "cancelada"
-                    const comissaoPercent = reservation.percentualComissao ?? property.percentualComissao ?? 0
-                    const taxaLimpeza = reservation.taxaLimpeza ?? property.taxaLimpeza ?? 0
-                    const valorSemLimpeza = (reservation.precoTotal ?? 0) - taxaLimpeza
-                    const valorComissao = isCancelada
-                      ? 0
-                      : (valorSemLimpeza * comissaoPercent) / 100
-                    const { reembolsavel: despReembolsavel } = calcDespesas(reservation)
-                    const cancelamentoLiquido = reservation.valorLiquidoCancelamento ?? 0
-                    const valorLiquido = isCancelada ? cancelamentoLiquido : valorSemLimpeza - valorComissao - despReembolsavel
-                    const faxStatus = reservation.faxinaStatus ?? "nao_agendada"
-                    const receitaFaxina = calcFaxinaReceita(reservation, property)
-                    const despesas = calcDespesas(reservation)
-                    const totalRecebido = calcTotalRecebido(reservation, property)
+                  {propLines.map((line) => {
+                    const { reservation, isCancelada, isExtension } = line
 
                     return (
-                      <TableRow key={reservation.id} className={`cursor-pointer hover:bg-muted/50 ${isCancelada ? "opacity-60" : ""} `} onClick={() => navigate(`/reservas/${reservation.id}`)}>
+                      <TableRow
+                        key={line.key}
+                        className={`cursor-pointer hover:bg-muted/50 ${isCancelada ? "opacity-60" : ""} ${isExtension ? "bg-amber-50/70 dark:bg-amber-950/20" : ""}`}
+                        onClick={() => navigate(`/reservas/${reservation.id}`)}
+                      >
                         <TableCell className="font-medium w-[130px]">
                           <div className="flex items-center gap-2">
                             <span className="truncate block max-w-[100px]">{reservation.nomeHospede}</span>
+                            {isExtension && (
+                              <span className="shrink-0 rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900 dark:bg-amber-900 dark:text-amber-200">
+                                EXTENSÃO
+                              </span>
+                            )}
                             {isCancelada && <ReservationStatusBadge status="cancelada" />}
-                            {!isCancelada && reservation.pagamentoRecebido && <span className="text-green-600 text-xs">✓</span>}
+                            {!isCancelada && !isExtension && reservation.pagamentoRecebido && <span className="text-green-600 text-xs">✓</span>}
                           </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">{formatDate(reservation.checkIn)}</TableCell>
-                        <TableCell className="whitespace-nowrap">{formatDate(reservation.checkOut)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(line.dataLinha)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{line.dataOut ? formatDate(line.dataOut) : "—"}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">
-                          {reservation.precoTotal
-                            ? formatCurrency(reservation.precoTotal)
-                            : "—"}
+                          {line.bruto ? formatCurrency(line.bruto) : "—"}
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
                           {isCancelada ? (
@@ -441,31 +520,31 @@ export function ReportsPage() {
                               className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
                               onClick={(e) => { e.stopPropagation(); handleOpenLiquidoDialog(reservation) }}
                             >
-                              {cancelamentoLiquido > 0 ? formatCurrency(cancelamentoLiquido) : formatCurrency(0)}
+                              {line.liquido > 0 ? formatCurrency(line.liquido) : formatCurrency(0)}
                               <Pencil className="h-3 w-3" />
                             </button>
-                          ) : formatCurrency(valorLiquido)}
+                          ) : formatCurrency(line.liquido)}
                         </TableCell>
                         <TableCell className="text-right">
-                          {isCancelada ? "—" : `${comissaoPercent}%`}
+                          {isCancelada ? "—" : `${line.comissaoPercent}%`}
                         </TableCell>
                         <TableCell className="text-right">
-                          {isCancelada ? "—" : formatCurrency(valorComissao)}
+                          {isCancelada ? "—" : formatCurrency(line.comissaoValor)}
                         </TableCell>
                         <TableCell className="text-right">
-                          {isCancelada || faxStatus === "nao_agendada" || receitaFaxina === 0 ? (
+                          {isCancelada || line.faxina === 0 ? (
                             <span className="text-muted-foreground">—</span>
                           ) : (
                             <span className="text-green-700">
-                              +{formatCurrency(receitaFaxina)}
+                              +{formatCurrency(line.faxina)}
                             </span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          {isCancelada || despesas.naoReembolsavel === 0 ? (
+                          {isCancelada || line.despesasNaoReemb === 0 ? (
                             <span className="text-muted-foreground">—</span>
                           ) : (
-                            <span className="text-red-600">−{formatCurrency(despesas.naoReembolsavel)}</span>
+                            <span className="text-red-600">−{formatCurrency(line.despesasNaoReemb)}</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-semibold">
@@ -475,13 +554,13 @@ export function ReportsPage() {
                               className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
                               onClick={(e) => { e.stopPropagation(); handleOpenRecebidoDialog(reservation) }}
                             >
-                              {totalRecebido > 0
-                                ? formatCurrency(totalRecebido)
+                              {line.recebido > 0
+                                ? formatCurrency(line.recebido)
                                 : formatCurrency(0)}
                               <Pencil className="h-3 w-3" />
                             </button>
                           ) : (
-                            formatCurrency(totalRecebido)
+                            formatCurrency(line.recebido)
                           )}
                         </TableCell>
                       </TableRow>

@@ -601,6 +601,10 @@ export function LocacaoContratoPage() {
     }
   }, [locacao, property, proprietario])
 
+  // Cônjuge assina o contrato junto com o(a) locatário(a) — exigência legal em locações anuais
+  const hasConjuge = isAnual && !!locacao?.incluirConjuge && !!locacao?.conjugeNome
+  const conjugeCpfFormatted = locacao?.conjugeCpf ? formatCpf(locacao.conjugeCpf) : "—"
+
   const clausulas = savedClausulas ?? (isAnual ? getDefaultClausulasAnual(contratoData) : getDefaultClausulas(contratoData))
 
   function saveClausulas(updated: Clausula[]) {
@@ -716,7 +720,21 @@ export function LocacaoContratoPage() {
       }
       switch (idx) {
         case 0: return buildPessoa(d.locadoraNome, d.locadoraEstadoCivil, d.locadoraProfissao, d.locadoraRg, d.locadoraCpf, d.locadoraEndereco)
-        case 1: return buildPessoa(d.locatariaNome, d.locatariaEstadoCivil, d.locatariaProfissao, d.locatariaRg, d.locatariaCpf, d.locatariaEndereco)
+        case 1: {
+          const locatario = buildPessoa(d.locatariaNome, d.locatariaEstadoCivil, d.locatariaProfissao, d.locatariaRg, d.locatariaCpf, d.locatariaEndereco)
+          if (!locacao.incluirConjuge || !locacao.conjugeNome) return locatario
+          const conjugeEstadoCivil = locacao.conjugeEstadoCivil ? estadoCivilLabels[locacao.conjugeEstadoCivil] ?? locacao.conjugeEstadoCivil : "—"
+          const conjugeCpf = locacao.conjugeCpf ? formatCpf(locacao.conjugeCpf) : "—"
+          const conjuge = buildPessoa(
+            locacao.conjugeNome,
+            conjugeEstadoCivil,
+            locacao.conjugeProfissao || "—",
+            locacao.conjugeRg || "—",
+            conjugeCpf,
+            locacao.conjugeEndereco || d.locatariaEndereco,
+          )
+          return `${locatario}, e seu(sua) cônjuge ${conjuge}`
+        }
         default: return ""
       }
     }
@@ -1106,7 +1124,21 @@ export function LocacaoContratoPage() {
     y += 5
     doc.setFont("helvetica", "normal")
     doc.text(`CPF: ${contratoData.locatariaCpf}`, margin, y)
-    y += 20
+    y += 15
+
+    // Cônjuge signature
+    if (hasConjuge) {
+      checkPage(25)
+      doc.line(margin, y, margin + 75, y)
+      y += 5
+      doc.setFont("helvetica", "bold")
+      doc.text((locacao!.conjugeNome ?? "").toUpperCase(), margin, y)
+      y += 5
+      doc.setFont("helvetica", "normal")
+      doc.text(`CPF: ${conjugeCpfFormatted}`, margin, y)
+      y += 15
+    }
+    y += 5
 
     // Witnesses
     checkPage(25)
@@ -1194,6 +1226,9 @@ export function LocacaoContratoPage() {
       `<div style="margin:0 0 28px"><div style="border-top:1px solid #000;width:300px;margin-bottom:4px">&nbsp;</div><p style="margin:0;font-weight:bold;font-size:10pt">${escapeHtml(name)}</p><p style="margin:0;font-size:9pt">CPF: ${escapeHtml(cpf)}</p></div>`
     body += sig(`${d.locadoraNome.toUpperCase()},`, d.locadoraCpf)
     body += sig(d.locatariaNome.toUpperCase(), d.locatariaCpf)
+    if (hasConjuge) {
+      body += sig((locacao.conjugeNome ?? "").toUpperCase(), conjugeCpfFormatted)
+    }
 
     // Testemunhas (lado a lado)
     body += `<table style="width:100%;margin-top:16px"><tr>`
@@ -1503,6 +1538,15 @@ export function LocacaoContratoPage() {
               <p className="text-sm font-bold">{contratoData.locatariaNome.toUpperCase()}</p>
               <p className="text-xs">CPF: {contratoData.locatariaCpf}</p>
             </div>
+
+            {/* Cônjuge */}
+            {hasConjuge && (
+              <div className="max-w-xs space-y-1">
+                <div className="border-b border-black w-full" />
+                <p className="text-sm font-bold">{(locacao?.conjugeNome ?? "").toUpperCase()}</p>
+                <p className="text-xs">CPF: {conjugeCpfFormatted}</p>
+              </div>
+            )}
 
             {/* Testemunhas */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">

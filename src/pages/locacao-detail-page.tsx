@@ -493,6 +493,92 @@ export function LocacaoDetailPage() {
         </div>
       </div>
 
+      {/* Dados do Cônjuge — só locação anual, quando incluído no contrato */}
+      {locacao.incluirConjuge && locacao.conjugeNome && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Dados do Cônjuge</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-md bg-muted/50 p-3">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                <FileText className="h-3 w-3" />
+                Nome
+              </div>
+              <p className="text-sm font-medium">{locacao.conjugeNome}</p>
+            </div>
+
+            {locacao.conjugeCpf && (
+              <div className="rounded-md bg-muted/50 p-3">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                  <FileText className="h-3 w-3" />
+                  CPF
+                </div>
+                <p className="text-sm font-medium">{formatCpf(locacao.conjugeCpf)}</p>
+              </div>
+            )}
+
+            {locacao.conjugeRg && (
+              <div className="rounded-md bg-muted/50 p-3">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                  <FileText className="h-3 w-3" />
+                  RG
+                </div>
+                <p className="text-sm font-medium">{locacao.conjugeRg}</p>
+              </div>
+            )}
+
+            {locacao.conjugeDataNascimento && (
+              <div className="rounded-md bg-muted/50 p-3">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                  <CalendarDays className="h-3 w-3" />
+                  Data de Nascimento
+                </div>
+                <p className="text-sm font-medium">{formatDate(locacao.conjugeDataNascimento)}</p>
+              </div>
+            )}
+
+            {locacao.conjugeProfissao && (
+              <div className="rounded-md bg-muted/50 p-3">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                  <Briefcase className="h-3 w-3" />
+                  Profissão
+                </div>
+                <p className="text-sm font-medium">{locacao.conjugeProfissao}</p>
+              </div>
+            )}
+
+            {locacao.conjugeEstadoCivil && (
+              <div className="rounded-md bg-muted/50 p-3">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                  <Heart className="h-3 w-3" />
+                  Estado Civil
+                </div>
+                <p className="text-sm font-medium capitalize">{locacao.conjugeEstadoCivil.replace("_", " ")}</p>
+              </div>
+            )}
+
+            {locacao.conjugeEmail && (
+              <div className="rounded-md bg-muted/50 p-3">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                  <Mail className="h-3 w-3" />
+                  E-mail
+                </div>
+                <p className="text-sm font-medium">{locacao.conjugeEmail}</p>
+              </div>
+            )}
+
+            {locacao.conjugeEndereco && (
+              <div className="rounded-md bg-muted/50 p-3 sm:col-span-2 lg:col-span-3">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                  <MapPin className="h-3 w-3" />
+                  Endereço
+                </div>
+                <p className="text-sm font-medium">{locacao.conjugeEndereco}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Vistorias — só anual */}
       {isAnual && (
         <div className="space-y-4">

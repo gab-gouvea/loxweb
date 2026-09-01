@@ -63,6 +63,33 @@ export function calcValorReciboExtensao(
   return (valorExtensao * comissaoPercent) / 100
 }
 
+/**
+ * Recebido via Airbnb referente à reserva original (sem as extensões): comissão + receita de
+ * faxina - despesas não-reembolsáveis. Usada para separar o recebimento no mês do check-in,
+ * diferente das extensões, que a Airbnb repassa no mês em que cada extensão começa.
+ */
+export function calcRecebidoBase(reservation: Reservation, property: Property | undefined): number {
+  const totalExtensoes = (reservation.extensoes ?? []).reduce((sum, e) => sum + e.valor, 0)
+  const precoTotal = (reservation.precoTotal ?? 0) - totalExtensoes
+  const taxaLimpeza = reservation.taxaLimpeza ?? property?.taxaLimpeza ?? 0
+  const baseComissao = Math.max(0, precoTotal - taxaLimpeza)
+  const comissaoPercent = reservation.percentualComissao ?? property?.percentualComissao ?? 0
+  const valorComissao = (baseComissao * comissaoPercent) / 100
+  const { naoReembolsavel } = calcDespesas(reservation)
+  const receitaFaxina = calcFaxinaReceita(reservation, property)
+  return valorComissao + receitaFaxina - naoReembolsavel
+}
+
+/** Recebido via Airbnb referente a uma extensão específica: apenas a comissão sobre o valor da extensão. */
+export function calcRecebidoExtensao(
+  reservation: Reservation,
+  property: Property | undefined,
+  valorExtensao: number,
+): number {
+  const comissaoPercent = reservation.percentualComissao ?? property?.percentualComissao ?? 0
+  return (valorExtensao * comissaoPercent) / 100
+}
+
 export function calcTotalRecebido(reservation: Reservation, property: Property | undefined): number {
   if (reservation.status === "cancelada") {
     return reservation.valorRecebidoCancelamento ?? 0

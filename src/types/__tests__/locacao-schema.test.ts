@@ -53,11 +53,20 @@ describe("locacaoFormSchema", () => {
     expect(result.success).toBe(true)
   })
 
-  it("rejeita anual com mais de 30 meses", () => {
+  it("aceita anual com exatamente 36 meses", () => {
     const result = locacaoFormSchema.safeParse({
       ...validAnual,
       checkIn: "2026-01-01",
-      checkOut: "2028-08-01", // 31 meses
+      checkOut: "2029-01-01", // exatamente 36 meses
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it("rejeita anual com mais de 36 meses", () => {
+    const result = locacaoFormSchema.safeParse({
+      ...validAnual,
+      checkIn: "2026-01-01",
+      checkOut: "2029-02-01", // 37 meses
     })
     expect(result.success).toBe(false)
   })

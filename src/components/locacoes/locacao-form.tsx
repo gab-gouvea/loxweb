@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { format, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
 import { CalendarIcon, UserCheck, X } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   locacaoFormSchema,
   type LocacaoFormData,
@@ -68,6 +69,15 @@ export function LocacaoForm({
       estadoCivil: locacao?.estadoCivil ?? "",
       endereco: locacao?.endereco ?? "",
       email: locacao?.email ?? "",
+      incluirConjuge: locacao?.incluirConjuge ?? false,
+      conjugeNome: locacao?.conjugeNome ?? "",
+      conjugeCpf: locacao?.conjugeCpf ?? "",
+      conjugeRg: locacao?.conjugeRg ?? "",
+      conjugeDataNascimento: locacao?.conjugeDataNascimento ?? "",
+      conjugeProfissao: locacao?.conjugeProfissao ?? "",
+      conjugeEstadoCivil: locacao?.conjugeEstadoCivil ?? "",
+      conjugeEndereco: locacao?.conjugeEndereco ?? "",
+      conjugeEmail: locacao?.conjugeEmail ?? "",
       checkIn: locacao?.checkIn ?? "",
       checkOut: locacao?.checkOut ?? "",
       numMoradores: locacao?.numMoradores ?? undefined,
@@ -82,6 +92,8 @@ export function LocacaoForm({
 
   const tipoPagamento = form.watch("tipoPagamento")
   const cpfValue = form.watch("cpf")
+  const tipoLocacao = form.watch("tipoLocacao")
+  const incluirConjuge = form.watch("incluirConjuge")
 
   // Map de inquilinos únicos por CPF (mais recente prevalece)
   const inquilinosByCpf = useMemo(() => {
@@ -321,6 +333,170 @@ export function LocacaoForm({
           label="Endereço Completo (com CEP)"
           placeholder="Ex: Rua das Flores, 123 - Centro - Florianópolis/SC - CEP 88000-000"
         />
+
+        {tipoLocacao === "anual" && (
+          <>
+            <FormField
+              control={form.control}
+              name="incluirConjuge"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center space-x-2 space-y-0 pt-2">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel className="font-normal">
+                    Incluir cônjuge no contrato
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+
+            {incluirConjuge && (
+              <div className="space-y-4 rounded-md border p-4">
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados do Cônjuge</h4>
+
+                <FormTextField<LocacaoFormData>
+                  control={form.control}
+                  name="conjugeNome"
+                  label="Nome Completo"
+                  placeholder="Ex: Maria da Silva"
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="conjugeCpf"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>CPF</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="000.000.000-00"
+                            maxLength={14}
+                            value={field.value ?? ""}
+                            onChange={(e) => {
+                              const digits = e.target.value.replace(/\D/g, "").slice(0, 11)
+                              const formatted = digits
+                                .replace(/(\d{3})(\d)/, "$1.$2")
+                                .replace(/(\d{3})(\d)/, "$1.$2")
+                                .replace(/(\d{3})(\d{1,2})$/, "$1-$2")
+                              field.onChange(formatted)
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormTextField<LocacaoFormData>
+                    control={form.control}
+                    name="conjugeRg"
+                    label="RG"
+                    placeholder="Ex: 1.234.567"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="conjugeDataNascimento"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Data de Nascimento</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className={cn("justify-start text-left font-normal", !field.value && "text-muted-foreground")}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {field.value ? format(parseISO(field.value), "dd/MM/yyyy") : "Selecione"}
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value ? parseISO(field.value) : undefined}
+                              onSelect={(date) => {
+                                if (date) {
+                                  const y = date.getFullYear()
+                                  const m = String(date.getMonth() + 1).padStart(2, "0")
+                                  const d = String(date.getDate()).padStart(2, "0")
+                                  field.onChange(`${y}-${m}-${d}`)
+                                } else {
+                                  field.onChange("")
+                                }
+                              }}
+                              locale={ptBR}
+                              captionLayout="dropdown"
+                              fromYear={1940}
+                              toYear={new Date().getFullYear()}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormTextField<LocacaoFormData>
+                    control={form.control}
+                    name="conjugeProfissao"
+                    label="Profissão"
+                    placeholder="Ex: Engenheira"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="conjugeEstadoCivil"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Estado Civil</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="solteiro">Solteiro(a)</SelectItem>
+                            <SelectItem value="casado">Casado(a)</SelectItem>
+                            <SelectItem value="divorciado">Divorciado(a)</SelectItem>
+                            <SelectItem value="viuvo">Viúvo(a)</SelectItem>
+                            <SelectItem value="uniao_estavel">União Estável</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormTextField<LocacaoFormData>
+                    control={form.control}
+                    name="conjugeEmail"
+                    label="E-mail"
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
+
+                <FormTextField<LocacaoFormData>
+                  control={form.control}
+                  name="conjugeEndereco"
+                  label="Endereço Completo (com CEP)"
+                  placeholder="Deixe em branco se for o mesmo do inquilino"
+                />
+              </div>
+            )}
+          </>
+        )}
 
         <hr className="my-2" />
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados da Locação</h3>

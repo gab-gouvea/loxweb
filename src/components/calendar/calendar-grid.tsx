@@ -11,7 +11,7 @@ import type { Proprietario } from "@/types/proprietario"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { formatCurrency } from "@/lib/constants"
 import { calcValorPagamento } from "@/lib/reservation-calculations"
-import { calcTaxaIntermediacao, getTaxaDate, isSemAdministracao } from "@/lib/locacao-calculations"
+import { getParcelaDate, getParcelasTaxa, isSemAdministracao } from "@/lib/locacao-calculations"
 
 const COL_WIDTH = 80
 const ROW_HEIGHT = 56
@@ -255,16 +255,15 @@ export function CalendarGrid({
       const taxaLimpeza = l.taxaLimpeza ?? prop?.taxaLimpeza ?? 0
       const isAvista = l.tipoPagamento === "avista"
 
-      // Sem administração: um único recebimento (a taxa de intermediação), no mês da taxa.
+      // Sem administração: um marcador por parcela da taxa de intermediação.
       // A barra de ocupação continua sendo desenhada normalmente acima.
       if (isSemAdministracao(l)) {
-        const taxaDate = getTaxaDate(l)
-        const taxaDay = differenceInCalendarDays(taxaDate, sd)
-        const valorTaxa = calcTaxaIntermediacao(l)
-        if (taxaDay >= 0 && taxaDay < visibleDays && valorTaxa > 0) {
-          const key = `${l.propriedadeId}-${taxaDay}`
+        for (const parcela of getParcelasTaxa(l)) {
+          const parcelaDay = differenceInCalendarDays(getParcelaDate(l, parcela), sd)
+          if (parcelaDay < 0 || parcelaDay >= visibleDays || parcela.valor <= 0) continue
+          const key = `${l.propriedadeId}-${parcelaDay}`
           const existing = getCell(key)
-          existing.pagamentos.push({ nomeHospede: l.nomeCompleto, precoTotal: valorTaxa })
+          existing.pagamentos.push({ nomeHospede: l.nomeCompleto, precoTotal: parcela.valor })
           map.set(key, existing)
         }
         continue

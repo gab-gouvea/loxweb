@@ -9,7 +9,7 @@ import { useAllPropertyComponents, useAllPendingScheduledMaintenances } from "./
 import { toLocalDateStr, getTodayStr } from "@/lib/date-utils"
 import { calcValorPagamento } from "@/lib/reservation-calculations"
 import { calcProximoReajuste, shouldAlertReajuste } from "@/lib/locacao-reajuste"
-import { calcTaxaIntermediacao, getTaxaDate, getTaxaMesAno, isSemAdministracao } from "@/lib/locacao-calculations"
+import { getParcelaDate, getParcelasTaxa, isSemAdministracao } from "@/lib/locacao-calculations"
 
 export type AlertType =
   | "checkin_hoje"
@@ -324,15 +324,21 @@ export function useAlerts() {
       // Pagamento locação — paga e mora: pagamento no dia da entrada de cada mês.
       // Sem administração: recebimento único (a taxa de intermediação), no mês da taxa.
       if (isSemAdministracao(l)) {
-        const { mes: taxaMes, ano: taxaAno } = getTaxaMesAno(l)
-        const taxaDate = format(getTaxaDate(l), "yyyy-MM-dd")
-        if (taxaDate <= today && !recebidoSet.has(`${l.id}-${taxaMes}-${taxaAno}`)) {
-          const valorFormatado = calcTaxaIntermediacao(l).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+        // Um alerta por parcela vencida e ainda não confirmada
+        const parcelas = getParcelasTaxa(l)
+        for (const parcela of parcelas) {
+          const parcelaDate = format(getParcelaDate(l, parcela), "yyyy-MM-dd")
+          if (parcelaDate > today) continue
+          if (recebidoSet.has(`${l.id}-${parcela.mes}-${parcela.ano}`)) continue
+          const valorFormatado = parcela.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+          const sufixo = parcelas.length > 1
+            ? ` (parcela ${parcelas.indexOf(parcela) + 1}/${parcelas.length})`
+            : ""
           result.push({
-            id: `loc-pagamento-${l.id}-${taxaMes}-${taxaAno}`,
+            id: `loc-pagamento-${l.id}-${parcela.mes}-${parcela.ano}`,
             type: "locacao_pagamento_pendente",
-            title: taxaDate === today ? "Taxa de Intermediação Hoje" : "Taxa de Intermediação Pendente",
-            description: `${valorFormatado} — ${l.nomeCompleto} — ${propNome}`,
+            title: parcelaDate === today ? "Taxa de Intermediação Hoje" : "Taxa de Intermediação Pendente",
+            description: `${valorFormatado}${sufixo} — ${l.nomeCompleto} — ${propNome}`,
             link: `/longatemporada/${l.id}`,
           })
         }

@@ -41,8 +41,17 @@ export function LocacaoDialog({
       percentualPrimeiroAluguel: !semAdministracao || formData.percentualPrimeiroAluguel === ""
         ? undefined
         : formData.percentualPrimeiroAluguel,
-      mesTaxa: semAdministracao ? formData.mesTaxa : undefined,
-      anoTaxa: semAdministracao ? formData.anoTaxa : undefined,
+      // Parcelas só valem no modo sem administração; o form usa "" para campo vazio
+      parcelasTaxa: semAdministracao
+        ? (formData.parcelasTaxa ?? [])
+            .filter((p) => typeof p.mes === "number" && typeof p.ano === "number" && typeof p.valor === "number")
+            .map((p) => ({
+              dia: typeof p.dia === "number" ? p.dia : undefined,
+              mes: p.mes as number,
+              ano: p.ano as number,
+              valor: p.valor as number,
+            }))
+        : [],
     }
     if (isEditing) {
       updateMutation.mutate(

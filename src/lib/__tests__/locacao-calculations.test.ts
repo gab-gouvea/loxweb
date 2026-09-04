@@ -3,6 +3,9 @@ import type { Locacao } from "@/types/locacao"
 import {
   calcReceitaNoMes,
   calcTaxaIntermediacao,
+  getParcelaDate,
+  getParcelasNoMes,
+  getParcelasTaxa,
   getTaxaDate,
   getTaxaMesAno,
   getTaxaYM,
@@ -137,5 +140,90 @@ describe("calcReceitaNoMes", () => {
   it("valor confirmado não vaza para um mês sem recebimento", () => {
     const l = semAdm()
     expect(calcReceitaNoMes(l, "2026-05", 1500)).toBe(0)
+  })
+})
+
+describe("parcelas da taxa", () => {
+  it("registro sem parcelas vira uma parcela única com a taxa inteira", () => {
+    const parcelas = getParcelasTaxa(semAdm())
+    expect(parcelas).toHaveLength(1)
+    expect(parcelas[0]).toMatchObject({ mes: 4, ano: 2026, valor: 1500 })
+  })
+
+  it("ordena as parcelas por ano e mês", () => {
+    const l = semAdm({
+      percentualPrimeiroAluguel: 100,
+      parcelasTaxa: [
+        { mes: 1, ano: 2027, valor: 500 },
+        { mes: 11, ano: 2026, valor: 1250 },
+        { mes: 10, ano: 2026, valor: 750 },
+      ],
+    })
+    expect(getParcelasTaxa(l).map((p) => `${p.ano}-${p.mes}`)).toEqual(["2026-10", "2026-11", "2027-1"])
+  })
+
+  it("usa o dia do check-in quando a parcela não tem dia", () => {
+    const l = semAdm({ parcelasTaxa: [{ mes: 10, ano: 2026, valor: 1500 }] })
+    const d = getParcelaDate(l, getParcelasTaxa(l)[0])
+    expect([d.getFullYear(), d.getMonth() + 1, d.getDate()]).toEqual([2026, 10, 10])
+  })
+
+  it("respeita o dia informado na parcela", () => {
+    const l = semAdm({ parcelasTaxa: [{ dia: 25, mes: 10, ano: 2026, valor: 1500 }] })
+    const d = getParcelaDate(l, getParcelasTaxa(l)[0])
+    expect(d.getDate()).toBe(25)
+  })
+})
+
+describe("taxa dividida em vários meses", () => {
+  // 100% de R$ 2.500 dividido: metade em outubro, metade em novembro
+  const dividida = semAdm({
+    percentualPrimeiroAluguel: 100,
+    parcelasTaxa: [
+      { mes: 10, ano: 2026, valor: 1250 },
+      { mes: 11, ano: 2026, valor: 1250 },
+    ],
+  })
+
+  it("gera recebimento em cada mês de parcela", () => {
+    expect(hasRecebimentoNoMes(dividida, "2026-10")).toBe(true)
+    expect(hasRecebimentoNoMes(dividida, "2026-11")).toBe(true)
+    expect(hasRecebimentoNoMes(dividida, "2026-09")).toBe(false)
+    expect(hasRecebimentoNoMes(dividida, "2026-12")).toBe(false)
+  })
+
+  it("cada mês recebe o valor da sua parcela", () => {
+    expect(calcReceitaNoMes(dividida, "2026-10")).toBe(1250)
+    expect(calcReceitaNoMes(dividida, "2026-11")).toBe(1250)
+    expect(calcReceitaNoMes(dividida, "2026-12")).toBe(0)
+  })
+
+  it("a soma das parcelas fecha a taxa total", () => {
+    const soma = getParcelasTaxa(dividida).reduce((acc, p) => acc + p.valor, 0)
+    expect(soma).toBe(calcTaxaIntermediacao(dividida))
+  })
+
+  it("soma parcelas que caem no mesmo mês", () => {
+    const l = semAdm({
+      percentualPrimeiroAluguel: 100,
+      parcelasTaxa: [
+        { dia: 5, mes: 10, ano: 2026, valor: 1000 },
+        { dia: 20, mes: 10, ano: 2026, valor: 1500 },
+      ],
+    })
+    expect(getParcelasNoMes(l, "2026-10")).toHaveLength(2)
+    expect(calcReceitaNoMes(l, "2026-10")).toBe(2500)
+  })
+
+  it("divisão desigual (60/40) é respeitada", () => {
+    const l = semAdm({
+      percentualPrimeiroAluguel: 100,
+      parcelasTaxa: [
+        { mes: 10, ano: 2026, valor: 1500 },
+        { mes: 11, ano: 2026, valor: 1000 },
+      ],
+    })
+    expect(calcReceitaNoMes(l, "2026-10")).toBe(1500)
+    expect(calcReceitaNoMes(l, "2026-11")).toBe(1000)
   })
 })

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { useForm } from "react-hook-form"
+import { useFieldArray, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { addMonths, format, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
-import { CalendarIcon, UserCheck, X } from "lucide-react"
+import { CalendarIcon, Plus, UserCheck, X } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   locacaoFormSchema,
@@ -32,7 +32,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { useProperties } from "@/hooks/use-properties"
 import { useLocacoes } from "@/hooks/use-locacoes"
 import { cn } from "@/lib/utils"
-import { MESES, formatCurrency } from "@/lib/constants"
+import { formatCurrency } from "@/lib/constants"
 import { FormTextField, FormNumberField, FormTextareaField } from "@/components/shared/form-fields"
 
 function digitsOnly(s: string): string {
@@ -88,8 +88,9 @@ export function LocacaoForm({
       percentualComissao: locacao?.percentualComissao || undefined,
       semAdministracao: locacao?.semAdministracao ?? false,
       percentualPrimeiroAluguel: locacao?.percentualPrimeiroAluguel || undefined,
-      mesTaxa: locacao?.mesTaxa ?? undefined,
-      anoTaxa: locacao?.anoTaxa ?? undefined,
+      parcelasTaxa: locacao?.parcelasTaxa?.length
+        ? locacao.parcelasTaxa.map((p) => ({ dia: p.dia ?? "", mes: p.mes, ano: p.ano, valor: p.valor }))
+        : [],
       garantia: locacao?.garantia ?? "",
       notas: locacao?.notas ?? "",
     },
@@ -101,25 +102,106 @@ export function LocacaoForm({
   const incluirConjuge = form.watch("incluirConjuge")
   const semAdministracao = form.watch("semAdministracao")
   const checkInValue = form.watch("checkIn")
+  const checkOutValue = form.watch("checkOut")
   const valorMensalValue = form.watch("valorMensal")
   const valorTotalValue = form.watch("valorTotal")
   const percentualPrimeiroAluguelValue = form.watch("percentualPrimeiroAluguel")
 
-  // Mês/ano da taxa: padrão = mês seguinte ao check-in (o inquilino entra, mora e paga antes do
-  // repasse). Uma vez que o usuário editar o campo, paramos de sobrescrever.
-  const mesTaxaTocado = useRef(locacao?.mesTaxa != null)
-  useEffect(() => {
-    if (!checkInValue || mesTaxaTocado.current) return
-    const padrao = addMonths(parseISO(checkInValue), 1)
-    form.setValue("mesTaxa", padrao.getMonth() + 1)
-    form.setValue("anoTaxa", padrao.getFullYear())
-  }, [checkInValue, form])
-
   const primeiroAluguel = tipoPagamento === "avista" ? valorTotalValue : valorMensalValue
-  const taxaPreview =
+  const taxaTotal =
     typeof primeiroAluguel === "number" && typeof percentualPrimeiroAluguelValue === "number"
       ? (primeiroAluguel * percentualPrimeiroAluguelValue) / 100
       : null
+
+  // Meses oferecidos para o recebimento da taxa. Partem do check-in quando há data; sem data,
+  // partem do mês atual — a lista nunca pode ficar vazia, senão o select abre sem opção nenhuma.
+  const parcelasAtuais = form.watch("parcelasTaxa") ?? []
+  const mesesLocacao = useMemo(() => {
+    const inicio = checkInValue ? parseISO(checkInValue) : new Date()
+    const fim = checkOutValue ? parseISO(checkOutValue) : addMonths(inicio, 12)
+    const chaves = new Map<string, { mes: number; ano: number }>()
+
+    // Um mês a mais que o checkout: a taxa pode cair logo depois do fim do contrato
+    let cursor = inicio
+    let guarda = 0
+    while (cursor <= addMonths(fim, 1) && guarda < 40) {
+      chaves.set(`${cursor.getMonth() + 1}-${cursor.getFullYear()}`, {
+        mes: cursor.getMonth() + 1,
+        ano: cursor.getFullYear(),
+      })
+      cursor = addMonths(cursor, 1)
+      guarda++
+    }
+
+    // Garante que os meses já escolhidos apareçam, mesmo fora da janela do contrato
+    for (const p of parcelasAtuais) {
+      if (typeof p?.mes === "number" && typeof p?.ano === "number") {
+        chaves.set(`${p.mes}-${p.ano}`, { mes: p.mes, ano: p.ano })
+      }
+    }
+
+    return [...chaves.values()]
+      .sort((a, b) => a.ano - b.ano || a.mes - b.mes)
+      .map((m) => ({
+        ...m,
+        label: format(new Date(m.ano, m.mes - 1, 1), "MMMM/yyyy", { locale: ptBR }),
+      }))
+  }, [checkInValue, checkOutValue, parcelasAtuais])
+
+  // Parcelas da taxa de intermediação — a taxa pode ser recebida de uma vez ou dividida em meses
+  const { fields: parcelaFields, append: appendParcela, remove: removeParcela, replace: replaceParcelas } =
+    useFieldArray({ control: form.control, name: "parcelasTaxa" })
+  const parcelas = form.watch("parcelasTaxa") ?? []
+  const somaParcelas = parcelas.reduce(
+    (acc, p) => acc + (typeof p?.valor === "number" ? p.valor : 0), 0,
+  )
+  const restante = taxaTotal != null ? taxaTotal - somaParcelas : null
+
+  // Primeira parcela: padrão = mês seguinte ao check-in (o inquilino entra, mora e paga antes do
+  // repasse). Depois que o usuário mexe nas parcelas, paramos de sobrescrever.
+  const parcelasTocado = useRef((locacao?.parcelasTaxa?.length ?? 0) > 0)
+  useEffect(() => {
+    if (!checkInValue || parcelasTocado.current) return
+    // 2º mês de locação: o inquilino entra, mora e paga o primeiro aluguel antes do repasse
+    const padrao = addMonths(parseISO(checkInValue), 1)
+    replaceParcelas([{
+      dia: "",
+      mes: padrao.getMonth() + 1,
+      ano: padrao.getFullYear(),
+      valor: "",
+    }])
+  }, [checkInValue, replaceParcelas])
+
+  // Parcela única e valor ainda não digitado: preenche com a taxa cheia
+  useEffect(() => {
+    if (parcelasTocado.current || taxaTotal == null || taxaTotal <= 0) return
+    if (parcelaFields.length !== 1) return
+    form.setValue("parcelasTaxa.0.valor", taxaTotal)
+  }, [taxaTotal, parcelaFields.length, form])
+
+  function adicionarParcela() {
+    parcelasTocado.current = true
+    const ultima = parcelas[parcelas.length - 1]
+    const proxima =
+      typeof ultima?.mes === "number" && typeof ultima?.ano === "number"
+        ? addMonths(new Date(ultima.ano, ultima.mes - 1, 1), 1)
+        : addMonths(checkInValue ? parseISO(checkInValue) : new Date(), 1)
+    appendParcela({
+      dia: "",
+      mes: proxima.getMonth() + 1,
+      ano: proxima.getFullYear(),
+      // Já sugere o que falta para fechar a taxa
+      valor: restante != null && restante > 0 ? Number(restante.toFixed(2)) : "",
+    })
+  }
+
+  /** Rótulo "Nº mês — Mês/Ano" de uma parcela; cai para o mês/ano cru se estiver fora do contrato. */
+  function labelMesLocacao(mes?: number | "", ano?: number | ""): string {
+    if (typeof mes !== "number" || typeof ano !== "number") return ""
+    const encontrado = mesesLocacao.find((m) => m.mes === mes && m.ano === ano)
+    if (encontrado) return encontrado.label
+    return format(new Date(ano, mes - 1, 1), "MMMM/yyyy", { locale: ptBR })
+  }
 
   // Map de inquilinos únicos por CPF (mais recente prevalece)
   const inquilinosByCpf = useMemo(() => {
@@ -708,67 +790,112 @@ export function LocacaoForm({
               placeholder="Ex: 100"
             />
 
+            {taxaTotal != null && (
+              <p className="text-sm">
+                Taxa total: <span className="font-medium">{formatCurrency(taxaTotal)}</span>
+              </p>
+            )}
+
             <FormItem>
-              <FormLabel>Mês do Recebimento</FormLabel>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <FormField
-                  control={form.control}
-                  name="mesTaxa"
-                  render={({ field }) => (
-                    <FormItem className="flex-1 space-y-0">
-                      <Select
-                        value={field.value != null ? String(field.value) : ""}
-                        onValueChange={(v) => {
-                          mesTaxaTocado.current = true
-                          field.onChange(Number(v))
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Mês..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {MESES.map((m) => (
-                            <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="anoTaxa"
-                  render={({ field }) => (
-                    <FormItem className="space-y-0">
+              <FormLabel>Recebimento da Taxa</FormLabel>
+
+              <div className="space-y-2">
+                {parcelaFields.map((parcelaField, index) => (
+                  <div key={parcelaField.id} className="flex items-center gap-2">
+                    <span className="text-sm shrink-0">Recebimento em</span>
+                    <FormField
+                      control={form.control}
+                      name={`parcelasTaxa.${index}.mes`}
+                      render={({ field }) => (
+                        <FormItem className="space-y-0 flex-1 min-w-0">
+                          <Select
+                            value={
+                              typeof field.value === "number" && typeof parcelas[index]?.ano === "number"
+                                ? `${field.value}-${parcelas[index]?.ano}`
+                                : ""
+                            }
+                            onValueChange={(v) => {
+                              parcelasTocado.current = true
+                              const [mes, ano] = v.split("-").map(Number)
+                              field.onChange(mes)
+                              form.setValue(`parcelasTaxa.${index}.ano`, ano)
+                            }}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="w-full" aria-label={`Mês do recebimento ${index + 1}`}>
+                                <SelectValue placeholder="mês da locação">
+                                  {labelMesLocacao(parcelas[index]?.mes, parcelas[index]?.ano) || undefined}
+                                </SelectValue>
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {mesesLocacao.map((m) => (
+                                <SelectItem key={`${m.mes}-${m.ano}`} value={`${m.mes}-${m.ano}`}>
+                                  {m.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+                    <FormItem className="space-y-0 w-28 shrink-0">
                       <FormControl>
                         <Input
                           type="number"
-                          className="w-full sm:w-24"
-                          value={field.value ?? ""}
-                          onChange={(e) => {
-                            mesTaxaTocado.current = true
-                            field.onChange(e.target.value === "" ? undefined : Number(e.target.value))
-                          }}
+                          min={0}
+                          step={0.01}
+                          placeholder="R$"
+                          {...form.register(`parcelasTaxa.${index}.valor`, {
+                            setValueAs: (v) => (v === "" || v == null ? "" : Number(v)),
+                            onChange: () => { parcelasTocado.current = true },
+                          })}
                         />
                       </FormControl>
-                      <FormMessage />
                     </FormItem>
-                  )}
-                />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 shrink-0 text-muted-foreground"
+                      onClick={() => { parcelasTocado.current = true; removeParcela(index) }}
+                      disabled={parcelaFields.length <= 1}
+                      aria-label="Remover mês"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
               </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                onClick={adicionarParcela}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Adicionar mês
+              </Button>
+
+              <FormField
+                control={form.control}
+                name="parcelasTaxa"
+                render={() => <FormMessage />}
+              />
+
+              {restante != null && Math.abs(restante) >= 0.01 && (
+                <p className={`text-xs ${restante < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                  {restante > 0
+                    ? `Falta distribuir ${formatCurrency(restante)}`
+                    : `Passou ${formatCurrency(Math.abs(restante))} do valor da taxa`}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">
-                Padrão: mês seguinte ao check-in, quando o inquilino já pagou o primeiro aluguel.
+                Padrão: 2º mês de locação, quando o inquilino já pagou o primeiro aluguel.
               </p>
             </FormItem>
-
-            {taxaPreview != null && (
-              <p className="text-sm">
-                Taxa: <span className="font-medium">{formatCurrency(taxaPreview)}</span>
-              </p>
-            )}
           </div>
         ) : (
           <FormNumberField<LocacaoFormData>

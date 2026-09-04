@@ -12,6 +12,16 @@ export type LocacaoStatus = (typeof locacaoStatuses)[number]
 export type GarantiaType = (typeof garantiaTypes)[number]
 export type TipoLocacao = (typeof tipoLocacaoTypes)[number]
 
+/** Parcela da taxa de intermediação. O dia é informativo — os relatórios trabalham por mês/ano. */
+export const parcelaTaxaSchema = z.object({
+  dia: z.number().int().min(1).max(31).optional(),
+  mes: z.number().int().min(1).max(12),
+  ano: z.number().int(),
+  valor: z.number().min(0),
+})
+
+export type ParcelaTaxa = z.infer<typeof parcelaTaxaSchema>
+
 export const locacaoSchema = z.object({
   id: z.string(),
   propriedadeId: z.string(),
@@ -68,8 +78,10 @@ export const locacaoSchema = z.object({
   // Sem administração (só anual) — intermediação: taxa única sobre o 1º aluguel
   semAdministracao: z.boolean().optional(),
   percentualPrimeiroAluguel: z.number().min(0).max(100).optional(),
+  // mesTaxa/anoTaxa: formato antigo (parcela única). parcelasTaxa manda quando existe.
   mesTaxa: z.number().int().min(1).max(12).optional(),
   anoTaxa: z.number().int().optional(),
+  parcelasTaxa: z.array(parcelaTaxaSchema).optional(),
   despesas: z.array(despesaSchema).optional(),
   notas: z.string().optional(),
   status: z.enum(locacaoStatuses),
@@ -82,6 +94,18 @@ export type Locacao = z.infer<typeof locacaoSchema>
 /** Sem administração só faz sentido em locação anual. */
 function isSemAdmForm(data: { tipoLocacao?: string; semAdministracao?: boolean }): boolean {
   return data.tipoLocacao === "anual" && data.semAdministracao === true
+}
+
+/** Taxa total = % negociado sobre o primeiro aluguel. null quando ainda não dá para calcular. */
+function calcTaxaTotalForm(data: {
+  tipoPagamento?: string
+  valorMensal?: number | ""
+  valorTotal?: number | ""
+  percentualPrimeiroAluguel?: number | ""
+}): number | null {
+  const primeiroAluguel = data.tipoPagamento === "avista" ? data.valorTotal : data.valorMensal
+  if (typeof primeiroAluguel !== "number" || typeof data.percentualPrimeiroAluguel !== "number") return null
+  return (primeiroAluguel * data.percentualPrimeiroAluguel) / 100
 }
 
 export const locacaoFormSchema = z.object({
@@ -114,8 +138,12 @@ export const locacaoFormSchema = z.object({
   percentualComissao: z.number().min(0).max(100).optional().or(z.literal("")),
   semAdministracao: z.boolean().optional(),
   percentualPrimeiroAluguel: z.number().min(0).max(100).optional().or(z.literal("")),
-  mesTaxa: z.number().int().min(1).max(12).optional(),
-  anoTaxa: z.number().int().optional(),
+  parcelasTaxa: z.array(z.object({
+    dia: z.number().int().min(1).max(31).optional().or(z.literal("")),
+    mes: z.number().int().min(1).max(12).optional().or(z.literal("")),
+    ano: z.number().int().optional().or(z.literal("")),
+    valor: z.number().min(0).optional().or(z.literal("")),
+  })).optional(),
   garantia: z.enum(garantiaTypes).optional().or(z.literal("")),
   notas: z.string().optional(),
 }).refine((data) => {
@@ -152,8 +180,24 @@ export const locacaoFormSchema = z.object({
   return typeof data.percentualPrimeiroAluguel === "number" && data.percentualPrimeiroAluguel > 0
 }, { message: "Informe o % do primeiro aluguel", path: ["percentualPrimeiroAluguel"] }).refine((data) => {
   if (!isSemAdmForm(data)) return true
-  return data.mesTaxa != null && data.anoTaxa != null
-}, { message: "Informe o mês do recebimento", path: ["mesTaxa"] })
+  return (data.parcelasTaxa ?? []).length > 0
+}, { message: "Informe ao menos um mês de recebimento", path: ["parcelasTaxa"] }).refine((data) => {
+  if (!isSemAdmForm(data)) return true
+  // Mês, ano e valor são obrigatórios em cada parcela; o dia é opcional (informativo)
+  return (data.parcelasTaxa ?? []).every(
+    (p) => typeof p.mes === "number" && typeof p.ano === "number" && typeof p.valor === "number" && p.valor > 0,
+  )
+}, { message: "Preencha mês, ano e valor de cada parcela", path: ["parcelasTaxa"] }).refine((data) => {
+  // A soma das parcelas não pode passar da taxa (% do primeiro aluguel)
+  if (!isSemAdmForm(data)) return true
+  const taxaTotal = calcTaxaTotalForm(data)
+  if (taxaTotal == null) return true
+  const soma = (data.parcelasTaxa ?? []).reduce(
+    (acc, p) => acc + (typeof p.valor === "number" ? p.valor : 0), 0,
+  )
+  // Tolerância de 1 centavo para divisões que não fecham redondo (ex.: 1/3)
+  return soma <= taxaTotal + 0.01
+}, { message: "A soma das parcelas passa do valor da taxa", path: ["parcelasTaxa"] })
 
 export type LocacaoFormData = z.infer<typeof locacaoFormSchema>
 

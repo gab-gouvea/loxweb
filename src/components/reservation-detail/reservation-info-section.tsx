@@ -129,7 +129,7 @@ export function ReservationInfoSection({
             <CardContent className="flex items-center gap-2 pt-3 pb-3">
               <DollarSign className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-muted-foreground">Valor Bruto</p>
+                <p className="text-xs text-muted-foreground">Valor pago na plataforma</p>
                 <p className="text-sm font-medium">
                   {reservation.precoTotal
                     ? formatCurrency(reservation.precoTotal)
@@ -156,7 +156,11 @@ export function ReservationInfoSection({
               <CardContent className="flex items-center gap-2 pt-3 pb-3">
                 <Wallet className="h-4 w-4 text-muted-foreground" />
                 <div key={String(reservation.pagamentoRecebido)} className="animate-in fade-in slide-in-from-left-1 duration-300">
-                  <p className="text-xs text-muted-foreground">{reservation.pagamentoRecebido ? "Recebido" : "A Receber"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {reservation.pagamentoRecebido
+                      ? "Valor que o proprietário pagou"
+                      : "Valor que o proprietário vai pagar"}
+                  </p>
                   <p className="text-sm font-medium">
                     {formatCurrency(calcValorPagamento(reservation, property))}
                   </p>
@@ -226,7 +230,7 @@ export function ReservationInfoSection({
               />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Valor Bruto (R$)</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Valor pago na plataforma (R$)</label>
               <Input
                 type="number"
                 min={0}

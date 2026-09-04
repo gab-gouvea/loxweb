@@ -123,13 +123,13 @@ describe("locacaoFormSchema", () => {
     expect(result.success).toBe(false)
   })
 
+  // valorMensal 2500 × 60% = taxa de R$ 1.500,00
   const validSemAdministracao = {
     ...validAnual,
     percentualComissao: undefined,
     semAdministracao: true,
     percentualPrimeiroAluguel: 60,
-    mesTaxa: 5,
-    anoTaxa: 2026,
+    parcelasTaxa: [{ dia: 10, mes: 5, ano: 2026, valor: 1500 }],
   }
 
   it("valida anual sem administração (dispensa comissão mensal)", () => {
@@ -138,7 +138,64 @@ describe("locacaoFormSchema", () => {
   })
 
   it("aceita 100% do primeiro aluguel", () => {
-    const result = locacaoFormSchema.safeParse({ ...validSemAdministracao, percentualPrimeiroAluguel: 100 })
+    const result = locacaoFormSchema.safeParse({
+      ...validSemAdministracao,
+      percentualPrimeiroAluguel: 100,
+      parcelasTaxa: [{ dia: 10, mes: 5, ano: 2026, valor: 2500 }],
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it("aceita a taxa dividida em duas parcelas", () => {
+    const result = locacaoFormSchema.safeParse({
+      ...validSemAdministracao,
+      percentualPrimeiroAluguel: 100,
+      parcelasTaxa: [
+        { mes: 10, ano: 2026, valor: 1250 },
+        { mes: 11, ano: 2026, valor: 1250 },
+      ],
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it("rejeita parcelas que somam mais que a taxa", () => {
+    const result = locacaoFormSchema.safeParse({
+      ...validSemAdministracao,
+      percentualPrimeiroAluguel: 100, // taxa = 2500
+      parcelasTaxa: [
+        { mes: 10, ano: 2026, valor: 2000 },
+        { mes: 11, ano: 2026, valor: 1000 },
+      ],
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("aceita parcelas que somam menos que a taxa", () => {
+    const result = locacaoFormSchema.safeParse({
+      ...validSemAdministracao,
+      parcelasTaxa: [{ mes: 5, ano: 2026, valor: 1000 }],
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it("rejeita sem administração sem nenhuma parcela", () => {
+    const result = locacaoFormSchema.safeParse({ ...validSemAdministracao, parcelasTaxa: [] })
+    expect(result.success).toBe(false)
+  })
+
+  it("rejeita parcela sem mês ou ano", () => {
+    const result = locacaoFormSchema.safeParse({
+      ...validSemAdministracao,
+      parcelasTaxa: [{ dia: 10, mes: "", ano: "", valor: 1500 }],
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("dia é opcional na parcela", () => {
+    const result = locacaoFormSchema.safeParse({
+      ...validSemAdministracao,
+      parcelasTaxa: [{ mes: 5, ano: 2026, valor: 1500 }],
+    })
     expect(result.success).toBe(true)
   })
 
@@ -154,11 +211,6 @@ describe("locacaoFormSchema", () => {
 
   it("rejeita sem administração com % do primeiro aluguel acima de 100", () => {
     const result = locacaoFormSchema.safeParse({ ...validSemAdministracao, percentualPrimeiroAluguel: 101 })
-    expect(result.success).toBe(false)
-  })
-
-  it("rejeita sem administração sem mês/ano do recebimento", () => {
-    const result = locacaoFormSchema.safeParse({ ...validSemAdministracao, mesTaxa: undefined, anoTaxa: undefined })
     expect(result.success).toBe(false)
   })
 

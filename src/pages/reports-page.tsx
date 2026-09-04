@@ -28,7 +28,7 @@ import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
 import { useLocacoes, useRecebimentosLocacao } from "@/hooks/use-locacoes"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { formatDate, toLocalDateStr } from "@/lib/date-utils"
-import { calcTaxaIntermediacao, getTaxaYM, isSemAdministracao } from "@/lib/locacao-calculations"
+import { getParcelasNoMes, isSemAdministracao } from "@/lib/locacao-calculations"
 import { formatCurrency } from "@/lib/constants"
 import { getErrorMessage } from "@/lib/api"
 import { toast } from "sonner"
@@ -205,8 +205,8 @@ export function ReportsPage() {
 
       let hasPayment = false
       if (semAdm) {
-        // Sem administração: recebimento único, no mês da taxa de intermediação
-        hasPayment = getTaxaYM(l) === reportYM
+        // Sem administração: recebimento nos meses das parcelas da taxa de intermediação
+        hasPayment = getParcelasNoMes(l, reportYM).length > 0
       } else if (l.tipoPagamento === "avista") {
         hasPayment = format(checkInLocal, "yyyy-MM") === reportYM
       } else {
@@ -270,7 +270,10 @@ export function ReportsPage() {
     // Se já confirmado, usar valor armazenado (preserva valor antes de reajuste)
     const valorRecebido = locacaoValorRecebidoMap.get(l.id)
     if (valorRecebido != null) return valorRecebido
-    if (isSemAdministracao(l)) return calcTaxaIntermediacao(l)
+    // Soma das parcelas que caem no mês do relatório
+    if (isSemAdministracao(l)) {
+      return getParcelasNoMes(l, reportYM).reduce((acc, p) => acc + p.valor, 0)
+    }
     const bruto = getLocacaoBruto(l, hasPayment)
     return (bruto * (l.percentualComissao ?? 0)) / 100
   }
@@ -585,10 +588,16 @@ export function ReportsPage() {
                     const info = locacaoInfoMap.get(loc.id)!
                     const bruto = getLocacaoBruto(loc, info.hasPayment)
                     const locSemAdm = isSemAdministracao(loc)
-                    const comissaoPercent = locSemAdm
-                      ? (loc.percentualPrimeiroAluguel ?? 0)
-                      : (loc.percentualComissao ?? 0)
+                    // Dividida em parcelas, a % do mês é a fatia que cai neste mês sobre o 1º aluguel
+                    const primeiroAluguel = loc.tipoPagamento === "avista"
+                      ? (loc.valorTotal ?? 0)
+                      : (loc.valorMensal ?? 0)
                     const comissaoValor = getLocacaoComissao(loc, info.hasPayment)
+                    const comissaoPercent = locSemAdm
+                      ? (primeiroAluguel > 0
+                          ? Math.round((comissaoValor / primeiroAluguel) * 1000) / 10
+                          : 0)
+                      : (loc.percentualComissao ?? 0)
                     const faxinaReceita = info.hasFaxina ? calcLocacaoFaxinaReceita(loc, property) : 0
                     const { naoReembolsavel: locDespNaoReemb, reembolsavel: locDespReemb } = getLocacaoDespesas(loc)
                     const liquido = bruto - comissaoValor - locDespReemb

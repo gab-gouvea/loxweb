@@ -32,7 +32,7 @@ import {
 import { toast } from "sonner"
 import { addDays, addMonths, parseISO, isBefore, format } from "date-fns"
 import { calcProximoReajuste } from "@/lib/locacao-reajuste"
-import { calcTaxaIntermediacao, getTaxaDate, getTaxaMesAno, isSemAdministracao } from "@/lib/locacao-calculations"
+import { calcTaxaIntermediacao, getParcelaDate, getParcelasTaxa, isSemAdministracao } from "@/lib/locacao-calculations"
 import { ptBR } from "date-fns/locale/pt-BR"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -239,9 +239,11 @@ export function LocacaoDetailPage() {
 
           // Todos os ciclos de pagamento da locação (mensal: um por mês até o checkout; à vista: um só no checkIn).
           // O dia do checkout não tem pagamento, por isso `isBefore(c, checkOutDate)`.
+          const parcelasTaxa = semAdm ? getParcelasTaxa(locacao) : []
           const ciclos: Date[] = []
           if (semAdm) {
-            ciclos.push(getTaxaDate(locacao))
+            // Um "ciclo" por parcela da taxa — a navegação ◄ ► percorre as parcelas
+            ciclos.push(...parcelasTaxa.map((parcela) => getParcelaDate(locacao, parcela)))
           } else if (isAvista) {
             ciclos.push(checkInDate)
           } else {
@@ -264,9 +266,9 @@ export function LocacaoDetailPage() {
 
           let pagMes: number, pagAno: number, valorBruto: number
           if (semAdm) {
-            const taxa = getTaxaMesAno(locacao)
-            pagMes = taxa.mes
-            pagAno = taxa.ano
+            const parcela = parcelasTaxa[effectiveIdx]
+            pagMes = parcela.mes
+            pagAno = parcela.ano
             valorBruto = isAvista ? (locacao.valorTotal ?? 0) : (locacao.valorMensal ?? 0)
           } else if (isAvista) {
             pagMes = checkInDate.getMonth() + 1
@@ -278,7 +280,9 @@ export function LocacaoDetailPage() {
             valorBruto = locacao.valorMensal ?? 0
           }
 
-          const valorComissao = semAdm ? calcTaxaIntermediacao(locacao) : valorBruto * comissaoPct / 100
+          const valorComissao = semAdm
+            ? parcelasTaxa[effectiveIdx].valor
+            : valorBruto * comissaoPct / 100
           const pagKey = `${pagMes}-${pagAno}`
           const recebido = recebimentoMap.has(pagKey)
           const mesLabel = format(selectedCiclo, "MMMM yyyy", { locale: ptBR })
@@ -307,7 +311,7 @@ export function LocacaoDetailPage() {
                 <CardContent className="space-y-2 px-3 py-3">
                   {/* Navegação de mês + confirmar */}
                   <div className="flex items-center justify-between gap-1">
-                    {isAvista || semAdm ? (
+                    {(isAvista && !semAdm) || (semAdm && ciclos.length <= 1) ? (
                       <span className="text-xs font-medium capitalize">{mesLabel}</span>
                     ) : (
                       <div className="flex items-center gap-0.5">
@@ -362,7 +366,7 @@ export function LocacaoDetailPage() {
                     <div>
                       <p className="text-xs text-muted-foreground">
                         {semAdm
-                          ? (recebido ? "Taxa Recebida" : "Taxa de Intermediação a Receber")
+                          ? `${recebido ? "Taxa Recebida" : "Taxa a Receber"}${ciclos.length > 1 ? ` (parcela ${effectiveIdx + 1}/${ciclos.length})` : ""}`
                           : (recebido ? "Recebido" : "A Receber")}
                       </p>
                       <p className="text-sm font-medium">{formatCurrency(valorComissao)}</p>
@@ -417,6 +421,11 @@ export function LocacaoDetailPage() {
                         ? `${locacao.percentualPrimeiroAluguel ?? 0}% do 1º aluguel`
                         : `${locacao.percentualComissao ?? 0}%`}
                     </p>
+                    {semAdm && ciclos.length > 1 && (
+                      <p className="text-xs text-muted-foreground">
+                        {formatCurrency(calcTaxaIntermediacao(locacao))} em {ciclos.length} parcelas
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>

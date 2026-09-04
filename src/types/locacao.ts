@@ -197,7 +197,15 @@ export const locacaoFormSchema = z.object({
   )
   // Tolerância de 1 centavo para divisões que não fecham redondo (ex.: 1/3)
   return soma <= taxaTotal + 0.01
-}, { message: "A soma das parcelas passa do valor da taxa", path: ["parcelasTaxa"] })
+}, { message: "A soma das parcelas passa do valor da taxa", path: ["parcelasTaxa"] }).refine((data) => {
+  // A confirmação de recebimento é única por (locação, mês, ano) — duas parcelas no mesmo mês
+  // se sobrescreveriam ao confirmar.
+  if (!isSemAdmForm(data)) return true
+  const meses = (data.parcelasTaxa ?? [])
+    .filter((p) => typeof p.mes === "number" && typeof p.ano === "number")
+    .map((p) => `${p.ano}-${p.mes}`)
+  return new Set(meses).size === meses.length
+}, { message: "Há mais de uma parcela no mesmo mês", path: ["parcelasTaxa"] })
 
 export type LocacaoFormData = z.infer<typeof locacaoFormSchema>
 

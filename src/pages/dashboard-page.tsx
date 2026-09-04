@@ -25,11 +25,13 @@ import {
 import { getUserName } from "@/lib/auth"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { useReservations } from "@/hooks/use-reservations"
+import { useLocacoes } from "@/hooks/use-locacoes"
+import { useLocacaoRecebidoSet } from "@/hooks/use-locacao-recebido-set"
 import { useOccupancy } from "@/hooks/use-occupancy"
 import { useAllPropertyComponents, useAllPendingScheduledMaintenances } from "@/hooks/use-property-details"
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge"
 import { formatDate, toLocalDateStr, getTodayStr } from "@/lib/date-utils"
-import { calcValorPagamento } from "@/lib/reservation-calculations"
+import { buildPagamentosPendentes } from "@/lib/pagamentos-pendentes"
 import type { ReservationStatus } from "@/types/reservation"
 
 function addDays(dateStr: string, days: number): string {
@@ -43,6 +45,10 @@ export function DashboardPage() {
   const userName = getUserName()
   const { properties, propertyMap } = usePropertyMap()
   const { data: reservations = [] } = useReservations()
+  const { data: locacoes = [] } = useLocacoes()
+
+  // Mesmo set dos alertas — cobre também os meses antigos (à vista e sem administração)
+  const recebidoSet = useLocacaoRecebidoSet(locacoes)
   const { data: components = [] } = useAllPropertyComponents()
   const { data: pendingMaintenances = [] } = useAllPendingScheduledMaintenances()
   const { avgOccupancy } = useOccupancy(startOfMonth(new Date()))
@@ -64,14 +70,15 @@ export function DashboardPage() {
       (c) => toLocalDateStr(c.proximaManutencao) < today
     )
 
-    // Pagamentos não recebidos (checkIn + 1 <= hoje e não recebido)
-    const pagamentosNaoRecebidos = naoCanceladas
-      .filter((r) => {
-        if (r.pagamentoRecebido) return false
-        const paymentDate = addDays(toLocalDateStr(r.checkIn), 1)
-        return paymentDate <= today
-      })
-      .sort((a, b) => b.checkIn.localeCompare(a.checkIn))
+    // Pagamentos não recebidos — uma linha por cobrança: reserva base, cada extensão,
+    // cada parcela de taxa de intermediação e cada ciclo de locação administrada.
+    const pagamentosNaoRecebidos = buildPagamentosPendentes({
+      reservations,
+      locacoes,
+      propertyMap,
+      recebidoSet,
+      today,
+    })
 
     // Próximos check-ins (hoje + 7 dias)
     const proximosCheckins = naoCanceladas
@@ -106,7 +113,7 @@ export function DashboardPage() {
       proximosCheckouts,
       proximasManutencoes,
     }
-  }, [properties, reservations, components, pendingMaintenances])
+  }, [properties, reservations, components, pendingMaintenances, locacoes, propertyMap, recebidoSet])
 
   return (
     <div className="space-y-6">
@@ -217,22 +224,32 @@ export function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {stats.pagamentosNaoRecebidos.map((r) => {
-                  const prop = propertyMap.get(r.propriedadeId)
-                  const valorPagamento = calcValorPagamento(r, prop)
-                  const paymentDate = addDays(toLocalDateStr(r.checkIn), 1)
+                {stats.pagamentosNaoRecebidos.map((pagamento) => {
+                  const prop = propertyMap.get(pagamento.propriedadeId)
+                  const badgeClass = pagamento.origem === "extensao"
+                    ? "bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-200"
+                    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                   return (
                     <TableRow
-                      key={r.id}
+                      key={pagamento.key}
                       className="cursor-pointer min-h-[44px]"
-                      onClick={() => navigate(`/reservas/${r.id}`)}
+                      onClick={() => navigate(pagamento.link)}
                     >
-                      <TableCell className="font-medium max-w-[140px] truncate py-3">{r.nomeHospede}</TableCell>
+                      <TableCell className="font-medium max-w-[140px] truncate py-3">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{pagamento.nome}</span>
+                          {pagamento.badge && (
+                            <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${badgeClass}`}>
+                              {pagamento.badge}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="max-w-[140px] truncate py-3">{prop?.nome}</TableCell>
                       <TableCell className="font-medium py-3">
-                        {valorPagamento.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        {pagamento.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                       </TableCell>
-                      <TableCell className="py-3">{formatDate(paymentDate)}</TableCell>
+                      <TableCell className="py-3">{formatDate(pagamento.vencimento)}</TableCell>
                     </TableRow>
                   )
                 })}

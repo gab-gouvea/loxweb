@@ -31,6 +31,8 @@ export type Despesa = z.infer<typeof despesaSchema>
 export const extensaoSchema = z.object({
   dataInicio: z.string(),
   valor: z.number().min(0),
+  // Cada extensão é paga no mês em que começa, então tem confirmação própria
+  pagamentoRecebido: z.boolean().optional(),
 })
 
 export type Extensao = z.infer<typeof extensaoSchema>

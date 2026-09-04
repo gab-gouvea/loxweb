@@ -1,15 +1,14 @@
 import { useMemo } from "react"
-import { useQueries } from "@tanstack/react-query"
-import { addDays, addMonths, differenceInDays, format, isBefore, parseISO } from "date-fns"
+import { addDays, differenceInDays, format, parseISO } from "date-fns"
 import { useReservations } from "./use-reservations"
-import { useLocacoes, useRecebimentosLocacao } from "./use-locacoes"
-import { locacaoService } from "@/services/locacao-service"
+import { useLocacoes } from "./use-locacoes"
+import { useLocacaoRecebidoSet } from "./use-locacao-recebido-set"
 import { usePropertyMap } from "./use-property-map"
 import { useAllPropertyComponents, useAllPendingScheduledMaintenances } from "./use-property-details"
 import { toLocalDateStr, getTodayStr } from "@/lib/date-utils"
-import { calcValorPagamento } from "@/lib/reservation-calculations"
 import { calcProximoReajuste, shouldAlertReajuste } from "@/lib/locacao-reajuste"
-import { getParcelaDate, getParcelasTaxa, isSemAdministracao } from "@/lib/locacao-calculations"
+import { isSemAdministracao } from "@/lib/locacao-calculations"
+import { buildPagamentosPendentes } from "@/lib/pagamentos-pendentes"
 
 export type AlertType =
   | "checkin_hoje"
@@ -35,6 +34,8 @@ export interface Alert {
   type: AlertType
   title: string
   description: string
+  /** Etiqueta opcional antes da descrição (ex.: EXTENSÃO), no mesmo amarelo do relatório */
+  badge?: string
   /** Link para navegar ao clicar */
   link?: string
 }
@@ -66,50 +67,11 @@ export function useAlerts() {
   const { data: components = [] } = useAllPropertyComponents()
   const { data: pendingMaintenances = [] } = useAllPendingScheduledMaintenances()
 
-  // Buscar recebimentos do mês atual e anterior para checar pagamentos confirmados
-  const now = new Date()
-  const curMes = now.getMonth() + 1
-  const curAno = now.getFullYear()
-  const prevDate = addMonths(now, -1)
-  const prevMes = prevDate.getMonth() + 1
-  const prevAno = prevDate.getFullYear()
-  const { data: recebimentosCur = [] } = useRecebimentosLocacao(curMes, curAno)
-  const { data: recebimentosPrev = [] } = useRecebimentosLocacao(prevMes, prevAno)
-
-  // Locações à vista: o pagamento fica ancorado no mês do checkIn, que pode ser muitos
-  // meses atrás. As queries de mês atual/anterior não cobrem esse caso, então buscamos
-  // todos os recebimentos de cada locação à vista ativa para detectar a confirmação
-  // histórica (mesma queryKey de useRecebimentosByLocacao — compartilha cache e é
-  // invalidada igual). Sem isso o alerta de pagamento dispara para sempre mesmo já recebido.
-  const avistaLocacoes = locacoes.filter(
-    (l) => l.status === "ativa" && l.tipoPagamento === "avista"
-  )
-  const avistaRecebimentosQueries = useQueries({
-    queries: avistaLocacoes.map((l) => ({
-      queryKey: ["recebimentos-locacao", "by-locacao", l.id],
-      queryFn: () => locacaoService.getRecebimentosByLocacao(l.id),
-      enabled: !!l.id,
-    })),
-  })
-  const avistaSig = avistaRecebimentosQueries
-    .map((q) => (q.data ?? []).map((r) => `${r.locacaoId}-${r.mes}-${r.ano}`).join("|"))
-    .join("||")
-  const avistaRecebidoSet = useMemo(() => {
-    const s = new Set<string>()
-    for (const q of avistaRecebimentosQueries) {
-      for (const r of q.data ?? []) s.add(`${r.locacaoId}-${r.mes}-${r.ano}`)
-    }
-    return s
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [avistaSig])
+  // Recebimentos confirmados: "locacaoId-mes-ano" (cobre também os meses antigos das
+  // locações à vista e sem administração)
+  const recebidoSet = useLocacaoRecebidoSet(locacoes)
 
   const alerts = useMemo(() => {
-    // Set de recebimentos confirmados: "locacaoId-mes-ano"
-    const recebidoSet = new Set<string>(avistaRecebidoSet)
-    for (const r of [...recebimentosCur, ...recebimentosPrev]) {
-      recebidoSet.add(`${r.locacaoId}-${r.mes}-${r.ano}`)
-    }
-
     const today = getTodayStr()
     const in7days = format(addDays(new Date(), 7), "yyyy-MM-dd")
     const result: Alert[] = []
@@ -163,20 +125,34 @@ export function useAlerts() {
         })
       }
 
-      // Pagamento pendente (checkIn + 1 dia <= hoje e não recebido)
-      const paymentDate = format(addDays(parseISO(checkInDate), 1), "yyyy-MM-dd")
-      if (paymentDate <= today && !r.pagamentoRecebido) {
-        const prop = propertyMap.get(r.propriedadeId)
-        const valorPagamento = calcValorPagamento(r, prop)
-        const valorFormatado = valorPagamento.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-        result.push({
-          id: `pagamento-${r.id}`,
-          type: "pagamento_pendente",
-          title: paymentDate === today ? "Pagamento Hoje" : "Pagamento Pendente",
-          description: `${valorFormatado} — ${r.nomeHospede} — ${propNome}`,
-          link: `/reservas/${r.id}`,
-        })
-      }
+    }
+
+    // Pagamentos pendentes (reserva, extensão, taxa de intermediação e ciclo de locação).
+    // Mesma fonte do card "Pagamentos Não Recebidos" do dashboard, para não divergirem.
+    for (const pagamento of buildPagamentosPendentes({
+      reservations,
+      locacoes,
+      propertyMap,
+      recebidoSet,
+      today,
+    })) {
+      const propNome = propertyMap.get(pagamento.propriedadeId)?.nome ?? "—"
+      const valorFormatado = pagamento.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+      const hoje = pagamento.vencimento === today
+      const ehLocacao = pagamento.origem === "locacao" || pagamento.origem === "taxa_intermediacao"
+      const title = pagamento.origem === "taxa_intermediacao"
+        ? (hoje ? "Taxa de Intermediação Hoje" : "Taxa de Intermediação Pendente")
+        : ehLocacao
+          ? (hoje ? "Pagamento Locação Hoje" : "Pagamento Locação Pendente")
+          : (hoje ? "Pagamento Hoje" : "Pagamento Pendente")
+      result.push({
+        id: pagamento.key,
+        type: ehLocacao ? "locacao_pagamento_pendente" : "pagamento_pendente",
+        title,
+        description: `${valorFormatado} — ${pagamento.nome} — ${propNome}`,
+        badge: pagamento.badge,
+        link: pagamento.link,
+      })
     }
 
     // Faxinas não pagas (empresa parceira, agendada, a partir de 1 dia antes do checkout)
@@ -321,61 +297,6 @@ export function useAlerts() {
         }
       }
 
-      // Pagamento locação — paga e mora: pagamento no dia da entrada de cada mês.
-      // Sem administração: recebimento único (a taxa de intermediação), no mês da taxa.
-      if (isSemAdministracao(l)) {
-        // Um alerta por parcela vencida e ainda não confirmada
-        const parcelas = getParcelasTaxa(l)
-        for (const parcela of parcelas) {
-          const parcelaDate = format(getParcelaDate(l, parcela), "yyyy-MM-dd")
-          if (parcelaDate > today) continue
-          if (recebidoSet.has(`${l.id}-${parcela.mes}-${parcela.ano}`)) continue
-          const valorFormatado = parcela.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-          const sufixo = parcelas.length > 1
-            ? ` (parcela ${parcelas.indexOf(parcela) + 1}/${parcelas.length})`
-            : ""
-          result.push({
-            id: `loc-pagamento-${l.id}-${parcela.mes}-${parcela.ano}`,
-            type: "locacao_pagamento_pendente",
-            title: parcelaDate === today ? "Taxa de Intermediação Hoje" : "Taxa de Intermediação Pendente",
-            description: `${valorFormatado}${sufixo} — ${l.nomeCompleto} — ${propNome}`,
-            link: `/longatemporada/${l.id}`,
-          })
-        }
-      } else {
-        const checkInParsed = parseISO(checkInDate)
-        const todayParsed = parseISO(today)
-        const isAvista = l.tipoPagamento === "avista"
-
-        // Calcular ciclo atual (mesmo algoritmo da detail page)
-        let cicloStart = checkInParsed
-        while (isBefore(addMonths(cicloStart, 1), todayParsed) || addMonths(cicloStart, 1).getTime() === todayParsed.getTime()) {
-          cicloStart = addMonths(cicloStart, 1)
-        }
-        if (isBefore(todayParsed, checkInParsed)) cicloStart = checkInParsed
-
-        // À vista: pagamento só no checkIn; mensal: pagamento a cada ciclo
-        const pagDate = isAvista ? checkInDate : format(cicloStart, "yyyy-MM-dd")
-        const pagMes = isAvista ? checkInParsed.getMonth() + 1 : cicloStart.getMonth() + 1
-        const pagAno = isAvista ? checkInParsed.getFullYear() : cicloStart.getFullYear()
-
-        // Só alertar se a data de pagamento já chegou e não foi confirmado
-        // Não alertar se pagDate >= checkOut (dia do checkout não tem pagamento)
-        if (pagDate <= today && pagDate < checkOutDate && !recebidoSet.has(`${l.id}-${pagMes}-${pagAno}`)) {
-          const valorBruto = isAvista ? (l.valorTotal ?? 0) : (l.valorMensal ?? 0)
-          const comissao = valorBruto * (l.percentualComissao ?? 0) / 100
-          const valorFormatado = comissao.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-
-          result.push({
-            id: `loc-pagamento-${l.id}-${pagMes}-${pagAno}`,
-            type: "locacao_pagamento_pendente",
-            title: pagDate === today ? "Pagamento Locação Hoje" : "Pagamento Locação Pendente",
-            description: `${valorFormatado} — ${l.nomeCompleto} — ${propNome}`,
-            link: `/longatemporada/${l.id}`,
-          })
-        }
-      }
-
       // Reajuste anual (só anual): 30 dias antes de cada ciclo de 12 meses.
       // Não administrando o imóvel, não há reajuste a acompanhar.
       if (l.tipoLocacao === "anual" && !isSemAdministracao(l)) {
@@ -423,7 +344,7 @@ export function useAlerts() {
     }
 
     return result
-  }, [reservations, locacoes, components, pendingMaintenances, propertyMap, recebimentosCur, recebimentosPrev, avistaRecebidoSet])
+  }, [reservations, locacoes, components, pendingMaintenances, propertyMap, recebidoSet])
 
   return { alerts, count: alerts.length }
 }

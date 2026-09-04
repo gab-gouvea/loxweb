@@ -22,6 +22,7 @@ import { useLocacoes } from "@/hooks/use-locacoes"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { LocacaoDialog } from "@/components/locacoes/locacao-dialog"
 import { LocacaoDeleteDialog } from "@/components/locacoes/locacao-delete-dialog"
+import { Badge } from "@/components/ui/badge"
 import { LocacaoStatusBadge } from "@/components/locacoes/locacao-status-badge"
 import { addMonths, parseISO } from "date-fns"
 import { formatDate, toLocalDateStr } from "@/lib/date-utils"
@@ -212,7 +213,12 @@ export function LocacoesPage() {
                           <span className={`h-1.5 w-1.5 rounded-full ${locacao.tipoLocacao === "anual" ? "bg-indigo-400" : "bg-teal-400"}`} />
                           {locacao.tipoLocacao === "anual" ? "Anual" : "Temporada"}
                           {isSemAdministracao(locacao) && (
-                            <span className="text-[10px] text-muted-foreground/80">(sem adm.)</span>
+                            <Badge
+                              variant="outline"
+                              className="border-slate-300 bg-slate-100 px-1.5 py-0 text-[10px] font-medium text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                            >
+                              Sem adm.
+                            </Badge>
                           )}
                         </span>
                       </TableCell>

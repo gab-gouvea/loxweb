@@ -703,6 +703,11 @@ export function LocacaoContratoPage() {
   // ==================== QUADRO EDITABLE SECTIONS ====================
   // 0: Locadora, 1: Locatária, 2: Objeto, 3: Finalidade, 4: Prazo, 5: Valor, 6: Garantia, 7: Obs
 
+  /** Compara endereços ignorando espaços e caixa, para não repetir o mesmo endereço no contrato. */
+  function normalizarEndereco(endereco: string): string {
+    return endereco.trim().toLowerCase().replace(/\s+/g, " ")
+  }
+
   function getQuadroDefault(idx: number): string {
     if (!contratoData || !locacao) return ""
     const d = contratoData
@@ -721,19 +726,31 @@ export function LocacaoContratoPage() {
       switch (idx) {
         case 0: return buildPessoa(d.locadoraNome, d.locadoraEstadoCivil, d.locadoraProfissao, d.locadoraRg, d.locadoraCpf, d.locadoraEndereco)
         case 1: {
-          const locatario = buildPessoa(d.locatariaNome, d.locatariaEstadoCivil, d.locatariaProfissao, d.locatariaRg, d.locatariaCpf, d.locatariaEndereco)
-          if (!locacao.incluirConjuge || !locacao.conjugeNome) return locatario
+          if (!locacao.incluirConjuge || !locacao.conjugeNome) {
+            return buildPessoa(d.locatariaNome, d.locatariaEstadoCivil, d.locatariaProfissao, d.locatariaRg, d.locatariaCpf, d.locatariaEndereco)
+          }
           const conjugeEstadoCivil = locacao.conjugeEstadoCivil ? estadoCivilLabels[locacao.conjugeEstadoCivil] ?? locacao.conjugeEstadoCivil : "—"
           const conjugeCpf = locacao.conjugeCpf ? formatCpf(locacao.conjugeCpf) : "—"
+          const enderecoConjuge = locacao.conjugeEndereco || d.locatariaEndereco
+
+          // Morando no mesmo endereço, ele sai uma vez só, no fim: "ambos residentes e domiciliados na ..."
+          const mesmoEndereco = normalizarEndereco(enderecoConjuge) === normalizarEndereco(d.locatariaEndereco)
+          const enderecoLocatario = mesmoEndereco ? "—" : d.locatariaEndereco
+          const enderecoDoConjuge = mesmoEndereco ? "—" : enderecoConjuge
+
+          const locatario = buildPessoa(d.locatariaNome, d.locatariaEstadoCivil, d.locatariaProfissao, d.locatariaRg, d.locatariaCpf, enderecoLocatario)
           const conjuge = buildPessoa(
             locacao.conjugeNome,
             conjugeEstadoCivil,
             locacao.conjugeProfissao || "—",
             locacao.conjugeRg || "—",
             conjugeCpf,
-            locacao.conjugeEndereco || d.locatariaEndereco,
+            enderecoDoConjuge,
           )
-          return `${locatario}, e seu(sua) cônjuge ${conjuge}`
+          const sufixoEndereco = mesmoEndereco && d.locatariaEndereco && d.locatariaEndereco !== "—"
+            ? `, ambos residentes e domiciliados na ${d.locatariaEndereco}`
+            : ""
+          return `${locatario}, e seu(sua) cônjuge ${conjuge}${sufixoEndereco}`
         }
         default: return ""
       }

@@ -57,6 +57,8 @@ interface ReportLine {
   faxina: number
   despesasNaoReemb: number
   recebido: number
+  /** Reserva base usa o flag da reserva; cada extensão tem o seu. */
+  pagamentoConfirmado: boolean
 }
 
 // Mês de recebimento = dia seguinte ao check-in (reserva base) ou ao início da extensão —
@@ -92,6 +94,7 @@ function buildReportLines(
         faxina: 0,
         despesasNaoReemb: 0,
         recebido: r.valorRecebidoCancelamento ?? 0,
+        pagamentoConfirmado: r.pagamentoRecebido === true,
       })
       continue
     }
@@ -105,7 +108,9 @@ function buildReportLines(
     if (recebimentoMonth(r.checkIn) === reportYM) {
       const baseBruto = (r.precoTotal ?? 0) - totalExtensoes
       const valorSemLimpeza = baseBruto - taxaLimpeza
-      const comissaoValor = (valorSemLimpeza * comissaoPercent) / 100
+      // Mesmo clamp de reservation-calculations: quando a taxa de limpeza passa do bruto, a base
+      // fica negativa — comissão negativa não existe. Sem isto o relatório discorda do card da reserva.
+      const comissaoValor = (Math.max(0, valorSemLimpeza) * comissaoPercent) / 100
       lines.push({
         key: r.id,
         propriedadeId: r.propriedadeId,
@@ -121,6 +126,7 @@ function buildReportLines(
         faxina: calcFaxinaReceita(r, property),
         despesasNaoReemb: naoReembolsavel,
         recebido: calcRecebidoBase(r, property),
+        pagamentoConfirmado: r.pagamentoRecebido === true,
       })
     }
 
@@ -142,6 +148,7 @@ function buildReportLines(
         faxina: 0,
         despesasNaoReemb: 0,
         recebido: calcRecebidoExtensao(r, property, ext.valor),
+        pagamentoConfirmado: ext.pagamentoRecebido === true,
       })
     }
   }
@@ -352,7 +359,8 @@ export function ReportsPage() {
         }
       } else {
         reservaIds.add(line.reservation.id)
-        if (line.reservation.pagamentoRecebido) {
+        // Cada linha tem confirmação própria: a reserva base e cada extensão são pagas separadamente
+        if (line.pagamentoConfirmado) {
           totalPago += line.recebido
         } else {
           totalAReceber += line.recebido
@@ -522,7 +530,7 @@ export function ReportsPage() {
                               </span>
                             )}
                             {isCancelada && <ReservationStatusBadge status="cancelada" />}
-                            {!isCancelada && !isExtension && reservation.pagamentoRecebido && <span className="text-green-600 text-xs">✓</span>}
+                            {!isCancelada && line.pagamentoConfirmado && <span className="text-green-600 text-xs">✓</span>}
                           </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(line.dataLinha)}</TableCell>

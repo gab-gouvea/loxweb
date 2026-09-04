@@ -215,7 +215,7 @@ export function ReservationForm({
           <FormNumberField<ReservationFormData>
             control={form.control}
             name="precoTotal"
-            label="Valor Bruto (R$)"
+            label="Valor pago na plataforma (R$)"
             min={0}
             step={0.01}
             placeholder="0,00"

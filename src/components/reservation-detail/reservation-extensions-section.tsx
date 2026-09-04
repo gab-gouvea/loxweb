@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Plus, Trash2, Pencil } from "lucide-react"
+import { Check, Plus, ThumbsUp, Trash2, Pencil } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -102,6 +102,7 @@ export function ReservationExtensionsSection({
     }
     const novasExtensoes = [...extensoes]
     novasExtensoes[lastIndex] = {
+      ...extensoes[lastIndex],
       dataInicio: extensoes[lastIndex].dataInicio,
       valor: Number(editingExtensao.valor),
     }
@@ -112,6 +113,22 @@ export function ReservationExtensionsSection({
           toast.success("Extensão atualizada")
           handleCancelEdit()
         },
+      },
+    )
+  }
+
+  /** Confirma/desmarca o recebimento de uma extensão, sem tocar nas outras. */
+  function handleTogglePagamento(index: number) {
+    const novasExtensoes = extensoes.map((e, i) =>
+      i === index ? { ...e, pagamentoRecebido: !e.pagamentoRecebido } : e,
+    )
+    onMutate(
+      { extensoes: novasExtensoes },
+      {
+        onSuccess: () =>
+          toast.success(
+            extensoes[index].pagamentoRecebido ? "Pagamento desmarcado" : "Pagamento confirmado",
+          ),
       },
     )
   }
@@ -180,6 +197,7 @@ export function ReservationExtensionsSection({
             key={index}
             className={cn(
               "flex items-center justify-between rounded-lg border p-3 transition-all duration-200",
+              extensao.pagamentoRecebido && "border-green-300 bg-green-50",
               removingIndex === index && "animate-out fade-out slide-out-to-right-4 pointer-events-none",
             )}
           >
@@ -188,10 +206,22 @@ export function ReservationExtensionsSection({
                 Estendida até {formatDate(dataFinalDaExtensao(index))} — {formatCurrency(extensao.valor)}
               </p>
               <p className="text-xs text-muted-foreground">
-                Recebimento no relatório: {formatDate(minDateAfter(extensao.dataInicio))}
+                {extensao.pagamentoRecebido
+                  ? `Recebido — ${formatDate(minDateAfter(extensao.dataInicio))}`
+                  : `Recebimento no relatório: ${formatDate(minDateAfter(extensao.dataInicio))}`}
               </p>
             </div>
             <div className="flex gap-1">
+              <Button
+                variant={extensao.pagamentoRecebido ? "default" : "outline"}
+                size="icon"
+                className={cn("h-8 w-8", extensao.pagamentoRecebido && "bg-green-600 hover:bg-green-700")}
+                onClick={() => handleTogglePagamento(index)}
+                disabled={isPending}
+                aria-label={extensao.pagamentoRecebido ? "Desmarcar pagamento" : "Confirmar pagamento"}
+              >
+                {extensao.pagamentoRecebido ? <Check className="h-4 w-4" /> : <ThumbsUp className="h-4 w-4" />}
+              </Button>
               {index === lastIndex && (
                 <Button
                   variant="ghost"
@@ -199,6 +229,7 @@ export function ReservationExtensionsSection({
                   className="h-8 w-8"
                   onClick={handleStartEditLast}
                   disabled={isPending || novaExtensao !== null}
+                  aria-label="Editar extensão"
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -209,6 +240,7 @@ export function ReservationExtensionsSection({
                 className="h-8 w-8 text-destructive"
                 onClick={() => handleRemoveExtensao(index)}
                 disabled={isPending}
+                aria-label="Remover extensão"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

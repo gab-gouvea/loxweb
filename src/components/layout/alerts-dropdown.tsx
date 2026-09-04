@@ -168,9 +168,16 @@ export function AlertsDropdown() {
                     <p className={cn("text-xs font-semibold", color)}>
                       {alert.title}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {alert.description}
-                    </p>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {alert.badge && (
+                        <span className="shrink-0 rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900 dark:bg-amber-900 dark:text-amber-200">
+                          {alert.badge}
+                        </span>
+                      )}
+                      <p className="text-xs text-muted-foreground truncate">
+                        {alert.description}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     {(alert.type === "checkin_hoje" || alert.type === "checkout_hoje") && (

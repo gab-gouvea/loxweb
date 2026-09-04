@@ -155,6 +155,14 @@ export function LocacaoDetailPage() {
             <Badge variant="outline" className={isAnual ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-teal-50 text-teal-700 border-teal-200"}>
               {isAnual ? "Anual" : "Longa Temporada"}
             </Badge>
+            {isSemAdministracao(locacao) && (
+              <Badge
+                variant="outline"
+                className="border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+              >
+                Sem adm.
+              </Badge>
+            )}
           </div>
         </div>
         <div className="flex gap-2">

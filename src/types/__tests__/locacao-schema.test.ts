@@ -224,6 +224,30 @@ describe("locacaoFormSchema", () => {
     expect(result.success).toBe(false)
   })
 
+  it("rejeita duas parcelas no mesmo mês", () => {
+    const result = locacaoFormSchema.safeParse({
+      ...validSemAdministracao,
+      percentualPrimeiroAluguel: 100,
+      parcelasTaxa: [
+        { mes: 10, ano: 2026, valor: 1250 },
+        { mes: 10, ano: 2026, valor: 1250 },
+      ],
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("aceita o mesmo mês em anos diferentes", () => {
+    const result = locacaoFormSchema.safeParse({
+      ...validSemAdministracao,
+      percentualPrimeiroAluguel: 100,
+      parcelasTaxa: [
+        { mes: 10, ano: 2026, valor: 1250 },
+        { mes: 10, ano: 2027, valor: 1250 },
+      ],
+    })
+    expect(result.success).toBe(true)
+  })
+
   it("rejeita numMoradores < 1", () => {
     const result = locacaoFormSchema.safeParse({ ...validTemporada, numMoradores: 0 })
     expect(result.success).toBe(false)

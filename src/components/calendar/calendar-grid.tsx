@@ -11,6 +11,7 @@ import type { Proprietario } from "@/types/proprietario"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { formatCurrency } from "@/lib/constants"
 import { calcValorPagamento } from "@/lib/reservation-calculations"
+import { calcTaxaIntermediacao, getTaxaDate, isSemAdministracao } from "@/lib/locacao-calculations"
 
 const COL_WIDTH = 80
 const ROW_HEIGHT = 56
@@ -253,6 +254,22 @@ export function CalendarGrid({
       const comissaoPct = l.percentualComissao ?? 0
       const taxaLimpeza = l.taxaLimpeza ?? prop?.taxaLimpeza ?? 0
       const isAvista = l.tipoPagamento === "avista"
+
+      // Sem administração: um único recebimento (a taxa de intermediação), no mês da taxa.
+      // A barra de ocupação continua sendo desenhada normalmente acima.
+      if (isSemAdministracao(l)) {
+        const taxaDate = getTaxaDate(l)
+        const taxaDay = differenceInCalendarDays(taxaDate, sd)
+        const valorTaxa = calcTaxaIntermediacao(l)
+        if (taxaDay >= 0 && taxaDay < visibleDays && valorTaxa > 0) {
+          const key = `${l.propriedadeId}-${taxaDay}`
+          const existing = getCell(key)
+          existing.pagamentos.push({ nomeHospede: l.nomeCompleto, precoTotal: valorTaxa })
+          map.set(key, existing)
+        }
+        continue
+      }
+
       let payDate = checkIn
       while (payDate < checkOut) {
         const payDay = differenceInCalendarDays(payDate, sd)

@@ -123,6 +123,55 @@ describe("locacaoFormSchema", () => {
     expect(result.success).toBe(false)
   })
 
+  const validSemAdministracao = {
+    ...validAnual,
+    percentualComissao: undefined,
+    semAdministracao: true,
+    percentualPrimeiroAluguel: 60,
+    mesTaxa: 5,
+    anoTaxa: 2026,
+  }
+
+  it("valida anual sem administração (dispensa comissão mensal)", () => {
+    const result = locacaoFormSchema.safeParse(validSemAdministracao)
+    expect(result.success).toBe(true)
+  })
+
+  it("aceita 100% do primeiro aluguel", () => {
+    const result = locacaoFormSchema.safeParse({ ...validSemAdministracao, percentualPrimeiroAluguel: 100 })
+    expect(result.success).toBe(true)
+  })
+
+  it("rejeita sem administração sem % do primeiro aluguel", () => {
+    const result = locacaoFormSchema.safeParse({ ...validSemAdministracao, percentualPrimeiroAluguel: undefined })
+    expect(result.success).toBe(false)
+  })
+
+  it("rejeita sem administração com % do primeiro aluguel zero", () => {
+    const result = locacaoFormSchema.safeParse({ ...validSemAdministracao, percentualPrimeiroAluguel: 0 })
+    expect(result.success).toBe(false)
+  })
+
+  it("rejeita sem administração com % do primeiro aluguel acima de 100", () => {
+    const result = locacaoFormSchema.safeParse({ ...validSemAdministracao, percentualPrimeiroAluguel: 101 })
+    expect(result.success).toBe(false)
+  })
+
+  it("rejeita sem administração sem mês/ano do recebimento", () => {
+    const result = locacaoFormSchema.safeParse({ ...validSemAdministracao, mesTaxa: undefined, anoTaxa: undefined })
+    expect(result.success).toBe(false)
+  })
+
+  it("temporada marcada como sem administração ainda exige comissão", () => {
+    const result = locacaoFormSchema.safeParse({
+      ...validTemporada,
+      percentualComissao: undefined,
+      semAdministracao: true,
+      percentualPrimeiroAluguel: 60,
+    })
+    expect(result.success).toBe(false)
+  })
+
   it("rejeita numMoradores < 1", () => {
     const result = locacaoFormSchema.safeParse({ ...validTemporada, numMoradores: 0 })
     expect(result.success).toBe(false)

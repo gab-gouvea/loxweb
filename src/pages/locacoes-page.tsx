@@ -26,6 +26,7 @@ import { LocacaoStatusBadge } from "@/components/locacoes/locacao-status-badge"
 import { addMonths, parseISO } from "date-fns"
 import { formatDate, toLocalDateStr } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/constants"
+import { isSemAdministracao } from "@/lib/locacao-calculations"
 import type { Locacao, LocacaoStatus } from "@/types/locacao"
 
 function calcValorTotal(loc: Locacao): number {
@@ -210,6 +211,9 @@ export function LocacoesPage() {
                         <span className={`inline-flex items-center gap-1 text-xs text-muted-foreground`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${locacao.tipoLocacao === "anual" ? "bg-indigo-400" : "bg-teal-400"}`} />
                           {locacao.tipoLocacao === "anual" ? "Anual" : "Temporada"}
+                          {isSemAdministracao(locacao) && (
+                            <span className="text-[10px] text-muted-foreground/80">(sem adm.)</span>
+                          )}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">

@@ -26,11 +26,23 @@ export function LocacaoDialog({
   const isEditing = !!locacao
 
   function handleSubmit(formData: LocacaoFormData) {
+    // Sem administração só existe em locação anual; o modo escolhido zera os campos do outro,
+    // para não deixar percentual obsoleto guiando os cálculos de receita.
+    const semAdministracao = formData.tipoLocacao === "anual" && formData.semAdministracao === true
     const data = {
       ...formData,
       valorMensal: formData.valorMensal === "" ? undefined : formData.valorMensal,
       valorTotal: formData.valorTotal === "" ? undefined : formData.valorTotal,
       garantia: formData.garantia === "" ? undefined : formData.garantia,
+      semAdministracao,
+      percentualComissao: semAdministracao || formData.percentualComissao === ""
+        ? undefined
+        : formData.percentualComissao,
+      percentualPrimeiroAluguel: !semAdministracao || formData.percentualPrimeiroAluguel === ""
+        ? undefined
+        : formData.percentualPrimeiroAluguel,
+      mesTaxa: semAdministracao ? formData.mesTaxa : undefined,
+      anoTaxa: semAdministracao ? formData.anoTaxa : undefined,
     }
     if (isEditing) {
       updateMutation.mutate(

@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { format, parseISO } from "date-fns"
+import { addMonths, format, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
 import { CalendarIcon, UserCheck, X } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -32,6 +32,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { useProperties } from "@/hooks/use-properties"
 import { useLocacoes } from "@/hooks/use-locacoes"
 import { cn } from "@/lib/utils"
+import { MESES, formatCurrency } from "@/lib/constants"
 import { FormTextField, FormNumberField, FormTextareaField } from "@/components/shared/form-fields"
 
 function digitsOnly(s: string): string {
@@ -85,6 +86,10 @@ export function LocacaoForm({
       tipoPagamento: locacao?.tipoPagamento ?? "mensal",
       valorTotal: locacao?.valorTotal ?? undefined,
       percentualComissao: locacao?.percentualComissao || undefined,
+      semAdministracao: locacao?.semAdministracao ?? false,
+      percentualPrimeiroAluguel: locacao?.percentualPrimeiroAluguel || undefined,
+      mesTaxa: locacao?.mesTaxa ?? undefined,
+      anoTaxa: locacao?.anoTaxa ?? undefined,
       garantia: locacao?.garantia ?? "",
       notas: locacao?.notas ?? "",
     },
@@ -94,6 +99,27 @@ export function LocacaoForm({
   const cpfValue = form.watch("cpf")
   const tipoLocacao = form.watch("tipoLocacao")
   const incluirConjuge = form.watch("incluirConjuge")
+  const semAdministracao = form.watch("semAdministracao")
+  const checkInValue = form.watch("checkIn")
+  const valorMensalValue = form.watch("valorMensal")
+  const valorTotalValue = form.watch("valorTotal")
+  const percentualPrimeiroAluguelValue = form.watch("percentualPrimeiroAluguel")
+
+  // Mês/ano da taxa: padrão = mês seguinte ao check-in (o inquilino entra, mora e paga antes do
+  // repasse). Uma vez que o usuário editar o campo, paramos de sobrescrever.
+  const mesTaxaTocado = useRef(locacao?.mesTaxa != null)
+  useEffect(() => {
+    if (!checkInValue || mesTaxaTocado.current) return
+    const padrao = addMonths(parseISO(checkInValue), 1)
+    form.setValue("mesTaxa", padrao.getMonth() + 1)
+    form.setValue("anoTaxa", padrao.getFullYear())
+  }, [checkInValue, form])
+
+  const primeiroAluguel = tipoPagamento === "avista" ? valorTotalValue : valorMensalValue
+  const taxaPreview =
+    typeof primeiroAluguel === "number" && typeof percentualPrimeiroAluguelValue === "number"
+      ? (primeiroAluguel * percentualPrimeiroAluguelValue) / 100
+      : null
 
   // Map de inquilinos únicos por CPF (mais recente prevalece)
   const inquilinosByCpf = useMemo(() => {
@@ -646,15 +672,115 @@ export function LocacaoForm({
           />
         )}
 
-        <FormNumberField<LocacaoFormData>
-          control={form.control}
-          name="percentualComissao"
-          label="Comissão (%)"
-          min={0}
-          max={100}
-          step={0.01}
-          placeholder="Ex: 10"
-        />
+        {tipoLocacao === "anual" && (
+          <FormField
+            control={form.control}
+            name="semAdministracao"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-2 space-y-0 pt-2">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <FormLabel className="font-normal">
+                  Não vou administrar este imóvel (recebo só a taxa de intermediação)
+                </FormLabel>
+              </FormItem>
+            )}
+          />
+        )}
+
+        {tipoLocacao === "anual" && semAdministracao ? (
+          <div className="space-y-4 rounded-md border p-4">
+            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Taxa de Intermediação
+            </h4>
+
+            <FormNumberField<LocacaoFormData>
+              control={form.control}
+              name="percentualPrimeiroAluguel"
+              label="% do Primeiro Aluguel"
+              min={0}
+              max={100}
+              step={0.01}
+              placeholder="Ex: 100"
+            />
+
+            <FormItem>
+              <FormLabel>Mês do Recebimento</FormLabel>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <FormField
+                  control={form.control}
+                  name="mesTaxa"
+                  render={({ field }) => (
+                    <FormItem className="flex-1 space-y-0">
+                      <Select
+                        value={field.value != null ? String(field.value) : ""}
+                        onValueChange={(v) => {
+                          mesTaxaTocado.current = true
+                          field.onChange(Number(v))
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Mês..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {MESES.map((m) => (
+                            <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="anoTaxa"
+                  render={({ field }) => (
+                    <FormItem className="space-y-0">
+                      <FormControl>
+                        <Input
+                          type="number"
+                          className="w-full sm:w-24"
+                          value={field.value ?? ""}
+                          onChange={(e) => {
+                            mesTaxaTocado.current = true
+                            field.onChange(e.target.value === "" ? undefined : Number(e.target.value))
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Padrão: mês seguinte ao check-in, quando o inquilino já pagou o primeiro aluguel.
+              </p>
+            </FormItem>
+
+            {taxaPreview != null && (
+              <p className="text-sm">
+                Taxa: <span className="font-medium">{formatCurrency(taxaPreview)}</span>
+              </p>
+            )}
+          </div>
+        ) : (
+          <FormNumberField<LocacaoFormData>
+            control={form.control}
+            name="percentualComissao"
+            label="Comissão (%)"
+            min={0}
+            max={100}
+            step={0.01}
+            placeholder="Ex: 10"
+          />
+        )}
 
         <FormField
           control={form.control}

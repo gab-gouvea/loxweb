@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner"
 import { addDays, addMonths, parseISO, isBefore, format } from "date-fns"
 import { calcProximoReajuste } from "@/lib/locacao-reajuste"
+import { calcTaxaIntermediacao, getTaxaDate, getTaxaMesAno, isSemAdministracao } from "@/lib/locacao-calculations"
 import { ptBR } from "date-fns/locale/pt-BR"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -230,6 +231,8 @@ export function LocacaoDetailPage() {
           const comissaoPct = locacao.percentualComissao ?? 0
           const taxaLimpeza = locacao.taxaLimpeza ?? property?.taxaLimpeza ?? 0
           const isAvista = locacao.tipoPagamento === "avista"
+          // Sem administração: um único recebimento (a taxa sobre o 1º aluguel), sem faxina nem ciclos mensais
+          const semAdm = isSemAdministracao(locacao)
 
           // Receita líquida de faxina pro gestor: taxa inteira (por mim) ou taxa - custo empresa (terceirizada)
           const faxinaReceita = locacao.faxinaPorMim ? taxaLimpeza : taxaLimpeza - (locacao.custoEmpresaFaxina ?? 0)
@@ -237,7 +240,9 @@ export function LocacaoDetailPage() {
           // Todos os ciclos de pagamento da locação (mensal: um por mês até o checkout; à vista: um só no checkIn).
           // O dia do checkout não tem pagamento, por isso `isBefore(c, checkOutDate)`.
           const ciclos: Date[] = []
-          if (isAvista) {
+          if (semAdm) {
+            ciclos.push(getTaxaDate(locacao))
+          } else if (isAvista) {
             ciclos.push(checkInDate)
           } else {
             let c = checkInDate
@@ -258,7 +263,12 @@ export function LocacaoDetailPage() {
           const selectedCiclo = ciclos[effectiveIdx]
 
           let pagMes: number, pagAno: number, valorBruto: number
-          if (isAvista) {
+          if (semAdm) {
+            const taxa = getTaxaMesAno(locacao)
+            pagMes = taxa.mes
+            pagAno = taxa.ano
+            valorBruto = isAvista ? (locacao.valorTotal ?? 0) : (locacao.valorMensal ?? 0)
+          } else if (isAvista) {
             pagMes = checkInDate.getMonth() + 1
             pagAno = checkInDate.getFullYear()
             valorBruto = locacao.valorTotal ?? 0
@@ -268,7 +278,7 @@ export function LocacaoDetailPage() {
             valorBruto = locacao.valorMensal ?? 0
           }
 
-          const valorComissao = valorBruto * comissaoPct / 100
+          const valorComissao = semAdm ? calcTaxaIntermediacao(locacao) : valorBruto * comissaoPct / 100
           const pagKey = `${pagMes}-${pagAno}`
           const recebido = recebimentoMap.has(pagKey)
           const mesLabel = format(selectedCiclo, "MMMM yyyy", { locale: ptBR })
@@ -297,7 +307,7 @@ export function LocacaoDetailPage() {
                 <CardContent className="space-y-2 px-3 py-3">
                   {/* Navegação de mês + confirmar */}
                   <div className="flex items-center justify-between gap-1">
-                    {isAvista ? (
+                    {isAvista || semAdm ? (
                       <span className="text-xs font-medium capitalize">{mesLabel}</span>
                     ) : (
                       <div className="flex items-center gap-0.5">
@@ -351,14 +361,17 @@ export function LocacaoDetailPage() {
                     <Wallet className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-xs text-muted-foreground">
-                        {recebido ? "Recebido" : "A Receber"}
+                        {semAdm
+                          ? (recebido ? "Taxa Recebida" : "Taxa de Intermediação a Receber")
+                          : (recebido ? "Recebido" : "A Receber")}
                       </p>
                       <p className="text-sm font-medium">{formatCurrency(valorComissao)}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-              {/* Faxina — card separado com confirmação */}
+              {/* Faxina — card separado com confirmação. Não administrando, não há faxina a cobrar. */}
+              {!semAdm && (
               <Card className={`relative transition-colors ${faxinaRecebida ? "border-green-300 bg-green-50" : ""}`}>
                 <Button
                   variant={faxinaRecebida ? "default" : "outline"}
@@ -391,12 +404,19 @@ export function LocacaoDetailPage() {
                   </div>
                 </CardContent>
               </Card>
+              )}
               <Card>
                 <CardContent className="flex items-center gap-2 pt-3 pb-3">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Comissão</p>
-                    <p className="text-sm font-medium">{locacao.percentualComissao ?? 0}%</p>
+                    <p className="text-xs text-muted-foreground">
+                      {semAdm ? "Sem administração" : "Comissão"}
+                    </p>
+                    <p className="text-sm font-medium">
+                      {semAdm
+                        ? `${locacao.percentualPrimeiroAluguel ?? 0}% do 1º aluguel`
+                        : `${locacao.percentualComissao ?? 0}%`}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -817,8 +837,8 @@ export function LocacaoDetailPage() {
         </div>
       )}
 
-      {/* Reajuste Anual — só anual */}
-      {isAnual && (() => {
+      {/* Reajuste Anual — só anual. Não administrando o imóvel, não há reajuste a acompanhar. */}
+      {isAnual && !isSemAdministracao(locacao) && (() => {
         const checkOutLocal = toLocalDateStr(locacao.checkOut)
         const proxReajuste = calcProximoReajuste(locacao.checkIn, locacao.ultimoReajuste)
         const dias = Math.ceil((parseISO(proxReajuste).getTime() - parseISO(getTodayStr()).getTime()) / (1000 * 60 * 60 * 24))

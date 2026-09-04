@@ -65,6 +65,11 @@ export const locacaoSchema = z.object({
   // Reajuste anual (só anual)
   ultimoReajuste: z.string().optional(),
   clearUltimoReajuste: z.boolean().optional(),
+  // Sem administração (só anual) — intermediação: taxa única sobre o 1º aluguel
+  semAdministracao: z.boolean().optional(),
+  percentualPrimeiroAluguel: z.number().min(0).max(100).optional(),
+  mesTaxa: z.number().int().min(1).max(12).optional(),
+  anoTaxa: z.number().int().optional(),
   despesas: z.array(despesaSchema).optional(),
   notas: z.string().optional(),
   status: z.enum(locacaoStatuses),
@@ -73,6 +78,11 @@ export const locacaoSchema = z.object({
 })
 
 export type Locacao = z.infer<typeof locacaoSchema>
+
+/** Sem administração só faz sentido em locação anual. */
+function isSemAdmForm(data: { tipoLocacao?: string; semAdministracao?: boolean }): boolean {
+  return data.tipoLocacao === "anual" && data.semAdministracao === true
+}
 
 export const locacaoFormSchema = z.object({
   propriedadeId: z.string().min(1, "Selecione uma propriedade"),
@@ -100,7 +110,12 @@ export const locacaoFormSchema = z.object({
   valorMensal: z.number().min(0).optional().or(z.literal("")),
   tipoPagamento: z.enum(tipoPagamentoTypes),
   valorTotal: z.number().min(0).optional().or(z.literal("")),
-  percentualComissao: z.number({ message: "Informe a comissão" }).min(0.01, "Comissão deve ser maior que 0").max(100),
+  // Obrigatoriedade depende de semAdministracao — ver os refines no fim da cadeia
+  percentualComissao: z.number().min(0).max(100).optional().or(z.literal("")),
+  semAdministracao: z.boolean().optional(),
+  percentualPrimeiroAluguel: z.number().min(0).max(100).optional().or(z.literal("")),
+  mesTaxa: z.number().int().min(1).max(12).optional(),
+  anoTaxa: z.number().int().optional(),
   garantia: z.enum(garantiaTypes).optional().or(z.literal("")),
   notas: z.string().optional(),
 }).refine((data) => {
@@ -127,7 +142,18 @@ export const locacaoFormSchema = z.object({
 }, { message: "Informe o valor total", path: ["valorTotal"] }).refine((data) => {
   if (!data.incluirConjuge) return true
   return !!data.conjugeNome && data.conjugeNome.trim().length > 0
-}, { message: "Informe o nome do cônjuge", path: ["conjugeNome"] })
+}, { message: "Informe o nome do cônjuge", path: ["conjugeNome"] }).refine((data) => {
+  // Administrando o imóvel: comissão mensal é obrigatória
+  if (isSemAdmForm(data)) return true
+  return typeof data.percentualComissao === "number" && data.percentualComissao > 0
+}, { message: "Informe a comissão", path: ["percentualComissao"] }).refine((data) => {
+  // Sem administração: a receita é a taxa única sobre o 1º aluguel
+  if (!isSemAdmForm(data)) return true
+  return typeof data.percentualPrimeiroAluguel === "number" && data.percentualPrimeiroAluguel > 0
+}, { message: "Informe o % do primeiro aluguel", path: ["percentualPrimeiroAluguel"] }).refine((data) => {
+  if (!isSemAdmForm(data)) return true
+  return data.mesTaxa != null && data.anoTaxa != null
+}, { message: "Informe o mês do recebimento", path: ["mesTaxa"] })
 
 export type LocacaoFormData = z.infer<typeof locacaoFormSchema>
 

@@ -9,6 +9,7 @@ import { useAllPropertyComponents, useAllPendingScheduledMaintenances } from "./
 import { toLocalDateStr, getTodayStr } from "@/lib/date-utils"
 import { calcValorPagamento } from "@/lib/reservation-calculations"
 import { calcProximoReajuste, shouldAlertReajuste } from "@/lib/locacao-reajuste"
+import { calcTaxaIntermediacao, getTaxaDate, getTaxaMesAno, isSemAdministracao } from "@/lib/locacao-calculations"
 
 export type AlertType =
   | "checkin_hoje"
@@ -320,8 +321,22 @@ export function useAlerts() {
         }
       }
 
-      // Pagamento locação — paga e mora: pagamento no dia da entrada de cada mês
-      {
+      // Pagamento locação — paga e mora: pagamento no dia da entrada de cada mês.
+      // Sem administração: recebimento único (a taxa de intermediação), no mês da taxa.
+      if (isSemAdministracao(l)) {
+        const { mes: taxaMes, ano: taxaAno } = getTaxaMesAno(l)
+        const taxaDate = format(getTaxaDate(l), "yyyy-MM-dd")
+        if (taxaDate <= today && !recebidoSet.has(`${l.id}-${taxaMes}-${taxaAno}`)) {
+          const valorFormatado = calcTaxaIntermediacao(l).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+          result.push({
+            id: `loc-pagamento-${l.id}-${taxaMes}-${taxaAno}`,
+            type: "locacao_pagamento_pendente",
+            title: taxaDate === today ? "Taxa de Intermediação Hoje" : "Taxa de Intermediação Pendente",
+            description: `${valorFormatado} — ${l.nomeCompleto} — ${propNome}`,
+            link: `/longatemporada/${l.id}`,
+          })
+        }
+      } else {
         const checkInParsed = parseISO(checkInDate)
         const todayParsed = parseISO(today)
         const isAvista = l.tipoPagamento === "avista"
@@ -355,8 +370,9 @@ export function useAlerts() {
         }
       }
 
-      // Reajuste anual (só anual): 30 dias antes de cada ciclo de 12 meses
-      if (l.tipoLocacao === "anual") {
+      // Reajuste anual (só anual): 30 dias antes de cada ciclo de 12 meses.
+      // Não administrando o imóvel, não há reajuste a acompanhar.
+      if (l.tipoLocacao === "anual" && !isSemAdministracao(l)) {
         const proximoReajuste = calcProximoReajuste(l.checkIn, l.ultimoReajuste)
         if (shouldAlertReajuste(proximoReajuste, l.checkOut, today)) {
           const diasAteReajuste = differenceInDays(parseISO(proximoReajuste), new Date())

@@ -28,6 +28,7 @@ import { useReservations, useUpdateReservation } from "@/hooks/use-reservations"
 import { useLocacoes, useRecebimentosLocacao } from "@/hooks/use-locacoes"
 import { usePropertyMap } from "@/hooks/use-property-map"
 import { formatDate, toLocalDateStr } from "@/lib/date-utils"
+import { calcTaxaIntermediacao, getTaxaYM, isSemAdministracao } from "@/lib/locacao-calculations"
 import { formatCurrency } from "@/lib/constants"
 import { getErrorMessage } from "@/lib/api"
 import { toast } from "sonner"
@@ -200,8 +201,13 @@ export function ReportsPage() {
       const checkInLocal = new Date(cy, cm - 1, cd)
       const checkOutLocal = new Date(oy, om - 1, od)
 
+      const semAdm = isSemAdministracao(l)
+
       let hasPayment = false
-      if (l.tipoPagamento === "avista") {
+      if (semAdm) {
+        // Sem administração: recebimento único, no mês da taxa de intermediação
+        hasPayment = getTaxaYM(l) === reportYM
+      } else if (l.tipoPagamento === "avista") {
         hasPayment = format(checkInLocal, "yyyy-MM") === reportYM
       } else {
         // Mensal: pagamento no dia da entrada de cada mês
@@ -215,9 +221,10 @@ export function ReportsPage() {
         }
       }
 
-      // Faxina de saída aparece junto com o último pagamento (último ciclo antes do checkout)
+      // Faxina de saída aparece junto com o último pagamento (último ciclo antes do checkout).
+      // Sem administração não há faxina a cobrar.
       let hasFaxina = false
-      if (l.faxinaStatus === "agendada") {
+      if (!semAdm && l.faxinaStatus === "agendada") {
         if (l.tipoPagamento === "avista") {
           hasFaxina = format(checkInLocal, "yyyy-MM") === reportYM
         } else {
@@ -244,6 +251,11 @@ export function ReportsPage() {
   // Se já confirmado, deriva do valorRecebido armazenado (preserva valor antes de reajuste)
   function getLocacaoBruto(l: Locacao, hasPayment: boolean): number {
     if (!hasPayment) return 0
+    // Sem administração o bruto é o primeiro aluguel — não dá para reverter a partir do valor
+    // recebido, porque a taxa é uma fração dele e percentualComissao não se aplica.
+    if (isSemAdministracao(l)) {
+      return l.tipoPagamento === "avista" ? (l.valorTotal ?? 0) : (l.valorMensal ?? 0)
+    }
     const valorRecebido = locacaoValorRecebidoMap.get(l.id)
     if (valorRecebido != null) {
       const pct = l.percentualComissao ?? 0
@@ -258,6 +270,7 @@ export function ReportsPage() {
     // Se já confirmado, usar valor armazenado (preserva valor antes de reajuste)
     const valorRecebido = locacaoValorRecebidoMap.get(l.id)
     if (valorRecebido != null) return valorRecebido
+    if (isSemAdministracao(l)) return calcTaxaIntermediacao(l)
     const bruto = getLocacaoBruto(l, hasPayment)
     return (bruto * (l.percentualComissao ?? 0)) / 100
   }
@@ -273,6 +286,7 @@ export function ReportsPage() {
   }
 
   function calcLocacaoFaxinaReceita(l: Locacao, property: { taxaLimpeza?: number } | undefined): number {
+    if (isSemAdministracao(l)) return 0
     if (l.faxinaStatus !== "agendada") return 0
     const taxaLimpeza = l.taxaLimpeza ?? property?.taxaLimpeza ?? 0
     if (l.faxinaPorMim) return taxaLimpeza
@@ -570,7 +584,10 @@ export function ReportsPage() {
                   {(locacoesByProperty.get(propertyId) ?? []).map((loc) => {
                     const info = locacaoInfoMap.get(loc.id)!
                     const bruto = getLocacaoBruto(loc, info.hasPayment)
-                    const comissaoPercent = loc.percentualComissao ?? 0
+                    const locSemAdm = isSemAdministracao(loc)
+                    const comissaoPercent = locSemAdm
+                      ? (loc.percentualPrimeiroAluguel ?? 0)
+                      : (loc.percentualComissao ?? 0)
                     const comissaoValor = getLocacaoComissao(loc, info.hasPayment)
                     const faxinaReceita = info.hasFaxina ? calcLocacaoFaxinaReceita(loc, property) : 0
                     const { naoReembolsavel: locDespNaoReemb, reembolsavel: locDespReemb } = getLocacaoDespesas(loc)
@@ -593,7 +610,16 @@ export function ReportsPage() {
                         <TableCell className="whitespace-nowrap">{formatDate(loc.checkOut)}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">{bruto > 0 ? formatCurrency(bruto) : "—"}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">{bruto > 0 ? formatCurrency(liquido) : "—"}</TableCell>
-                        <TableCell className="text-right whitespace-nowrap">{info.hasPayment ? `${comissaoPercent}%` : "—"}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">
+                          {info.hasPayment ? (
+                            <>
+                              {comissaoPercent}%
+                              {locSemAdm && (
+                                <span className="block text-[10px] text-muted-foreground leading-tight">1º aluguel</span>
+                              )}
+                            </>
+                          ) : "—"}
+                        </TableCell>
                         <TableCell className="text-right whitespace-nowrap">{info.hasPayment ? formatCurrency(comissaoValor) : "—"}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">
                           {faxinaReceita > 0 ? (
